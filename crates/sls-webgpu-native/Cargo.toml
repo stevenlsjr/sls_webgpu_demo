@@ -5,8 +5,17 @@ authors = ["Steve Shea <stevenlsjr@gmail.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+pollster = "0.2"
+env_logger = "0.8.3"
+log = "0.4.14"
+
+[dev-dependencies]
+
+[dependencies.sdl2]
+version = "0.34.4"
+features = ["default", "raw-window-handle"]
 
 [dependencies.sls-webgpu]
 path = "../../"
+features = ["sdl2_backend"]
