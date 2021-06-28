@@ -6,6 +6,7 @@ use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
 use sls_webgpu::context::Context;
 use log::{warn};
+use sls_webgpu::game::GameState;
 
 fn main() -> Result<(), String> {
   env_logger::init();
@@ -23,6 +24,7 @@ fn main() -> Result<(), String> {
     .build())
     .map_err(|e| format!("{}", e))?;
 
+  let game_state = GameState::new();
 
   'running: loop {
     for event in event_pump.poll_iter() {

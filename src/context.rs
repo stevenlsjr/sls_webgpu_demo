@@ -2,8 +2,6 @@ use crate::error::Error;
 use crate::geometry::{Vertex, TRIANGLE_INDICES, TRIANGLE_VERT};
 use crate::mesh::{Mesh, MeshGeometry};
 use crate::window::AsWindow;
-use raw_window_handle::HasRawWindowHandle;
-use std::borrow::Cow;
 use std::fmt::Formatter;
 use std::{error, fmt};
 use wgpu::util::{DeviceExt, BufferInitDescriptor};
@@ -23,7 +21,7 @@ pub struct Context<W: AsWindow> {
   pub pipeline_layout: wgpu::PipelineLayout,
 
   render_pipeline: wgpu::RenderPipeline,
-
+  uniform_bind_group: wgpu::BindGroup,
   // scene resources
   mesh: Mesh,
   uniforms: Uniforms,
@@ -41,7 +39,12 @@ impl<W: AsWindow> fmt::Debug for Context<W> {
 
 impl<W: AsWindow> Context<W> {
   pub fn new(window: W) -> Builder<W> {
-    Builder { window, size: None }
+    Builder { window, size: None, camera: Camera::default() }
+  }
+
+  pub fn camera(mut self, camera: Camera) -> Self {
+    self.camera = camera;
+    self
   }
 
   pub fn on_resize(&mut self, size: (u32, u32)) {
@@ -80,6 +83,7 @@ impl<W: AsWindow> Context<W> {
         depth_stencil_attachment: None,
       });
       render_pass.set_pipeline(&self.render_pipeline);
+      render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
 
       if let Some(mesh) = self.mesh.buffers() {
         let n_indices = self.mesh.geometry().indices.len() as u32;
@@ -102,6 +106,7 @@ impl<W: AsWindow> Drop for Context<W> {
 pub struct Builder<W: AsWindow> {
   size: Option<(i32, i32)>,
   window: W,
+  pub camera: Camera,
 }
 
 impl<W: AsWindow> Builder<W> {
@@ -129,9 +134,47 @@ impl<W: AsWindow> Builder<W> {
       )
       .await
       .map_err(Error::from_error)?;
+
+    let mut uniforms = Uniforms::default();
+    let camera = self.camera.clone();
+    uniforms.update_from_camera(&camera);
+
+    let uniform_buffer =
+      device.create_buffer_init(&BufferInitDescriptor {
+        label: Some("Main UBO"),
+        contents: bytemuck::cast_slice(&[uniforms.clone()]),
+        usage: wgpu::BufferUsage::UNIFORM,
+      });
+
+    let ubo_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+      label: Some("ubo_layout"),
+      entries: &[
+        wgpu::BindGroupLayoutEntry {
+          binding: 0,
+          visibility: wgpu::ShaderStage::VERTEX,
+          ty: wgpu::BindingType::Buffer {
+            ty: wgpu::BufferBindingType::Uniform,
+            has_dynamic_offset: false,
+            min_binding_size: None,
+          },
+          count: None,
+        }
+      ],
+    });
+    let uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+      layout: &ubo_layout,
+      entries: &[
+        wgpu::BindGroupEntry {
+          binding: 0,
+          resource: uniform_buffer.as_entire_binding()
+        }
+      ],
+      label: Some("ubo_bind_group")
+    });
+
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-      label: None,
-      bind_group_layouts: &[],
+      label: Some("pipeline_layout"),
+      bind_group_layouts: &[&ubo_layout],
       push_constant_ranges: &[],
     });
     let (w_width, w_height) = self.window.size();
@@ -164,16 +207,7 @@ impl<W: AsWindow> Builder<W> {
       };
       Mesh::from_geometry(geom, &device)?
     };
-    let mut uniforms = Uniforms::default();
-    let camera = Camera::default();
-    uniforms.update_from_camera(&camera);
 
-    let uniform_buffer =
-      device.create_buffer_init(&BufferInitDescriptor {
-        label: Some("Main UBO"),
-        contents: bytemuck::cast_slice(&[uniforms.clone()]),
-        usage: wgpu::BufferUsage::UNIFORM,
-      });
     let result = Ok(Context {
       window: self.window,
       surface,
@@ -189,6 +223,7 @@ impl<W: AsWindow> Builder<W> {
       camera,
       uniforms,
       uniform_buffer,
+      uniform_bind_group,
     });
     result
   }

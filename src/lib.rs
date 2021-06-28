@@ -5,6 +5,9 @@ pub mod geometry;
 pub mod mesh;
 pub mod window;
 pub mod uniforms;
+pub mod game;
+
+pub use legion;
 
 pub use context::Context;
 pub use error::Error;

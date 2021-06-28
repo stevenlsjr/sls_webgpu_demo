@@ -1,17 +1,16 @@
-use nalgebra_glm as glm;
+use nalgebra_glm::*;
 use crate::camera::Camera;
 #[repr(C)]
-#[derive(Debug, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Debug,Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Uniforms {
-  pub view_projection: [f32; 16],
+  pub view_projection: [[f32; 4]; 4],
 }
 
 impl Default for Uniforms {
   fn default() -> Self {
-    let view_projection = glm::identity::<f32, 4>();
-
+    let view_projection = Mat4::identity();
     Self {
-      view_projection: view_projection.into()
+      view_projection: view_projection.as_ref().clone()
     }
   }
 }
