@@ -1,13 +1,13 @@
+use crate::camera::Camera;
 use crate::error::Error;
 use crate::geometry::{Vertex, TRIANGLE_INDICES, TRIANGLE_VERT};
 use crate::mesh::{Mesh, MeshGeometry};
-use crate::window::AsWindow;
-use std::fmt::Formatter;
-use std::{error, fmt};
-use wgpu::util::{DeviceExt, BufferInitDescriptor};
-use wgpu::RenderPipeline;
-use crate::camera::Camera;
 use crate::uniforms::Uniforms;
+use crate::window::AsWindow;
+use std::fmt;
+use std::fmt::Formatter;
+use wgpu::util::{BufferInitDescriptor, DeviceExt};
+use wgpu::RenderPipeline;
 
 pub struct Context<W: AsWindow> {
   pub window: W,
@@ -39,7 +39,11 @@ impl<W: AsWindow> fmt::Debug for Context<W> {
 
 impl<W: AsWindow> Context<W> {
   pub fn new(window: W) -> Builder<W> {
-    Builder { window, size: None, camera: Camera::default() }
+    Builder {
+      window,
+      size: None,
+      camera: Camera::default(),
+    }
   }
 
   pub fn camera(mut self, camera: Camera) -> Self {
@@ -88,8 +92,7 @@ impl<W: AsWindow> Context<W> {
       if let Some(mesh) = self.mesh.buffers() {
         let n_indices = self.mesh.geometry().indices.len() as u32;
         render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-        render_pass
-          .set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+        render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
         render_pass.draw_indexed(0..n_indices, 0, 0..1);
       }
     };
@@ -110,7 +113,7 @@ pub struct Builder<W: AsWindow> {
 }
 
 impl<W: AsWindow> Builder<W> {
-  pub async fn build(mut self) -> Result<Context<W>, Error> {
+  pub async fn build(self) -> Result<Context<W>, Error> {
     let instance = wgpu::Instance::new(wgpu::BackendBit::all());
     let surface = unsafe { instance.create_surface(&self.window) };
     let adapter = instance
@@ -139,37 +142,32 @@ impl<W: AsWindow> Builder<W> {
     let camera = self.camera.clone();
     uniforms.update_from_camera(&camera);
 
-    let uniform_buffer =
-      device.create_buffer_init(&BufferInitDescriptor {
-        label: Some("Main UBO"),
-        contents: bytemuck::cast_slice(&[uniforms.clone()]),
-        usage: wgpu::BufferUsage::UNIFORM,
-      });
+    let uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
+      label: Some("Main UBO"),
+      contents: bytemuck::cast_slice(&[uniforms.clone()]),
+      usage: wgpu::BufferUsage::UNIFORM,
+    });
 
     let ubo_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
       label: Some("ubo_layout"),
-      entries: &[
-        wgpu::BindGroupLayoutEntry {
-          binding: 0,
-          visibility: wgpu::ShaderStage::VERTEX,
-          ty: wgpu::BindingType::Buffer {
-            ty: wgpu::BufferBindingType::Uniform,
-            has_dynamic_offset: false,
-            min_binding_size: None,
-          },
-          count: None,
-        }
-      ],
+      entries: &[wgpu::BindGroupLayoutEntry {
+        binding: 0,
+        visibility: wgpu::ShaderStage::VERTEX,
+        ty: wgpu::BindingType::Buffer {
+          ty: wgpu::BufferBindingType::Uniform,
+          has_dynamic_offset: false,
+          min_binding_size: None,
+        },
+        count: None,
+      }],
     });
     let uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
       layout: &ubo_layout,
-      entries: &[
-        wgpu::BindGroupEntry {
-          binding: 0,
-          resource: uniform_buffer.as_entire_binding()
-        }
-      ],
-      label: Some("ubo_bind_group")
+      entries: &[wgpu::BindGroupEntry {
+        binding: 0,
+        resource: uniform_buffer.as_entire_binding(),
+      }],
+      label: Some("ubo_bind_group"),
     });
 
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -229,6 +227,7 @@ impl<W: AsWindow> Builder<W> {
   }
 
   pub fn with_size(mut self, size: (i32, i32)) -> Self {
+    self.size = Some(size);
     self
   }
 }

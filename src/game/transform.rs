@@ -4,7 +4,7 @@ use nalgebra_glm::*;
 pub struct Transform {
   pub position: Vec3,
   pub scale: Vec3,
-  pub rotation: Quat
+  pub rotation: Quat,
 }
 
 impl Default for Transform {
@@ -12,7 +12,7 @@ impl Default for Transform {
     Self {
       position: vec3(0.0, 0.0, 0.0),
       scale: vec3(1.0, 1.0, 1.0),
-      rotation: Quat::identity()
+      rotation: Quat::identity(),
     }
   }
 }

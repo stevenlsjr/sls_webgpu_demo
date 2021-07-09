@@ -10,7 +10,12 @@ OUT_DIR:=
 FRAG_OUT=$(FRAG_GLSL:%.frag=$(OUT_DIR)%.frag.spv)
 VERT_OUT=$(VERT_GLSL:%.vert=$(OUT_DIR)%.vert.spv)
 SPIRV_OUT=$(FRAG_OUT) $(VERT_OUT)
+ifneq ($(OS),Windows_NT)
 SPIRV_DIRS=$(dir $(SPIRV_OUT))
+else
+SPIRV_DIRS=$(patsubst /,\\,$(dir $(SPIRV_OUT)))
+endif
+
 $(OUT_DIR)%.vert.spv: %.vert
 	$(GLSLC)  $(GLSLCFLAGS) -o $@ $^
 $(OUT_DIR)%.frag.spv: %.frag
@@ -18,7 +23,12 @@ $(OUT_DIR)%.frag.spv: %.frag
 
 all: before $(SPIRV_OUT)
 
-before:
+before: $(SPIRV_DIRS)
+ifneq ($(OS),Windows_NT)
+	mkdir -p $(SPIRV_DIRS)
+else
+	@powershell -command "$(foreach dir,$(SPIRV_DIRS),mkdir -path $(dir) -force | out-null;)"
+endif
 
 clean:
 	rm $(FRAG_OUT) $(VERT_OUT)
