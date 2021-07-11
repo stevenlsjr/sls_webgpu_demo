@@ -1,29 +1,26 @@
 use log::error;
-use log::warn;
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
 use sdl2::video::{Window, WindowBuildError};
-use sdl2::{EventPump, Sdl};
+use sdl2::{EventPump};
 use sls_webgpu::context::Context;
 use sls_webgpu::game::input::{InputResource, Sdl2Input};
 use sls_webgpu::game::{CreateGameParams, GameState};
 use sls_webgpu::platform::gui::ImguiPlatform;
-use sls_webgpu::platform::sdl2_backend::ImguiSdlPlatform;
-use std::any::Any;
-use std::error::Error;
+use sls_webgpu::{platform::sdl2_backend::ImguiSdlPlatform, imgui};
 use std::ops::DerefMut;
 use std::sync::{Arc, RwLock};
 use std::time::*;
 
-pub struct App {
+pub struct App<'a> {
   pub(crate) context: Context<Window>,
   pub(crate) event_pump: EventPump,
   pub(crate) game_state: GameState,
-  pub(crate) imgui_platform: Arc<RwLock<ImguiSdlPlatform>>,
+  pub(crate) imgui_platform: Arc<RwLock<ImguiSdlPlatform<'a>>>,
   pub(crate) sdl: sdl2::Sdl,
 }
 
-impl App {
+impl<'a> App<'a> {
   pub(crate) fn run(&mut self) {
     self.game_state.set_is_running(true);
     let mut previous_time = Instant::now();
@@ -43,6 +40,8 @@ impl App {
       }
       // per frame update
       self.game_state.update(&elapsed_time);
+      self.update_gui(&elapsed_time);
+
       // fixed-dt update (for physics and stuff)
       while update_lag >= ms_per_update {
         self.game_state.fixed_update(&ms_per_update);
@@ -68,7 +67,7 @@ impl App {
     let imgui_platform = self.imgui_platform.clone();
     let mut imgui_lock = imgui_platform
       .write()
-      .unwrap_or_else(|e| panic!("imgui rwlock is poisoned!"));
+      .unwrap_or_else(|e| panic!("imgui rwlock is poisoned!: {:?}", e));
     for event in self.event_pump.poll_iter() {
       imgui_lock.handle_event(&event);
       match event {
@@ -102,5 +101,17 @@ impl App {
       .ok_or("input backend is not set as SDL2!")?;
     sdl2_input.sync_input(&self.sdl, &self.event_pump);
     Ok(())
+  }
+  fn update_gui(&mut self, dt: &Duration) {
+    use sls_webgpu::imgui::*;
+    let mut im = self.imgui_platform.write().unwrap();
+    let ui = im.context.frame();
+    Window::new(im_str!("Hello"))
+      .size([300.0, 100.0], Condition::FirstUseEver)
+      .build(&ui, || {
+        ui.text(im_str!("Hello world!!!"));
+        ui.text(format!("DT: {:?}", dt));
+      })
+
   }
 }

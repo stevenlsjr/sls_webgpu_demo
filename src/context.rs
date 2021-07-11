@@ -121,170 +121,173 @@ impl<W: AsWindow> Context<W> {
           };
           if let Some(imgui_platform) = imgui_platform {
             use imgui::Ui;
-            imgui_platform.render( &self.queue, &self.device, &mut render_pass);
-          }
+            let imgui_ref = imgui_platform.imgui_ref_mut();
+            let ui = imgui_ref.context.frame();
+            let draw_data = ui.render();
 
-          self.queue.submit(std::iter::once(encoder.finish()));
-          Ok(())
+            imgui_ref.renderer.render(draw_data, &self.queue,&self.device, &mut render_pass);
+          }
         }
+        self.queue.submit(std::iter::once(encoder.finish()));
+        Ok(())
       }
     }
   }
 }
 
-    impl<W: AsWindow> Drop for Context<W> {
-      fn drop(&mut self) {}
-    }
+impl<W: AsWindow> Drop for Context<W> {
+  fn drop(&mut self) {}
+}
 
-    pub struct Builder<W: AsWindow> {
-      size: Option<(i32, i32)>,
-      window: W,
-    }
+pub struct Builder<W: AsWindow> {
+  size: Option<(i32, i32)>,
+  window: W,
+}
 
-    impl<W: AsWindow> Builder<W> {
-      pub async fn build(self) -> Result<Context<W>, Error> {
-        use crate::platform;
-        let instance = wgpu::Instance::new(wgpu::BackendBit::all());
-        let surface = unsafe { instance.create_surface(&self.window) };
-        let adapter = instance
-          .request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::default(),
-            compatible_surface: Some(&surface),
-          })
-          .await
-          .ok_or_else(|| Error::Create {
-            reason: "could not create adapter".into(),
-          })?;
+impl<W: AsWindow> Builder<W> {
+  pub async fn build(self) -> Result<Context<W>, Error> {
+    use crate::platform;
+    let instance = wgpu::Instance::new(wgpu::BackendBit::all());
+    let surface = unsafe { instance.create_surface(&self.window) };
+    let adapter = instance
+      .request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::default(),
+        compatible_surface: Some(&surface),
+      })
+      .await
+      .ok_or_else(|| Error::Create {
+        reason: "could not create adapter".into(),
+      })?;
 
-        let (device, queue) = adapter
-          .request_device(
-            &wgpu::DeviceDescriptor {
-              label: None,
-              features: wgpu::Features::empty(),
-              limits: wgpu::Limits::default(),
-            },
-            None,
-          )
-          .await
-          .map_err(Error::from_error)?;
-
-        let mut uniforms = Uniforms::default();
-        // let camera = self.camera;
-        // uniforms.update_from_camera(&camera);
-
-        let uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
-          label: Some("Main UBO"),
-          contents: bytemuck::cast_slice(&[uniforms.clone()]),
-          usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-        });
-
-        let ubo_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-          label: Some("ubo_layout"),
-          entries: &[wgpu::BindGroupLayoutEntry {
-            binding: 0,
-            visibility: wgpu::ShaderStage::VERTEX,
-            ty: wgpu::BindingType::Buffer {
-              ty: wgpu::BufferBindingType::Uniform,
-              has_dynamic_offset: false,
-              min_binding_size: None,
-            },
-            count: None,
-          }],
-        });
-        let uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-          layout: &ubo_layout,
-          entries: &[wgpu::BindGroupEntry {
-            binding: 0,
-            resource: uniform_buffer.as_entire_binding(),
-          }],
-          label: Some("ubo_bind_group"),
-        });
-
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-          label: Some("pipeline_layout"),
-          bind_group_layouts: &[&ubo_layout],
-          push_constant_ranges: &[],
-        });
-        let (w_width, w_height) = self.window.size();
-        let sc_desc = wgpu::SwapChainDescriptor {
-          usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
-          format: adapter.get_swap_chain_preferred_format(&surface).unwrap(),
-          width: w_width,
-          height: w_height,
-          present_mode: wgpu::PresentMode::Fifo,
-        };
-        let swapchain = device.create_swap_chain(&surface, &sc_desc);
-        let main_vert_shader =
-          device.create_shader_module(&wgpu::include_spirv!("shaders/main.vert.spv"));
-        let main_frag_shader =
-          device.create_shader_module(&wgpu::include_spirv!("shaders/main.frag.spv"));
-
-        let render_pipeline = create_render_pipeline(
-          &device,
-          &sc_desc,
-          &pipeline_layout,
-          &main_vert_shader,
-          &main_frag_shader,
-        )?;
-
-        let mesh = {
-          let geom = MeshGeometry {
-            vertices: TRIANGLE_VERT.to_vec(),
-            indices: TRIANGLE_INDICES.to_vec(),
-            label: Some("Triangle".to_string()),
-          };
-          Mesh::from_geometry(geom, &device)?
-        };
-
-        let result = Ok(Context {
-          window: self.window,
-          surface,
-          instance,
-          adapter,
-          device,
-          queue,
-          pipeline_layout,
-          sc_desc,
-          swapchain,
-          render_pipeline,
-          mesh,
-          uniforms,
-          uniform_buffer,
-          uniform_bind_group,
-        });
-        result
-      }
-
-      pub fn with_size(mut self, size: (i32, i32)) -> Self {
-        self.size = Some(size);
-        self
-      }
-    }
-
-    fn create_render_pipeline(
-      device: &wgpu::Device,
-      sc_desc: &wgpu::SwapChainDescriptor,
-      layout: &wgpu::PipelineLayout,
-      vert_shader: &wgpu::ShaderModule,
-      frag_shader: &wgpu::ShaderModule,
-    ) -> Result<RenderPipeline, Error> {
-      let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: Some("Render Pipeline"),
-        layout: Some(layout),
-        vertex: wgpu::VertexState {
-          module: vert_shader,
-          entry_point: "main",
-          buffers: &[Vertex::desc()],
+    let (device, queue) = adapter
+      .request_device(
+        &wgpu::DeviceDescriptor {
+          label: None,
+          features: wgpu::Features::empty(),
+          limits: wgpu::Limits::default(),
         },
-        fragment: Some(wgpu::FragmentState {
-          module: &frag_shader,
-          entry_point: "main",
-          targets: &[sc_desc.format.into()],
-        }),
-        primitive: wgpu::PrimitiveState::default(),
-        depth_stencil: None,
-        multisample: wgpu::MultisampleState::default(),
-      });
+        None,
+      )
+      .await
+      .map_err(Error::from_error)?;
 
-      Ok(render_pipeline)
-    }
+    let mut uniforms = Uniforms::default();
+    // let camera = self.camera;
+    // uniforms.update_from_camera(&camera);
+
+    let uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
+      label: Some("Main UBO"),
+      contents: bytemuck::cast_slice(&[uniforms.clone()]),
+      usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+    });
+
+    let ubo_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+      label: Some("ubo_layout"),
+      entries: &[wgpu::BindGroupLayoutEntry {
+        binding: 0,
+        visibility: wgpu::ShaderStage::VERTEX,
+        ty: wgpu::BindingType::Buffer {
+          ty: wgpu::BufferBindingType::Uniform,
+          has_dynamic_offset: false,
+          min_binding_size: None,
+        },
+        count: None,
+      }],
+    });
+    let uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+      layout: &ubo_layout,
+      entries: &[wgpu::BindGroupEntry {
+        binding: 0,
+        resource: uniform_buffer.as_entire_binding(),
+      }],
+      label: Some("ubo_bind_group"),
+    });
+
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+      label: Some("pipeline_layout"),
+      bind_group_layouts: &[&ubo_layout],
+      push_constant_ranges: &[],
+    });
+    let (w_width, w_height) = self.window.size();
+    let sc_desc = wgpu::SwapChainDescriptor {
+      usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
+      format: adapter.get_swap_chain_preferred_format(&surface).unwrap(),
+      width: w_width,
+      height: w_height,
+      present_mode: wgpu::PresentMode::Fifo,
+    };
+    let swapchain = device.create_swap_chain(&surface, &sc_desc);
+    let main_vert_shader =
+      device.create_shader_module(&wgpu::include_spirv!("shaders/main.vert.spv"));
+    let main_frag_shader =
+      device.create_shader_module(&wgpu::include_spirv!("shaders/main.frag.spv"));
+
+    let render_pipeline = create_render_pipeline(
+      &device,
+      &sc_desc,
+      &pipeline_layout,
+      &main_vert_shader,
+      &main_frag_shader,
+    )?;
+
+    let mesh = {
+      let geom = MeshGeometry {
+        vertices: TRIANGLE_VERT.to_vec(),
+        indices: TRIANGLE_INDICES.to_vec(),
+        label: Some("Triangle".to_string()),
+      };
+      Mesh::from_geometry(geom, &device)?
+    };
+
+    let result = Ok(Context {
+      window: self.window,
+      surface,
+      instance,
+      adapter,
+      device,
+      queue,
+      pipeline_layout,
+      sc_desc,
+      swapchain,
+      render_pipeline,
+      mesh,
+      uniforms,
+      uniform_buffer,
+      uniform_bind_group,
+    });
+    result
+  }
+
+  pub fn with_size(mut self, size: (i32, i32)) -> Self {
+    self.size = Some(size);
+    self
+  }
+}
+
+fn create_render_pipeline(
+  device: &wgpu::Device,
+  sc_desc: &wgpu::SwapChainDescriptor,
+  layout: &wgpu::PipelineLayout,
+  vert_shader: &wgpu::ShaderModule,
+  frag_shader: &wgpu::ShaderModule,
+) -> Result<RenderPipeline, Error> {
+  let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+    label: Some("Render Pipeline"),
+    layout: Some(layout),
+    vertex: wgpu::VertexState {
+      module: vert_shader,
+      entry_point: "main",
+      buffers: &[Vertex::desc()],
+    },
+    fragment: Some(wgpu::FragmentState {
+      module: &frag_shader,
+      entry_point: "main",
+      targets: &[sc_desc.format.into()],
+    }),
+    primitive: wgpu::PrimitiveState::default(),
+    depth_stencil: None,
+    multisample: wgpu::MultisampleState::default(),
+  });
+
+  Ok(render_pipeline)
+}

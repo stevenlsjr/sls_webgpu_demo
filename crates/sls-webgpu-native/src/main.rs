@@ -1,24 +1,22 @@
-mod app;
-mod traits;
-
-use app::*;
-
-use log::error;
-use log::warn;
-use sdl2::event::{Event, WindowEvent};
-use sdl2::keyboard::Keycode;
-use sdl2::video::{Window, WindowBuildError};
-use sdl2::{EventPump, Sdl};
-use sls_webgpu::context::Context;
-use sls_webgpu::game::input::{InputResource, Sdl2Input};
-use sls_webgpu::game::{CreateGameParams, GameState};
-use sls_webgpu::platform::gui;
-use sls_webgpu::platform::sdl2_backend::ImguiSdlPlatform;
-use sls_webgpu::{imgui, imgui_wgpu};
 use std::any::Any;
 use std::error::Error;
 use std::sync::{Arc, RwLock};
 use std::time::*;
+
+use sdl2::{EventPump, Sdl};
+use sdl2::keyboard::Keycode;
+use sdl2::video::{Window, WindowBuildError};
+
+use app::*;
+use sls_webgpu::{imgui, imgui_wgpu};
+use sls_webgpu::context::Context;
+use sls_webgpu::game::{CreateGameParams, GameState};
+use sls_webgpu::game::input::{InputResource, Sdl2Input};
+use sls_webgpu::platform::gui;
+use sls_webgpu::platform::sdl2_backend::ImguiSdlPlatform;
+
+mod app;
+mod traits;
 
 fn main() -> Result<(), String> {
   env_logger::init();
@@ -30,7 +28,6 @@ fn main() -> Result<(), String> {
     .position_centered()
     .build()
     .map_err(|e| e.to_string())?;
-  let (width, height) = window.size();
   let event_pump = sdl.event_pump()?;
   let context = pollster::block_on(Context::new(window).build()).map_err(|e| format!("{}", e))?;
 
@@ -42,12 +39,10 @@ fn main() -> Result<(), String> {
     gui::Options {
       ..Default::default()
     },
-    imgui_wgpu::RendererConfig::new(),
-    &context.device,
-    &context.queue,
-    &context.window,
+    imgui_wgpu::RendererConfig { ..imgui_wgpu::RendererConfig::new_srgb() },
+    &context
   )
-  .map_err(|e| format!("{}", e))?;
+    .map_err(|e| format!("{}", e))?;
   let imgui_platform = Arc::new(RwLock::new(imgui_platform));
 
   let mut app = App {

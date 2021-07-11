@@ -1,32 +1,40 @@
 use crate::platform::gui;
-use crate::platform::gui::ImguiPlatform;
+use crate::platform::gui::{ImguiPlatform, ImguiRefMut};
 use imgui::Context;
 use imgui_wgpu::Renderer;
 use sdl2::mouse::MouseWheelDirection;
 use std::fmt;
 use std::fmt::Formatter;
 use std::time::Duration;
+use crate::imgui::Ui;
 
 #[derive()]
-pub struct ImguiSdlPlatform {
+pub struct ImguiSdlPlatform<'a> {
   pub context: imgui::Context,
+  pub frame: Option<imgui::Ui<'a>>,
   pub renderer: imgui_wgpu::Renderer,
 }
 
-impl ImguiSdlPlatform {
+impl<'a> ImguiSdlPlatform<'a> {
   pub fn new(
     context_options: gui::Options,
     renderer_options: imgui_wgpu::RendererConfig,
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    window: &sdl2::video::Window,
+    render_context: &crate::Context<sdl2::video::Window>,
   ) -> Result<Self, crate::Error> {
     let mut context = gui::create_imgui(context_options);
+    let texture_format = render_context.adapter
+      .get_swap_chain_preferred_format(&render_context.surface)
+      .unwrap_or(renderer_options.texture_format);
+    let renderer_options = imgui_wgpu::RendererConfig {
+      texture_format,
+      ..renderer_options
+    };
 
-    let renderer = imgui_wgpu::Renderer::new(&mut context, device, queue, renderer_options);
+    let renderer = imgui_wgpu::Renderer::new(&mut context, &render_context.device,
+                                             &render_context.queue, renderer_options);
 
-    let mut platform = Self { renderer, context };
-    platform.set_size_from_window(window);
+    let mut platform = Self { renderer, context, frame: None };
+    platform.set_size_from_window(&render_context.window);
     Ok(platform)
   }
 
@@ -36,12 +44,19 @@ impl ImguiSdlPlatform {
     io.display_size = [width as f32, height as f32];
   }
 
+  fn on_resize(&mut self, size: (u32, u32)) {
+    let io = self.context.io_mut();
+    io.display_size = [size.0 as f32, size.1 as f32];
+  }
+
   pub fn handle_event(&mut self, event: &sdl2::event::Event) {
     use sdl2::event::*;
     let mut io = self.context.io_mut();
     match event {
       Event::Window { win_event, .. } => match win_event {
-        WindowEvent::Resized(w, h) => {}
+        WindowEvent::Resized(w, h) => {
+          self.on_resize((*w as u32, *h as u32));
+        }
         _ => {}
       },
       Event::MouseMotion { mousestate, .. } => {
@@ -72,7 +87,7 @@ impl ImguiSdlPlatform {
   }
 }
 
-impl fmt::Debug for ImguiSdlPlatform {
+impl<'a> fmt::Debug for ImguiSdlPlatform<'a> {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     f.debug_struct("ImguiSdlPlatform")
       .field("context", &self.context)
@@ -81,7 +96,7 @@ impl fmt::Debug for ImguiSdlPlatform {
   }
 }
 
-impl ImguiPlatform for ImguiSdlPlatform {
+impl<'a> ImguiPlatform for ImguiSdlPlatform<'a> {
   fn context(&self) -> &Context {
     &self.context
   }
@@ -96,5 +111,22 @@ impl ImguiPlatform for ImguiSdlPlatform {
 
   fn renderer_mut(&mut self) -> &mut Renderer {
     &mut self.renderer
+  }
+
+  fn frame(&self) -> &Option<Ui> {
+    &self.frame
+  }
+
+  fn new_frame(&mut self) {
+    let frame = self.context.frame();
+    self.frame = Some(frame)
+  }
+
+  fn imgui_ref_mut(&mut self) -> ImguiRefMut {
+    ImguiRefMut {
+      renderer: &mut self.renderer,
+      context: &mut self.context,
+      frame: &self.frame
+    }
   }
 }
