@@ -8,14 +8,13 @@ pub mod platform;
 pub mod uniforms;
 pub mod window;
 
+// publically export imgui
+pub use imgui;
+pub use imgui_wgpu;
+
 pub use legion;
 
 pub use context::Context;
 pub use error::Error;
 #[cfg(test)]
-mod tests {
-  #[test]
-  fn it_works() {
-    assert_eq!(2 + 2, 4);
-  }
-}
+mod tests;

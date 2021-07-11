@@ -1,14 +1,14 @@
 mod camera_systems;
-mod components;
+pub mod components;
 pub mod input;
-mod systems;
-mod transform;
+pub mod resources;
+pub mod systems;
 
 use crate::camera::Camera;
 use crate::game::components::{DebugShowScene, GameLoopTimer};
 use crate::game::input::{InputBackend, InputResource};
+use crate::game::resources::Scene;
 use crate::game::systems::*;
-use crate::game::transform::Transform;
 use legion::*;
 use log::info;
 use serde::Serialize;
@@ -32,8 +32,6 @@ impl GameState {
     let CreateGameParams { input_backend } = options;
 
     let mut world = World::default();
-    let camera = (Transform::default(), Camera::default());
-    world.push(camera);
     let is_running = false;
     let fixed_schedule = Schedule::builder()
       .add_system(systems::fixed_update_logging_system())
@@ -59,7 +57,7 @@ impl GameState {
     let mut resources = Resources::default();
     resources.insert(GameLoopTimer::default());
     resources.insert(DebugShowScene(false));
-
+    resources.insert(Scene { main_camera: None });
     resources
   }
 
@@ -111,4 +109,35 @@ impl GameState {
   pub fn mut_resources(&mut self) -> &mut Resources {
     &mut self.resources
   }
+
+  pub fn world(&self) -> &World {
+    &self.world
+  }
+  pub fn fixed_schedule(&self) -> &Schedule {
+    &self.fixed_schedule
+  }
+  pub fn per_frame_schedule(&self) -> &Schedule {
+    &self.per_frame_schedule
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+  use crate::game::input::DummyInputBackend;
+  use nalgebra_glm::*;
+
+  struct Suite {
+    game: GameState,
+  }
+
+  fn setup() -> Suite {
+    let game = GameState::new(CreateGameParams {
+      input_backend: Box::new(DummyInputBackend::default()),
+    });
+    Suite { game }
+  }
+
+  #[test]
+  fn test_is_main_camera() {}
 }

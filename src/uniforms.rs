@@ -17,6 +17,9 @@ impl Default for Uniforms {
 
 impl Uniforms {
   pub fn update_from_camera(&mut self, camera: &Camera) {
-    self.view_projection = camera.view_projection().into();
+    let view_projection = camera.view_projection();
+    let proj: [[f32; 4]; 4] = view_projection.into();
+    let view = camera.view();
+    self.view_projection = proj;
   }
 }

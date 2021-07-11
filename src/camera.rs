@@ -1,3 +1,4 @@
+use crate::game::components::*;
 use lazy_static::lazy_static;
 use nalgebra_glm::*;
 
@@ -7,7 +8,7 @@ pub struct Camera {
   pub up: Vec3,
   pub world_up: Vec3,
 
-  front: Vec3,
+  pub(crate) front: Vec3,
 
   pub yaw: f32,
   pub pitch: f32,
@@ -27,15 +28,15 @@ impl Camera {
       f32::cos(self.yaw) * f32::cos(self.pitch),
       f32::sin(self.pitch),
       f32::sin(self.yaw) * f32::cos(self.pitch),
-    ).normalize()
+    )
+    .normalize()
   }
 }
 
 impl Camera {
   #[inline]
   pub fn view(&self) -> Mat4 {
-    let mat =
-      look_at(&self.position, &(&self.position + &self.front), &self.up);
+    let mat = look_at(&self.position, &(&self.position + &self.front), &self.up);
     mat
   }
 
@@ -57,6 +58,10 @@ impl Camera {
   pub fn update_front(&mut self) -> &Vec3 {
     self.front = self.get_front_vector();
     &self.front
+  }
+
+  pub fn update_transformation(&mut self, transform: &Transform3D) {
+    self.position.clone_from(&transform.position);
   }
 }
 

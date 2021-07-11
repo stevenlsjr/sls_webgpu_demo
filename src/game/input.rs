@@ -9,6 +9,21 @@ pub trait InputBackend: Downcast {
 }
 impl_downcast!(InputBackend);
 
+#[derive(Debug, Default, Clone)]
+pub struct DummyInputBackend {
+  pressed_scancodes: HashSet<Scancode>,
+  pressed_keycodes: HashSet<Keycode>,
+}
+impl InputBackend for DummyInputBackend {
+  fn pressed_scancodes(&self) -> &HashSet<Scancode> {
+    &self.pressed_scancodes
+  }
+
+  fn pressed_keycodes(&self) -> &HashSet<Keycode> {
+    &self.pressed_keycodes
+  }
+}
+
 pub struct InputResource {
   pub backend: Box<dyn InputBackend>,
 }

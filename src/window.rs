@@ -7,8 +7,8 @@ pub trait AsWindow: HasRawWindowHandle {
 #[cfg(feature = "sdl2")]
 mod sdl_impl {
   use crate::window::AsWindow;
-  use sdl2::video::Window;
   use log::warn;
+  use sdl2::video::Window;
 
   impl AsWindow for Window {
     #[inline]

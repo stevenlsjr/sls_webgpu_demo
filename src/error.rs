@@ -1,6 +1,8 @@
+use legion::world::{ComponentError, EntityAccessError};
 use raw_window_handle::HasRawWindowHandle;
 use std::borrow::Cow;
 use std::fmt::Formatter;
+use std::option::Option::None;
 use std::rc::Rc;
 use std::{error, fmt};
 
@@ -10,6 +12,8 @@ pub enum Error {
   FromError(Rc<dyn std::error::Error + 'static>),
   CreateObject { reason: String },
   Other { reason: String },
+  LegionComponent(ComponentError),
+  LegionEntityAccess(EntityAccessError),
 }
 
 impl Error {
@@ -25,8 +29,35 @@ impl fmt::Display for Error {
       Error::FromError(e) => write!(f, "error: {}", e),
       Error::CreateObject { reason } => write!(f, "error creating object: {}", reason),
       Error::Other { reason } => write!(f, "other error {}", reason),
+
+      Error::LegionComponent(err) => {
+        write!(f, "ComponentError: {:?}", err)
+      }
+      Error::LegionEntityAccess(err) => {
+        write!(f, "EntityAccessError: {:?}", err)
+      }
     }
   }
 }
 
-impl error::Error for Error {}
+impl From<ComponentError> for Error {
+  fn from(err: ComponentError) -> Self {
+    Error::LegionComponent(err)
+  }
+}
+
+impl From<EntityAccessError> for Error {
+  fn from(err: EntityAccessError) -> Self {
+    Error::LegionEntityAccess(err)
+  }
+}
+
+impl error::Error for Error {
+  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+    match self {
+      Error::LegionEntityAccess(ref err) => Some(err),
+      Error::LegionComponent(ref err) => Some(err),
+      _ => None,
+    }
+  }
+}

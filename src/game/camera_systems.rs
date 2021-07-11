@@ -1,24 +1,27 @@
 use super::components::*;
 use super::input::InputResource;
 use crate::camera::Camera;
-use legion::*;
+use crate::game::resources::Scene;
 use crate::platform::keyboard::Keycode;
-use nalgebra_glm::*;
+use legion::*;
 use log::*;
+use nalgebra_glm::*;
 
 #[system(for_each)]
-#[read_component(IsMainCamera)]
 #[write_component(Transform3D)]
 #[write_component(Camera)]
 pub fn camera_move(
-  is_main_camera: &IsMainCamera,
+  #[resource] scene: &Scene,
+  entity: &Entity,
   transform: &mut Transform3D,
   camera: &mut Camera,
   #[resource] input: &InputResource,
   #[resource] game_loop: &GameLoopTimer,
 ) {
-  if !is_main_camera.0 { return; }
-  camera.position = transform.position.clone_owned() ;
+  if !scene.is_main_camera(Some(*entity)) {
+    return;
+  }
+  camera.position = transform.position.clone_owned();
   let front = camera.update_front().clone();
   let right = front.cross(&camera.world_up).normalize();
   let mut movement_step: Vec3 = vec3(0f32, 0f32, 0f32);
@@ -37,15 +40,17 @@ pub fn camera_move(
     movement_step += &right;
   }
 
-  if movement_step.magnitude().abs()  >= f32::EPSILON {
+  if movement_step.magnitude().abs() >= f32::EPSILON {
     movement_step.normalize_mut();
     movement_step *= frame_speed;
-    camera.position += movement_step;
-    transform.position = camera.position.clone_owned();
-    info!("position is {:?}", &camera.position);
-    let view_mat = camera.view();
-    for row in view_mat.row_iter() {
-      info!("{} {} {} {}", row[0], row[1], row[2], row[3]);
-    }
+    transform.position += movement_step;
+  }
+  camera.position.clone_from(&transform.position);
+  if input.backend.pressed_keycodes().contains(&Keycode::P) {
+    log::info!(
+      "debugger! camera {:?}, transform {:?}",
+      camera.position,
+      transform.position
+    );
   }
 }
