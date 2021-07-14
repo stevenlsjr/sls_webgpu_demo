@@ -7,40 +7,11 @@ pub struct Options {
   pub hidpi_factor: f32,
 }
 
-pub struct ImguiRefMut<'a> {
-  pub context: &'a mut imgui::Context,
-  pub renderer: &'a mut imgui_wgpu::Renderer,
-  pub frame: &'a Option<imgui::Ui<'a>>
-}
-
-pub struct ImguiRef<'a> {
-  pub context: &'a  imgui::Context,
-  pub renderer: &'a imgui_wgpu::Renderer,
-    pub frame: &'a Option<imgui::Ui<'a>>
-
-}
 
 pub trait ImguiPlatform {
-  fn context(&self) -> &imgui::Context;
-  fn context_mut(&mut self) -> &mut imgui::Context;
   fn renderer(&self) -> &imgui_wgpu::Renderer;
   fn renderer_mut(&mut self) -> &mut imgui_wgpu::Renderer;
-  fn frame(&self) -> &Option<imgui::Ui>;
-  fn new_frame(&mut self);
-
-  fn imgui_ref(&self) -> ImguiRef {
-    ImguiRef {
-      context: self.context(),
-      renderer: self.renderer(),
-      frame: self.frame()
-    }
-  }
-
-  fn imgui_ref_mut(&mut self) -> ImguiRefMut;
-
-  fn render(&mut self, queue: &Queue, device: &Device, render_pass: &mut RenderPass) {
-
-  }
+  fn setup_io(&self, io: &mut imgui::Io) {}
 }
 
 impl Default for Options {

@@ -59,7 +59,7 @@ impl<W: AsWindow> Context<W> {
   pub fn render<ImP: ImguiPlatform>(
     &mut self,
     game: &GameState,
-    imgui_platform: Option<&mut ImP>,
+    imgui_platform: Option<(&mut ImP, imgui::Ui)>
   ) -> Result<(), String> {
     let camera = game
       .resources()
@@ -119,13 +119,12 @@ impl<W: AsWindow> Context<W> {
             render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             render_pass.draw_indexed(0..n_indices, 0, 0..1);
           };
-          if let Some(imgui_platform) = imgui_platform {
+          if let Some((imgui_platform, ui)) = imgui_platform {
             use imgui::Ui;
-            let imgui_ref = imgui_platform.imgui_ref_mut();
-            let ui = imgui_ref.context.frame();
+
             let draw_data = ui.render();
 
-            imgui_ref.renderer.render(draw_data, &self.queue,&self.device, &mut render_pass);
+            imgui_platform.renderer_mut().render(draw_data, &self.queue,&self.device, &mut render_pass);
           }
         }
         self.queue.submit(std::iter::once(encoder.finish()));

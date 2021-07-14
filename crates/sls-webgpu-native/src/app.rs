@@ -12,20 +12,25 @@ use std::ops::DerefMut;
 use std::sync::{Arc, RwLock};
 use std::time::*;
 
-pub struct App<'a> {
+pub struct App {
   pub(crate) context: Context<Window>,
   pub(crate) event_pump: EventPump,
   pub(crate) game_state: GameState,
-  pub(crate) imgui_platform: Arc<RwLock<ImguiSdlPlatform<'a>>>,
+  pub(crate) imgui_context: Option<imgui::Context>,
+  pub(crate) imgui_platform: Arc<RwLock<ImguiSdlPlatform>>,
   pub(crate) sdl: sdl2::Sdl,
 }
 
-impl<'a> App<'a> {
+impl App {
   pub(crate) fn run(&mut self) {
     self.game_state.set_is_running(true);
     let mut previous_time = Instant::now();
     let mut update_lag = Duration::from_nanos(0);
     let ms_per_update = Duration::from_millis(1000 / 60);
+    let mut imgui_context = None;
+    {
+      std::mem::swap(&mut imgui_context, &mut self.imgui_context);
+    }
 
     self.game_state.on_start();
     while self.game_state.is_running() {
@@ -33,14 +38,13 @@ impl<'a> App<'a> {
       let elapsed_time = current_time - previous_time;
       previous_time = current_time;
       update_lag += elapsed_time;
+      self.handle_input(&mut imgui_context);
 
-      self.handle_input();
       if !self.game_state.is_running() {
         break;
       }
       // per frame update
       self.game_state.update(&elapsed_time);
-      self.update_gui(&elapsed_time);
 
       // fixed-dt update (for physics and stuff)
       while update_lag >= ms_per_update {
@@ -50,12 +54,22 @@ impl<'a> App<'a> {
       self.context.update();
       {
         let imgui_arc = self.imgui_platform.clone();
-        let mut imgui_platform = imgui_arc
-          .write()
-          .unwrap_or_else(|err| panic!("could not access imgui rwlock for write: {:?}", err));
+        let mut imgui_platform = imgui_arc.write().expect(
+          "fatal deadlock: imgui_platform rwlock"
+        );
+        let imgui_state: Option<(&mut ImguiSdlPlatform, imgui::Ui)> = match imgui_context.as_mut() {
+          Some(imgui_context) => {
+            let mut frame = imgui_context.frame();
+            frame = self.update_gui(frame, &elapsed_time);
+            Some((imgui_platform.deref_mut(), frame))
+          }
+          None => None
+        };
+
+
         if let Err(e) = self
           .context
-          .render(&self.game_state, Some(imgui_platform.deref_mut()))
+          .render(&self.game_state, imgui_state)
         {
           panic!("render error! {:?}", e);
         }
@@ -63,13 +77,15 @@ impl<'a> App<'a> {
     }
   }
 
-  pub(crate) fn handle_input(&mut self) {
+  pub(crate) fn handle_input(&mut self, imgui_context: &mut Option<imgui::Context>) {
     let imgui_platform = self.imgui_platform.clone();
     let mut imgui_lock = imgui_platform
       .write()
       .unwrap_or_else(|e| panic!("imgui rwlock is poisoned!: {:?}", e));
     for event in self.event_pump.poll_iter() {
-      imgui_lock.handle_event(&event);
+      if let Some(imgui_context) = imgui_context {
+        imgui_lock.handle_event(imgui_context, &event);
+      }
       match event {
         Event::Quit { .. }
         | Event::KeyDown {
@@ -86,9 +102,10 @@ impl<'a> App<'a> {
       }
     }
     if let Err(err) = self.sync_input_state() {
-      error!("error synching input state: {:?}", &err);
+      error!("error synching input state: {:?}", & err);
     }
   }
+
   pub(crate) fn sync_input_state(&mut self) -> Result<(), String> {
     let mut input_res = self
       .game_state
@@ -102,16 +119,16 @@ impl<'a> App<'a> {
     sdl2_input.sync_input(&self.sdl, &self.event_pump);
     Ok(())
   }
-  fn update_gui(&mut self, dt: &Duration) {
+
+  fn update_gui<'a>(&mut self, ui: imgui::Ui<'a>, dt: &Duration) -> imgui::Ui<'a> {
     use sls_webgpu::imgui::*;
-    let mut im = self.imgui_platform.write().unwrap();
-    let ui = im.context.frame();
     Window::new(im_str!("Hello"))
       .size([300.0, 100.0], Condition::FirstUseEver)
       .build(&ui, || {
         ui.text(im_str!("Hello world!!!"));
         ui.text(format!("DT: {:?}", dt));
-      })
+      });
 
+    ui
   }
 }

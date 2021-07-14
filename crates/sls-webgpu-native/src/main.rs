@@ -35,17 +35,17 @@ fn main() -> Result<(), String> {
   let game_state = GameState::new(CreateGameParams {
     input_backend: Box::new(input_backend),
   });
+  let mut imgui_context = gui::create_imgui(gui::Options { ..Default::default() });
   let imgui_platform = ImguiSdlPlatform::new(
-    gui::Options {
-      ..Default::default()
-    },
+    &mut imgui_context,
     imgui_wgpu::RendererConfig { ..imgui_wgpu::RendererConfig::new_srgb() },
-    &context
+    &context,
   )
     .map_err(|e| format!("{}", e))?;
   let imgui_platform = Arc::new(RwLock::new(imgui_platform));
 
   let mut app = App {
+    imgui_context: Some(imgui_context),
     context,
     game_state,
     event_pump,
