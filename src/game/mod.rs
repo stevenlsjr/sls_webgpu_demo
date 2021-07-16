@@ -14,6 +14,8 @@ use log::info;
 use serde::Serialize;
 use std::sync::Arc;
 use std::time::Duration;
+use crate::platform::gui::DrawUi;
+use crate::imgui::{Ui, Io};
 
 pub struct GameState {
   world: World,
@@ -121,6 +123,24 @@ impl GameState {
   }
 }
 
+impl DrawUi for GameState {
+  fn draw_ui(&self, ui: &mut Ui) {
+    use imgui::*;
+    Window::new(im_str!("Window!!"))
+        .size([300.0, 300.0], Condition::Appearing)
+        .position([0.0, 0.0], Condition::Appearing)
+        .build(ui, ||{
+          ui.text(im_str!("Hellooo!"));
+          if let Some(loop_timer) = self
+                      .resources
+                      .get::<GameLoopTimer>() {
+            ui.text(format!("Fixed DT: {}s", loop_timer.fixed_dt.as_secs_f64()));
+            ui.text(format!("Frame DT: {}s", loop_timer.per_frame_dt.as_secs_f64()));
+          }
+        });
+  }
+}
+
 #[cfg(test)]
 mod test {
   use super::*;
@@ -141,3 +161,4 @@ mod test {
   #[test]
   fn test_is_main_camera() {}
 }
+

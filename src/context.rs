@@ -34,6 +34,12 @@ pub struct Context<W: AsWindow> {
   uniform_buffer: wgpu::Buffer,
 }
 
+impl<W: AsWindow> Context<W> {
+  pub fn window(&self) -> &W {
+    &self.window
+  }
+}
+
 impl<W: AsWindow> fmt::Debug for Context<W> {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     f.debug_struct("Context")
@@ -56,10 +62,10 @@ impl<W: AsWindow> Context<W> {
 
   pub fn update(&mut self) {}
 
-  pub fn render<ImP: ImguiPlatform>(
+  pub fn render(
     &mut self,
     game: &GameState,
-    imgui_platform: Option<(&mut ImP, imgui::Ui)>
+    imgui_platform: Option<(imgui::Ui, &mut imgui_wgpu::Renderer)>,
   ) -> Result<(), String> {
     let camera = game
       .resources()
@@ -119,12 +125,14 @@ impl<W: AsWindow> Context<W> {
             render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             render_pass.draw_indexed(0..n_indices, 0, 0..1);
           };
-          if let Some((imgui_platform, ui)) = imgui_platform {
+          if let Some((ui, renderer)) = imgui_platform {
             use imgui::Ui;
 
             let draw_data = ui.render();
 
-            imgui_platform.renderer_mut().render(draw_data, &self.queue,&self.device, &mut render_pass);
+            if let Err(e) = renderer.render(draw_data, &self.queue, &self.device, &mut render_pass) {
+              log::error!("could not draw ui: {:?}", e);
+            }
           }
         }
         self.queue.submit(std::iter::once(encoder.finish()));

@@ -3,17 +3,17 @@ use std::error::Error;
 use std::sync::{Arc, RwLock};
 use std::time::*;
 
-use sdl2::{EventPump, Sdl};
 use sdl2::keyboard::Keycode;
 use sdl2::video::{Window, WindowBuildError};
+use sdl2::{EventPump, Sdl};
 
 use app::*;
-use sls_webgpu::{imgui, imgui_wgpu};
 use sls_webgpu::context::Context;
-use sls_webgpu::game::{CreateGameParams, GameState};
 use sls_webgpu::game::input::{InputResource, Sdl2Input};
+use sls_webgpu::game::{CreateGameParams, GameState};
 use sls_webgpu::platform::gui;
 use sls_webgpu::platform::sdl2_backend::ImguiSdlPlatform;
+use sls_webgpu::{imgui, imgui_wgpu};
 
 mod app;
 mod traits;
@@ -35,18 +35,33 @@ fn main() -> Result<(), String> {
   let game_state = GameState::new(CreateGameParams {
     input_backend: Box::new(input_backend),
   });
-  let mut imgui_context = gui::create_imgui(gui::Options { ..Default::default() });
-  let imgui_platform = ImguiSdlPlatform::new(
+  let mut imgui_context = gui::create_imgui(gui::Options {
+    ..Default::default()
+  });
+  let imgui_platform = ImguiSdlPlatform::new(&mut imgui_context).map_err(|e| format!("{}", e))?;
+
+  let texture_format = context
+    .adapter
+    .get_swap_chain_preferred_format(&context.surface)
+    .ok_or("no swapchain texture format available")?;
+  let renderer_options = imgui_wgpu::RendererConfig {
+    texture_format,
+    ..imgui_wgpu::RendererConfig::new_srgb()
+  };
+
+  let imgui_renderer = Arc::new(RwLock::new(imgui_wgpu::Renderer::new(
     &mut imgui_context,
-    imgui_wgpu::RendererConfig { ..imgui_wgpu::RendererConfig::new_srgb() },
-    &context,
-  )
-    .map_err(|e| format!("{}", e))?;
+    &context.device,
+    &context.queue,
+    renderer_options,
+  )));
+
   let imgui_platform = Arc::new(RwLock::new(imgui_platform));
 
   let mut app = App {
-    imgui_context: Some(imgui_context),
+    imgui_context: Arc::new(RwLock::new(imgui_context)),
     context,
+    imgui_renderer,
     game_state,
     event_pump,
     imgui_platform,

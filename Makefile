@@ -1,5 +1,5 @@
-GLSLC=glslc
-GLSLCFLAGS:=-g
+GLSLC=glslangValidator
+GLSLCFLAGS:=-g -V
 MKDIR:=mkdir
 .PHONY=all clean before $(SPIRV_DIRS)
 FRAG_GLSL=src/shaders/main.frag

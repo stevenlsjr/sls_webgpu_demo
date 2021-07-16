@@ -135,3 +135,4 @@ Cargo.lock
 /crates/sls-webgpu-native/SDL2.lib
 /crates/sls-webgpu-native/SDL2main.lib
 /crates/sls-webgpu-native/SDL2test.lib
+/imgui.ini

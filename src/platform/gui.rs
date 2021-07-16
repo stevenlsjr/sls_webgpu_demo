@@ -1,5 +1,6 @@
 use std::default::Default;
-use wgpu::{Queue, Device, RenderPass};
+use wgpu::{Device, Queue, RenderPass};
+use crate::imgui::{Ui, Io};
 
 #[derive(Debug, Clone)]
 pub struct Options {
@@ -7,12 +8,10 @@ pub struct Options {
   pub hidpi_factor: f32,
 }
 
-
 pub trait ImguiPlatform {
-  fn renderer(&self) -> &imgui_wgpu::Renderer;
-  fn renderer_mut(&mut self) -> &mut imgui_wgpu::Renderer;
   fn setup_io(&self, io: &mut imgui::Io) {}
 }
+
 
 impl Default for Options {
   fn default() -> Self {
@@ -36,4 +35,17 @@ pub fn create_imgui(options: Options) -> imgui::Context {
     }),
   }]);
   ctx
+}
+
+///
+/// Trait for objects and functions that define the UI
+/// for a given frame
+pub trait DrawUi {
+  fn draw_ui(&self, ui: &mut imgui::Ui);
+}
+
+impl<F: Fn(&mut imgui::Ui)> DrawUi for F {
+  fn draw_ui(&self, ui: &mut Ui ) {
+    self(ui)
+  }
 }
