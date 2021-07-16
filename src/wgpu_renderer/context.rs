@@ -2,12 +2,16 @@ use crate::camera::Camera;
 use crate::error::Error;
 use crate::game::resources::Scene;
 use crate::game::GameState;
-use crate::geometry::{Vertex, TRIANGLE_INDICES, TRIANGLE_VERT};
-use crate::mesh::{Mesh, MeshGeometry};
+
+
 use crate::platform::gui;
 use crate::platform::gui::ImguiPlatform;
-use crate::uniforms::Uniforms;
 use crate::window::AsWindow;
+
+use super::geometry::{Vertex, TRIANGLE_INDICES, TRIANGLE_VERT};
+use super::mesh::{Mesh, MeshGeometry};
+use super::uniforms::Uniforms;
+
 use legion::World;
 use std::fmt;
 use std::fmt::Formatter;
@@ -225,9 +229,9 @@ impl<W: AsWindow> Builder<W> {
     };
     let swapchain = device.create_swap_chain(&surface, &sc_desc);
     let main_vert_shader =
-      device.create_shader_module(&wgpu::include_spirv!("shaders/main.vert.spv"));
+      device.create_shader_module(&wgpu::include_spirv!("../shaders/main.vert.spv"));
     let main_frag_shader =
-      device.create_shader_module(&wgpu::include_spirv!("shaders/main.frag.spv"));
+      device.create_shader_module(&wgpu::include_spirv!("../shaders/main.frag.spv"));
 
     let render_pipeline = create_render_pipeline(
       &device,

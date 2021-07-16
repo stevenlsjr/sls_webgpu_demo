@@ -1,5 +1,5 @@
-use crate::geometry::Vertex;
-use crate::Error;
+use super::geometry::Vertex;
+use crate::error::Error;
 use std::fmt;
 use std::fmt::Formatter;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
