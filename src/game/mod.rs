@@ -1,21 +1,27 @@
-mod camera_systems;
-pub mod components;
-pub mod input;
-pub mod resources;
-pub mod systems;
+use std::fmt;
+use std::sync::Arc;
+use std::time::Duration;
+
+use legion::*;
+use log::info;
+use serde::Serialize;
+
+#[cfg(feature = "wgpu_imgui")]
+use wgpu_imgui::*;
 
 use crate::camera::Camera;
 use crate::game::components::{DebugShowScene, GameLoopTimer};
 use crate::game::input::{InputBackend, InputResource};
 use crate::game::resources::Scene;
 use crate::game::systems::*;
-use legion::*;
-use log::info;
-use serde::Serialize;
-use std::sync::Arc;
-use std::time::Duration;
-use crate::platform::gui::DrawUi;
-use crate::imgui::{Ui, Io};
+
+mod camera_systems;
+pub mod components;
+pub mod input;
+pub mod resources;
+pub mod systems;
+#[cfg(feature = "html5_backend")]
+pub mod html5_backend;
 
 pub struct GameState {
   world: World,
@@ -23,7 +29,18 @@ pub struct GameState {
   per_frame_schedule: Schedule,
   resources: Resources,
   is_running: bool,
+
 }
+
+impl fmt::Debug for GameState {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> core::fmt::Result {
+    f.debug_struct("GameState")
+      .field("world", &self.world)
+      .field("is_running", &self.is_running)
+      .finish()
+  }
+}
+
 
 pub struct CreateGameParams {
   pub input_backend: Box<dyn InputBackend>,
@@ -123,29 +140,40 @@ impl GameState {
   }
 }
 
-impl DrawUi for GameState {
-  fn draw_ui(&self, ui: &mut Ui) {
-    use imgui::*;
-    Window::new(im_str!("Window!!"))
+#[cfg(feature = "wgpu_imgui")]
+mod wgpu_imgui {
+  use imgui::*;
+
+  use crate::platform::gui::DrawUi;
+
+  use super::*;
+
+  impl DrawUi for GameState {
+    fn draw_ui(&self, ui: &mut Ui) {
+      use imgui::*;
+      Window::new(im_str!("Window!!"))
         .size([300.0, 300.0], Condition::Appearing)
         .position([0.0, 0.0], Condition::Appearing)
-        .build(ui, ||{
+        .build(ui, || {
           ui.text(im_str!("Hellooo!"));
           if let Some(loop_timer) = self
-                      .resources
-                      .get::<GameLoopTimer>() {
+            .resources
+            .get::<GameLoopTimer>() {
             ui.text(format!("Fixed DT: {}s", loop_timer.fixed_dt.as_secs_f64()));
             ui.text(format!("Frame DT: {}s", loop_timer.per_frame_dt.as_secs_f64()));
           }
         });
+    }
   }
 }
 
 #[cfg(test)]
 mod test {
-  use super::*;
-  use crate::game::input::DummyInputBackend;
   use nalgebra_glm::*;
+
+  use crate::game::input::DummyInputBackend;
+
+  use super::*;
 
   struct Suite {
     game: GameState,
