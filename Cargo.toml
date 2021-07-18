@@ -4,9 +4,8 @@ version = "0.1.0"
 authors = ["Steve Shea <stevenlsjr@gmail.com>"]
 edition = "2018"
 [features]
-default = []
 sdl2_backend = ["sdl2"]
-html5_backend = []
+html5_backend = ["web-sys"]
 wgpu_renderer = ["wgpu"]
 wgpu_imgui = ["imgui", "imgui-wgpu"]
 
@@ -28,17 +27,29 @@ downcast-rs = "1.2.0"
 rand = "0.8.4"
 serde = "1.0.126"
 serde_json = "1.0.64"
-imgui-wgpu = { version = "0.15.1", features = [], optional = true }
+imgui-wgpu = { version = "0.15.1",  features = [], optional = true }
 imgui = { version = "0.7.0", optional = true }
+atomic_refcell = "*"
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-legion = "0.4.0"
 
+[target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
+version = "^0.3.50"
+optional = true
+features = [
+    "Window",
+    "KeyboardEvent",
+    "MouseEvent",
+    "MouseScrollEvent",
+]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2.3", features = ["js"] }
-legion = {version= "0.4.0",  default-features = false, features=["wasm-bindgen"] }
-web-sys = {version="^0.3.50", optional=true}
+legion = { version = "0.4.0", default-features = false, features = ["wasm-bindgen", "codegen", "serialize"] }
+
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+legion = { version = "0.4.0", default-features = false, features = ["wasm-bindgen", "codegen", "serialize"] }
+
 
 [dependencies.sdl2]
 version = "0.34.4"

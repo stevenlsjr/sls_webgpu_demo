@@ -2,6 +2,7 @@ use wasm_bindgen::prelude::*;
 use super::input::InputBackend;
 use std::collections::HashSet;
 use crate::platform::keyboard::{Scancode, Keycode};
+use web_sys::KeyboardEvent;
 
 #[wasm_bindgen]
 #[derive(Debug)]
@@ -11,12 +12,15 @@ pub struct Html5Backend {
 }
 
 impl Html5Backend {
-  pub fn new()->Self {
+  pub fn new() -> Self {
     Self {
       pressed_scancodes: Default::default(),
       pressed_keycodes: Default::default(),
     }
   }
+
+  pub fn on_keydown(&mut self, event: &KeyboardEvent) {}
+  pub fn on_keyup(&mut self, event: &KeyboardEvent) {}
 }
 
 impl InputBackend for Html5Backend {
@@ -28,3 +32,4 @@ impl InputBackend for Html5Backend {
     &self.pressed_keycodes
   }
 }
+

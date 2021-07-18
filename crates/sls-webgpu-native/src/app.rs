@@ -7,7 +7,7 @@ use sls_webgpu::context::Context;
 use sls_webgpu::game::input::{InputResource, Sdl2Input};
 use sls_webgpu::game::{CreateGameParams, GameState};
 use sls_webgpu::platform::gui::{ImguiPlatform, DrawUi};
-use sls_webgpu::{imgui, imgui_wgpu, platform::sdl2_backend::ImguiSdlPlatform};
+use sls_webgpu::{imgui, imgui_wgpu, platform::sdl2_backend::ImguiSdlPlatform, Context};
 use std::ops::DerefMut;
 use std::sync::{Arc, RwLock, PoisonError, RwLockWriteGuard};
 use std::time::*;

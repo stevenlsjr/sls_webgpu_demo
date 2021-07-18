@@ -1,7 +1,8 @@
 use wasm_bindgen::prelude::*;
 use web_sys::console;
 
-mod app;
+pub mod app;
+pub mod platform;
 
 // When the `wee_alloc` feature is enabled, this uses `wee_alloc` as the global
 // allocator.
@@ -11,21 +12,21 @@ mod app;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-
 // This is like the `main` function, except for JavaScript.
 #[wasm_bindgen(start)]
 pub fn main_js() -> Result<(), JsValue> {
-    // This provides better error messages in debug mode.
-    // It's disabled in release mode so it doesn't bloat up the file size.
-    #[cfg(debug_assertions)]
-    console_error_panic_hook::set_once();
+  // This provides better error messages in debug mode.
+  // It's disabled in release mode so it doesn't bloat up the file size.
+  #[cfg(debug_assertions)]
+  console_error_panic_hook::set_once();
 
+  // Your code goes here!
+  console_log::init().unwrap();
 
-    // Your code goes here!
-    console_log::init().unwrap();
-
-    Ok(())
+  Ok(())
 }
 
-
-
+#[wasm_bindgen(typescript_custom_section)]
+const TS_APPEND_CONTENT: &str = r#"
+export type AppEventType = 'handle-input' | 'resize'
+"#;

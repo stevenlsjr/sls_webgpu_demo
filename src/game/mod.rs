@@ -20,8 +20,12 @@ pub mod components;
 pub mod input;
 pub mod resources;
 pub mod systems;
+
+use atomic_refcell::AtomicRef;
+
 #[cfg(feature = "html5_backend")]
 pub mod html5_backend;
+
 
 pub struct GameState {
   world: World,
@@ -137,6 +141,19 @@ impl GameState {
   }
   pub fn per_frame_schedule(&self) -> &Schedule {
     &self.per_frame_schedule
+  }
+
+  pub fn map_input_backend<B: InputBackend, R, F: FnOnce(&B) -> R>(&self, callback: F) -> Result<R, String> {
+    let resource = self.resources.get::<InputResource>()
+      .ok_or_else(|| "input resource is not loaded")?;
+    let backend: &B = resource.backend.downcast_ref().ok_or_else(|| "resource is not the correct type")?;
+    Ok(callback(backend))
+  }
+  pub fn map_input_backend_mut<B: InputBackend, R, F: FnOnce(&mut B) -> R>(&mut self, callback: F) -> Result<R, String> {
+    let mut resource = self.resources.get_mut::<InputResource>()
+      .ok_or_else(|| "input resource is not loaded")?;
+    let backend: &mut B = resource.backend.downcast_mut().ok_or_else(|| "resource is not the correct type")?;
+    Ok(callback(backend))
   }
 }
 

@@ -39,11 +39,16 @@ js-sys = "^0.3.50"
 # like the DOM.
 [dependencies.web-sys]
 version = "^0.3.50"
-features = ["console", "Gpu"]
+features = ["console",
+    "Gpu",
+    "Window", "Document",
+    "HtmlCanvasElement",
+    "EventTarget",
+    "KeyboardEvent"]
 
 [dependencies.sls-webgpu]
 path = "../../"
-default-features=false
+default-features = false
 features = ["html5_backend"]
 
 
