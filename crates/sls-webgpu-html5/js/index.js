@@ -3,7 +3,6 @@ const loadWasm = import("../pkg/index.js").catch(console.error);
 document.addEventListener("DOMContentLoaded", async () => {
     console.log('hello')
 
-    window.sc_internal = await window.sc_internal_wrapper();
     const module = await loadWasm
     window.SLS_WASM_BINDGEN = module;
     const {SlsWgpuDemo} = module;

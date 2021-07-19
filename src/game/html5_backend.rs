@@ -1,7 +1,7 @@
-use wasm_bindgen::prelude::*;
 use super::input::InputBackend;
+use crate::platform::keyboard::{Keycode, Scancode};
 use std::collections::HashSet;
-use crate::platform::keyboard::{Scancode, Keycode};
+use wasm_bindgen::prelude::*;
 use web_sys::KeyboardEvent;
 
 #[wasm_bindgen]
@@ -32,4 +32,3 @@ impl InputBackend for Html5Backend {
     &self.pressed_keycodes
   }
 }
-

@@ -20,6 +20,9 @@ impl Error {
   pub fn from_error<E: error::Error + Sized + 'static>(e: E) -> Self {
     Error::FromError(Rc::new(e))
   }
+  pub fn from_other<S: AsRef<str>>(other: S) -> Self {
+    Self::Other{reason: other.as_ref().to_string()}
+  }
 }
 
 impl fmt::Display for Error {

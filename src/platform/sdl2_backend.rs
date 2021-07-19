@@ -2,23 +2,23 @@ use std::fmt;
 use std::fmt::Formatter;
 use std::time::Duration;
 
-use crate::imgui::{Ui, Io};
+use crate::imgui::{Io, Ui};
 use crate::platform::gui;
 use crate::platform::gui::ImguiPlatform;
 use imgui::Context;
 use imgui_wgpu::Renderer;
+use sdl2::event::Event;
+use sdl2::mouse::MouseState;
 use sdl2::{
   mouse::{MouseButton, MouseWheelDirection},
   video::Window,
 };
-use sdl2::mouse::MouseState;
-use sdl2::event::Event;
 
 #[derive(Debug)]
 pub struct ImguiSdlPlatform {
   ignore_mouse: bool,
   ignore_keyboard: bool,
-  mouse_press: [bool; 6]
+  mouse_press: [bool; 6],
 }
 
 impl ImguiSdlPlatform {
@@ -26,7 +26,7 @@ impl ImguiSdlPlatform {
     let mut platform = Self {
       ignore_keyboard: true,
       ignore_mouse: true,
-      mouse_press: [false; 6]
+      mouse_press: [false; 6],
     };
     {
       platform.setup_io(context.io_mut());
@@ -95,13 +95,24 @@ impl ImguiSdlPlatform {
         }
         io.mouse_wheel_h = *y as f32;
       }
-      Event::KeyDown { keycode, scancode, keymod, repeat, .. } => {
+      Event::KeyDown {
+        keycode,
+        scancode,
+        keymod,
+        repeat,
+        ..
+      } => {
         self.map_keymod(io, *keymod);
         if let Some(scancode) = scancode {
           io.keys_down[*scancode as usize] = true;
         }
       }
-      Event::KeyUp { keycode, scancode, keymod, .. } => {
+      Event::KeyUp {
+        keycode,
+        scancode,
+        keymod,
+        ..
+      } => {
         self.map_keymod(io, *keymod);
 
         if let Some(scancode) = scancode {
@@ -123,8 +134,7 @@ impl ImguiSdlPlatform {
     io.key_shift = keymod.intersects(Mod::RSHIFTMOD | Mod::LSHIFTMOD);
   }
 
-
-  pub fn prepare_frame(&mut self, io: &mut Io, window: &Window, mouse_state: &MouseState){
+  pub fn prepare_frame(&mut self, io: &mut Io, window: &Window, mouse_state: &MouseState) {
     let window_size = window.size();
     let drawable_size = window.drawable_size();
     let mouse_util = window.subsystem().sdl().mouse();
@@ -155,27 +165,22 @@ impl ImguiSdlPlatform {
 
   ///
   /// Returns true if a given SDL event should be ignored
-  pub fn ignore_event(
-    &self,
-    event: &Event,
-  ) -> bool {
+  pub fn ignore_event(&self, event: &Event) -> bool {
     match *event {
-      Event::KeyDown{..}
-      | Event::KeyUp{..}
-      | Event::TextEditing{..}
-      | Event::TextInput{..}
-      => self.ignore_keyboard,
-      Event::MouseMotion{..}
-      | Event::MouseButtonDown{..}
-      | Event::MouseButtonUp{..}
-      | Event::MouseWheel{..}
-      | Event::FingerDown{..}
-      | Event::FingerUp{..}
-      | Event::FingerMotion{..}
-      | Event::DollarGesture{..}
-      | Event::DollarRecord{..}
-      | Event::MultiGesture{..}
-      => self.ignore_mouse,
+      Event::KeyDown { .. }
+      | Event::KeyUp { .. }
+      | Event::TextEditing { .. }
+      | Event::TextInput { .. } => self.ignore_keyboard,
+      Event::MouseMotion { .. }
+      | Event::MouseButtonDown { .. }
+      | Event::MouseButtonUp { .. }
+      | Event::MouseWheel { .. }
+      | Event::FingerDown { .. }
+      | Event::FingerUp { .. }
+      | Event::FingerMotion { .. }
+      | Event::DollarGesture { .. }
+      | Event::DollarRecord { .. }
+      | Event::MultiGesture { .. } => self.ignore_mouse,
       _ => false,
     }
   }

@@ -34,6 +34,10 @@ wee_alloc = { version = "0.4.2", optional = true }
 console_log = "0.2.0"
 log = "0.4.14"
 js-sys = "^0.3.50"
+nalgebra-glm = "*"
+
+
+glow = {version = "*", optional=true}
 
 # The `web-sys` crate allows you to interact with the various browser APIs,
 # like the DOM.
@@ -49,7 +53,7 @@ features = ["console",
 [dependencies.sls-webgpu]
 path = "../../"
 default-features = false
-features = ["html5_backend"]
+features = ["html5_backend", "opengl_renderer"]
 
 
 # The `console_error_panic_hook` crate provides better debugging of panics by

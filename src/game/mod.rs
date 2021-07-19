@@ -26,14 +26,12 @@ use atomic_refcell::AtomicRef;
 #[cfg(feature = "html5_backend")]
 pub mod html5_backend;
 
-
 pub struct GameState {
   world: World,
   fixed_schedule: Schedule,
   per_frame_schedule: Schedule,
   resources: Resources,
   is_running: bool,
-
 }
 
 impl fmt::Debug for GameState {
@@ -44,7 +42,6 @@ impl fmt::Debug for GameState {
       .finish()
   }
 }
-
 
 pub struct CreateGameParams {
   pub input_backend: Box<dyn InputBackend>,
@@ -143,16 +140,32 @@ impl GameState {
     &self.per_frame_schedule
   }
 
-  pub fn map_input_backend<B: InputBackend, R, F: FnOnce(&B) -> R>(&self, callback: F) -> Result<R, String> {
-    let resource = self.resources.get::<InputResource>()
+  pub fn map_input_backend<B: InputBackend, R, F: FnOnce(&B) -> R>(
+    &self,
+    callback: F,
+  ) -> Result<R, String> {
+    let resource = self
+      .resources
+      .get::<InputResource>()
       .ok_or_else(|| "input resource is not loaded")?;
-    let backend: &B = resource.backend.downcast_ref().ok_or_else(|| "resource is not the correct type")?;
+    let backend: &B = resource
+      .backend
+      .downcast_ref()
+      .ok_or_else(|| "resource is not the correct type")?;
     Ok(callback(backend))
   }
-  pub fn map_input_backend_mut<B: InputBackend, R, F: FnOnce(&mut B) -> R>(&mut self, callback: F) -> Result<R, String> {
-    let mut resource = self.resources.get_mut::<InputResource>()
+  pub fn map_input_backend_mut<B: InputBackend, R, F: FnOnce(&mut B) -> R>(
+    &mut self,
+    callback: F,
+  ) -> Result<R, String> {
+    let mut resource = self
+      .resources
+      .get_mut::<InputResource>()
       .ok_or_else(|| "input resource is not loaded")?;
-    let backend: &mut B = resource.backend.downcast_mut().ok_or_else(|| "resource is not the correct type")?;
+    let backend: &mut B = resource
+      .backend
+      .downcast_mut()
+      .ok_or_else(|| "resource is not the correct type")?;
     Ok(callback(backend))
   }
 }
@@ -173,11 +186,12 @@ mod wgpu_imgui {
         .position([0.0, 0.0], Condition::Appearing)
         .build(ui, || {
           ui.text(im_str!("Hellooo!"));
-          if let Some(loop_timer) = self
-            .resources
-            .get::<GameLoopTimer>() {
+          if let Some(loop_timer) = self.resources.get::<GameLoopTimer>() {
             ui.text(format!("Fixed DT: {}s", loop_timer.fixed_dt.as_secs_f64()));
-            ui.text(format!("Frame DT: {}s", loop_timer.per_frame_dt.as_secs_f64()));
+            ui.text(format!(
+              "Frame DT: {}s",
+              loop_timer.per_frame_dt.as_secs_f64()
+            ));
           }
         });
     }
@@ -206,4 +220,3 @@ mod test {
   #[test]
   fn test_is_main_camera() {}
 }
-

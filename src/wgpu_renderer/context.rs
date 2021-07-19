@@ -3,7 +3,6 @@ use crate::error::Error;
 use crate::game::resources::Scene;
 use crate::game::GameState;
 
-
 use crate::platform::gui;
 use crate::platform::gui::ImguiPlatform;
 use crate::window::AsWindow;
@@ -134,7 +133,8 @@ impl<W: AsWindow> Context<W> {
 
             let draw_data = ui.render();
 
-            if let Err(e) = renderer.render(draw_data, &self.queue, &self.device, &mut render_pass) {
+            if let Err(e) = renderer.render(draw_data, &self.queue, &self.device, &mut render_pass)
+            {
               log::error!("could not draw ui: {:?}", e);
             }
           }

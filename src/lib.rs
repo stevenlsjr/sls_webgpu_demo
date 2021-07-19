@@ -11,11 +11,14 @@ pub mod camera;
 pub mod error;
 pub mod game;
 pub mod platform;
-pub mod window;
-#[cfg(feature="wgpu_renderer")]
+#[cfg(feature = "wgpu_renderer")]
 pub mod wgpu_renderer;
-#[cfg(feature="wgpu_renderer")]
+pub mod window;
+#[cfg(feature = "wgpu_renderer")]
 pub use wgpu_renderer::context::Context;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(feature = "opengl_renderer")]
+pub mod gl_renderer;

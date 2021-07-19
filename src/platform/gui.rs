@@ -6,7 +6,6 @@ pub struct Options {
   pub hidpi_factor: f32,
 }
 
-
 impl Default for Options {
   fn default() -> Self {
     Self {
