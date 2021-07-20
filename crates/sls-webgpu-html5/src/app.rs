@@ -15,8 +15,10 @@ use web_sys::{Element, EventTarget, HtmlCanvasElement, HtmlElement, WebGl2Render
 use sls_webgpu::game::{CreateGameParams,
                        GameState, html5_backend::Html5Backend, input::{InputBackend, InputResource}};
 use sls_webgpu::gl_renderer::GlContext;
+use sls_webgpu::nalgebra_glm::*;
+use sls_webgpu::platform::html5::FromCanvas;
 use sls_webgpu::platform::keyboard::{Keycode::CapsLock, Scancode::App1};
-use nalgebra_glm::*;
+
 use super::platform;
 
 #[wasm_bindgen]
@@ -73,7 +75,7 @@ impl SlsWgpuDemo {
     {
       let renderer = self.app.borrow().renderer.as_ref().unwrap().clone();
       let mut renderer = renderer.borrow_mut();
-      renderer.set_clear_color(vec4(1.0, 0.0, 1.0, 1.0));
+      renderer.set_clear_color(vec4(1f32, 0.0, 1.0, 1.0));
     }
 
     {
@@ -178,7 +180,7 @@ impl SlsWgpuDemo {
 
     match &app.canvas {
       Some(canvas) => {
-        let gl_context = GlContext::from_canvas(canvas.clone()).map_err(|e|
+        let gl_context = <GlContext as FromCanvas>::from_canvas(canvas.clone()).map_err(|e|
           js_sys::Error::new(&format!("error creating webGL context: {:?}", e)))?;
         app.renderer = Some(Rc::new(RefCell::new(gl_context)));
         Ok(())
@@ -188,7 +190,7 @@ impl SlsWgpuDemo {
 
     Ok(())
   }
-
+ 
   pub fn run_frame(&self) {
     let mut app = self.app.borrow_mut();
     let current_time_ms = js_sys::Date::now();
@@ -257,6 +259,7 @@ pub(crate) struct AppInternal {
   is_running: bool,
 
   renderer: Option<Rc<RefCell<GlContext>>>,
+  
 
   last_frame_ms: f64,
   update_lag: Duration,

@@ -15,10 +15,33 @@ impl Default for Options {
   }
 }
 
-#[cfg(feature = "wasm_imgui")]
-pub use self::wasm_imgui::*;
-#[cfg(feature = "wasm_imgui")]
-mod wasm_imgui {
+#[cfg(feature = "wgpu_renderer")]
+pub trait WgpuRenderableGui {
+  fn on_render(
+    &mut self,
+    queue: &wgpu::Queue,
+    device: &wgpu::Device,
+    render_pass: &mut wgpu::RenderPass,
+  ) -> Result<(), String>;
+}
+
+#[cfg(feature = "wgpu_renderer")]
+impl WgpuRenderableGui for () {
+  fn on_render(
+    &mut self,
+    queue: &wgpu::Queue,
+    device: &wgpu::Device,
+    render_pass: &mut wgpu::RenderPass,
+  ) -> Result<(), String> {
+    Ok(())
+  }
+}
+
+#[cfg(feature = "wgpu_imgui")]
+pub use self::wgpu_imgui::*;
+
+#[cfg(feature = "wgpu_imgui")]
+pub mod wgpu_imgui {
   use super::*;
   pub fn create_imgui(options: Options) -> imgui::Context {
     let mut ctx = imgui::Context::create();

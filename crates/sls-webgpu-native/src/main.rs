@@ -8,11 +8,11 @@ use sdl2::video::{Window, WindowBuildError};
 use sdl2::{EventPump, Sdl};
 
 use app::*;
-use sls_webgpu::context::Context;
 use sls_webgpu::game::input::{InputResource, Sdl2Input};
 use sls_webgpu::game::{CreateGameParams, GameState};
 use sls_webgpu::platform::gui;
 use sls_webgpu::platform::sdl2_backend::ImguiSdlPlatform;
+use sls_webgpu::Context;
 use sls_webgpu::{imgui, imgui_wgpu};
 
 mod app;

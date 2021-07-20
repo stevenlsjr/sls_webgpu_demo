@@ -19,12 +19,12 @@ pub fn error_to_str(error: u32) -> Option<&'static str> {
     glow::INVALID_FRAMEBUFFER_OPERATION => Some(GL_INVALID_FRAMEBUFFER_OPERATION),
     glow::OUT_OF_MEMORY => Some(GL_OUT_OF_MEMORY),
     glow::STACK_UNDERFLOW => Some(GL_STACK_UNDERFLOW),
-    GL_STACK_OVERFLOW => Some(GL_STACK_OVERFLOW),
+    glow::STACK_OVERFLOW => Some(GL_STACK_OVERFLOW),
     _ => None
   }
 }
 
-pub fn check_errors<GL: HasContext>(gl: GL) -> Result<(), Vec<(u32, String)>> {
+pub fn check_errors<GL: HasContext>(gl: &GL) -> Result<(), Vec<(u32, String)>> {
   let mut errors = vec![];
   let mut checking = true;
   while checking {
@@ -40,7 +40,7 @@ pub fn check_errors<GL: HasContext>(gl: GL) -> Result<(), Vec<(u32, String)>> {
       }
     }
   }
-  if errors.length() == 0 {
+  if errors.len() == 0 {
     Ok(())
   } else {
     Err(errors)

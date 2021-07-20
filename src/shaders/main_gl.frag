@@ -1,6 +1,7 @@
-precision mediump float;
-in vec2 vert;
+precision highp float;
+in vec3 vert_color;
+
 out vec4 color;
 void main() {
-    color = vec4(vert, 0.5, 1.0);
+    color = vec4(vert_color, 1.0);
 }

@@ -9,7 +9,7 @@ use std::{error, fmt};
 #[derive(Debug)]
 pub enum Error {
   Create { reason: String },
-  FromError(Rc<dyn std::error::Error + 'static>),
+  FromError(Box<dyn std::error::Error>),
   CreateObject { reason: String },
   Other { reason: String },
   LegionComponent(ComponentError),
@@ -17,8 +17,8 @@ pub enum Error {
 }
 
 impl Error {
-  pub fn from_error<E: error::Error + Sized + 'static>(e: E) -> Self {
-    Error::FromError(Rc::new(e))
+  pub fn from_error (e: Box<dyn std::error::Error>) -> Self {
+    Error::FromError(e)
   }
   pub fn from_other<S: AsRef<str>>(other: S) -> Self {
     Self::Other{reason: other.as_ref().to_string()}
@@ -57,7 +57,7 @@ impl From<EntityAccessError> for Error {
 
 impl error::Error for Error {
   fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-    match self {
+    match &self {
       Error::LegionEntityAccess(ref err) => Some(err),
       Error::LegionComponent(ref err) => Some(err),
       _ => None,

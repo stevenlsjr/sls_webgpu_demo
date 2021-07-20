@@ -172,11 +172,10 @@ impl GameState {
 
 #[cfg(feature = "wgpu_imgui")]
 mod wgpu_imgui {
+  use super::*;
   use imgui::*;
 
-  use crate::platform::gui::DrawUi;
-
-  use super::*;
+  use crate::platform::gui::wgpu_imgui::DrawUi;
 
   impl DrawUi for GameState {
     fn draw_ui(&self, ui: &mut Ui) {

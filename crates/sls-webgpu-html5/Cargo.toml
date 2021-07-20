@@ -7,20 +7,24 @@ authors = ["You <you@example.com>"]
 categories = ["wasm"]
 readme = "README.md"
 edition = "2018"
+license="MIT"
 
 
 [lib]
 crate-type = ["cdylib"]
 
 
+
 [profile.release]
 # This makes the compiled code faster and smaller, but it makes compiling slower,
 # so it's only enabled in release mode.
 lto = true
+debug=true
 
 [features]
 # If you uncomment this line, it will enable `wee_alloc`:
-#default = ["wee_alloc"]
+default = ["wee_alloc"]
+wgpu_renderer = ["sls-webgpu/wgpu_renderer"]
 
 [dependencies]
 # The `wasm-bindgen` crate provides the bare minimum functionality needed
@@ -33,22 +37,145 @@ wasm-bindgen = "0.2.45"
 wee_alloc = { version = "0.4.2", optional = true }
 console_log = "0.2.0"
 log = "0.4.14"
-js-sys = "^0.3.50"
+js-sys = "*"
 nalgebra-glm = "*"
+lazy_static = "*"
 
-
-glow = {version = "*", optional=true}
+glow = { version = "*", optional = true }
 
 # The `web-sys` crate allows you to interact with the various browser APIs,
 # like the DOM.
 [dependencies.web-sys]
-version = "^0.3.50"
-features = ["console",
+version = "=0.3.50"
+features = [
+    "console",
     "Gpu",
-    "Window", "Document",
+    "Window",
+    "Document",
     "HtmlCanvasElement",
     "EventTarget",
-    "KeyboardEvent"]
+    "KeyboardEvent",
+    "Navigator",
+    "Node",
+    "NodeList",
+    "Gpu",
+    "GpuAdapter",
+    "GpuAdapterFeatures",
+    "GpuAdapterLimits",
+    "GpuAddressMode",
+    "GpuBindGroup",
+    "GpuBindGroupDescriptor",
+    "GpuBindGroupEntry",
+    "GpuBindGroupLayout",
+    "GpuBindGroupLayoutDescriptor",
+    "GpuBindGroupLayoutEntry",
+    "GpuBlendComponent",
+    "GpuBlendFactor",
+    "GpuBlendOperation",
+    "GpuBlendState",
+    "GpuBuffer",
+    "GpuBufferBinding",
+    "GpuBufferBindingLayout",
+    "GpuBufferBindingType",
+    "GpuBufferDescriptor",
+    "GpuBufferUsage",
+    "GpuCanvasContext",
+    "GpuColorDict",
+    "GpuColorTargetState",
+    "GpuColorWrite",
+    "GpuCommandBuffer",
+    "GpuCommandBufferDescriptor",
+    "GpuCommandEncoder",
+    "GpuCommandEncoderDescriptor",
+    "GpuCompareFunction",
+    "GpuCompilationInfo",
+    "GpuCompilationMessage",
+    "GpuCompilationMessageType",
+    "GpuComputePassDescriptor",
+    "GpuComputePassEncoder",
+    "GpuComputePipeline",
+    "GpuComputePipelineDescriptor",
+    "GpuCullMode",
+    "GpuDepthStencilState",
+    "GpuDevice",
+    "GpuDeviceDescriptor",
+    "GpuDeviceLostInfo",
+    "GpuDeviceLostReason",
+    "GpuErrorFilter",
+    "GpuExtent3dDict",
+    "GpuFeatureName",
+    "GpuFilterMode",
+    "GpuFragmentState",
+    "GpuFrontFace",
+    "GpuImageCopyBuffer",
+    "GpuImageCopyImageBitmap",
+    "GpuImageCopyTexture",
+    "GpuImageDataLayout",
+    "GpuIndexFormat",
+    "GpuInputStepMode",
+    "GpuLoadOp",
+    "GpuMapMode",
+    "GpuMultisampleState",
+    "GpuObjectDescriptorBase",
+    "GpuOrigin2dDict",
+    "GpuOrigin3dDict",
+    "GpuOutOfMemoryError",
+    "GpuPipelineDescriptorBase",
+    "GpuPipelineLayout",
+    "GpuPipelineLayoutDescriptor",
+    "GpuPipelineStatisticName",
+    "GpuPowerPreference",
+    "GpuPrimitiveState",
+    "GpuPrimitiveTopology",
+    "GpuProgrammableStage",
+    "GpuQuerySet",
+    "GpuQuerySetDescriptor",
+    "GpuQueryType",
+    "GpuQueue",
+    "GpuRenderBundle",
+    "GpuRenderBundleDescriptor",
+    "GpuRenderBundleEncoder",
+    "GpuRenderBundleEncoderDescriptor",
+    "GpuRenderPassColorAttachment",
+    "GpuRenderPassDepthStencilAttachment",
+    "GpuRenderPassDescriptor",
+    "GpuRenderPassEncoder",
+    "GpuRenderPipeline",
+    "GpuRenderPipelineDescriptor",
+    "GpuRequestAdapterOptions",
+    "GpuSampler",
+    "GpuSamplerBindingLayout",
+    "GpuSamplerBindingType",
+    "GpuSamplerDescriptor",
+    "GpuShaderModule",
+    "GpuShaderModuleDescriptor",
+    "GpuShaderStage",
+    "GpuStencilFaceState",
+    "GpuStencilOperation",
+    "GpuStorageTextureAccess",
+    "GpuStorageTextureBindingLayout",
+    "GpuStoreOp",
+    "GpuSwapChain",
+    "GpuSwapChainDescriptor",
+    "GpuTexture",
+    "GpuTextureAspect",
+    "GpuTextureBindingLayout",
+    "GpuTextureDescriptor",
+    "GpuTextureDimension",
+    "GpuTextureFormat",
+    "GpuTextureSampleType",
+    "GpuTextureUsage",
+    "GpuTextureView",
+    "GpuTextureViewDescriptor",
+    "GpuTextureViewDimension",
+    "GpuUncapturedErrorEvent",
+    "GpuUncapturedErrorEventInit",
+    "GpuValidationError",
+    "GpuVertexAttribute",
+    "GpuVertexBufferLayout",
+    "GpuVertexFormat",
+    "GpuVertexState",
+]
 
 [dependencies.sls-webgpu]
 path = "../../"

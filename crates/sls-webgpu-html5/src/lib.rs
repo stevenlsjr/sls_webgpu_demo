@@ -1,6 +1,7 @@
 use wasm_bindgen::prelude::*;
+use std::sync::RwLock;
 use web_sys::console;
-
+use lazy_static::lazy_static;
 pub mod app;
 pub mod platform;
 
@@ -26,7 +27,25 @@ pub fn main_js() -> Result<(), JsValue> {
   Ok(())
 }
 
+#[wasm_bindgen]
+pub fn features() -> Vec<JsValue> {
+  FEATURES_LIST.iter().map(|s| JsValue::from_str(s)).collect()
+}
+
 #[wasm_bindgen(typescript_custom_section)]
 const TS_APPEND_CONTENT: &str = r#"
 export type AppEventType = 'handle-input' | 'resize'
 "#;
+
+lazy_static!{
+  static ref FEATURES_LIST: Vec<&'static str> = {
+    let mut features = vec![];
+    features.push("opengl_renderer".into());
+    #[cfg(feature="wgpu_renderer")]
+    {
+      features.push("wgpu_renderer".into())
+    }
+    features
+  };
+  
+}

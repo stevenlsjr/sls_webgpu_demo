@@ -4,7 +4,6 @@ use crate::game::resources::Scene;
 use crate::game::GameState;
 
 use crate::platform::gui;
-use crate::platform::gui::ImguiPlatform;
 use crate::window::AsWindow;
 
 use super::geometry::{Vertex, TRIANGLE_INDICES, TRIANGLE_VERT};
@@ -65,11 +64,7 @@ impl<W: AsWindow> Context<W> {
 
   pub fn update(&mut self) {}
 
-  pub fn render(
-    &mut self,
-    game: &GameState,
-    imgui_platform: Option<(imgui::Ui, &mut imgui_wgpu::Renderer)>,
-  ) -> Result<(), String> {
+  pub fn render(&mut self, game: &GameState) -> Result<(), String> {
     let camera = game
       .resources()
       .get::<Scene>()
@@ -128,16 +123,6 @@ impl<W: AsWindow> Context<W> {
             render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             render_pass.draw_indexed(0..n_indices, 0, 0..1);
           };
-          if let Some((ui, renderer)) = imgui_platform {
-            use imgui::Ui;
-
-            let draw_data = ui.render();
-
-            if let Err(e) = renderer.render(draw_data, &self.queue, &self.device, &mut render_pass)
-            {
-              log::error!("could not draw ui: {:?}", e);
-            }
-          }
         }
         self.queue.submit(std::iter::once(encoder.finish()));
         Ok(())
@@ -158,7 +143,13 @@ pub struct Builder<W: AsWindow> {
 impl<W: AsWindow> Builder<W> {
   pub async fn build(self) -> Result<Context<W>, Error> {
     use crate::platform;
-    let instance = wgpu::Instance::new(wgpu::BackendBit::all());
+
+    #[cfg(not(target_os = "linux"))]
+    let backends = wgpu::BackendBit::all();
+    #[cfg(target_os = "linux")]
+    let backends = wgpu::BackendBit::VULKAN;
+
+    let instance = wgpu::Instance::new(backends);
     let surface = unsafe { instance.create_surface(&self.window) };
     let adapter = instance
       .request_adapter(&wgpu::RequestAdapterOptions {
@@ -180,7 +171,7 @@ impl<W: AsWindow> Builder<W> {
         None,
       )
       .await
-      .map_err(Error::from_error)?;
+      .map_err(|e| crate::Error::from_error(Box::new(e)))?;
 
     let mut uniforms = Uniforms::default();
     // let camera = self.camera;
@@ -301,4 +292,11 @@ fn create_render_pipeline(
   });
 
   Ok(render_pipeline)
+}
+
+#[cfg(target_arch = "wasm32")]
+mod wasm {
+  use super::*;
+  use crate::platform::html5::FromCanvas;
+  use web_sys::HtmlCanvasElement;
 }

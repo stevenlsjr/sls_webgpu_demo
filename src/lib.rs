@@ -17,8 +17,13 @@ pub mod window;
 #[cfg(feature = "wgpu_renderer")]
 pub use wgpu_renderer::context::Context;
 
+#[cfg(feature = "wgpu_renderer")]
+pub use wgpu;
+
 #[cfg(test)]
 mod tests;
 
 #[cfg(feature = "opengl_renderer")]
 pub mod gl_renderer;
+
+pub use nalgebra_glm;

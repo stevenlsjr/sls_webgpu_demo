@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use crate::imgui::{Io, Ui};
 use crate::platform::gui;
-use crate::platform::gui::ImguiPlatform;
+
 use imgui::Context;
 use imgui_wgpu::Renderer;
 use sdl2::event::Event;
@@ -184,10 +184,7 @@ impl ImguiSdlPlatform {
       _ => false,
     }
   }
-}
-
-impl ImguiPlatform for ImguiSdlPlatform {
-  fn setup_io(&self, io: &mut imgui::Io) {
+  pub fn setup_io(&self, io: &mut imgui::Io) {
     use imgui::Key as imKey;
     use sdl2::keyboard::Scancode;
     io.key_map[imKey::Tab as usize] = Scancode::Tab as u32;
