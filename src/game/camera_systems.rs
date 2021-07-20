@@ -4,7 +4,6 @@ use crate::camera::Camera;
 use crate::game::resources::Scene;
 use crate::platform::keyboard::Keycode;
 use legion::*;
-use log::*;
 use nalgebra_glm::*;
 
 #[system(for_each)]

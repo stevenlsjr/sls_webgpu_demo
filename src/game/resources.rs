@@ -1,6 +1,4 @@
 use crate::camera::Camera;
-use crate::legion::world::ComponentError;
-use legion::world::EntityAccessError;
 use legion::*;
 
 #[derive(Clone, Debug, Default)]

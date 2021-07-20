@@ -1,15 +1,11 @@
 use std::fmt;
-use std::sync::Arc;
 use std::time::Duration;
 
 use legion::*;
-use log::info;
-use serde::Serialize;
 
 #[cfg(feature = "wgpu_imgui")]
-use wgpu_imgui::*;
+pub use wgpu_imgui::*;
 
-use crate::camera::Camera;
 use crate::game::components::{DebugShowScene, GameLoopTimer};
 use crate::game::input::{InputBackend, InputResource};
 use crate::game::resources::Scene;
@@ -20,8 +16,6 @@ pub mod components;
 pub mod input;
 pub mod resources;
 pub mod systems;
-
-use atomic_refcell::AtomicRef;
 
 #[cfg(feature = "html5_backend")]
 pub mod html5_backend;
@@ -51,7 +45,7 @@ impl GameState {
   pub fn new(options: CreateGameParams) -> Self {
     let CreateGameParams { input_backend } = options;
 
-    let mut world = World::default();
+    let world = World::default();
     let is_running = false;
     let fixed_schedule = Schedule::builder()
       .add_system(systems::fixed_update_logging_system())
@@ -172,10 +166,11 @@ impl GameState {
 
 #[cfg(feature = "wgpu_imgui")]
 mod wgpu_imgui {
-  use super::*;
   use imgui::*;
 
   use crate::platform::gui::wgpu_imgui::DrawUi;
+
+  use super::*;
 
   impl DrawUi for GameState {
     fn draw_ui(&self, ui: &mut Ui) {

@@ -1,10 +1,6 @@
 use crate::camera::Camera;
-use crate::game::components::{CameraEntityRow, DebugShowScene, GameLoopTimer, Transform3D};
-use crate::game::input::InputResource;
-use crate::legion::world::SubWorld;
-use crate::platform::keyboard::Keycode;
+use crate::game::components::{CameraEntityRow, GameLoopTimer, Transform3D};
 use legion::systems::CommandBuffer;
-use legion::*;
 use legion::*;
 use log::*;
 use nalgebra_glm as glm;

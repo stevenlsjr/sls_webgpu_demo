@@ -1,10 +1,8 @@
-use legion::world::{ComponentError, EntityAccessError};
-use raw_window_handle::HasRawWindowHandle;
-use std::borrow::Cow;
 use std::fmt::Formatter;
 use std::option::Option::None;
-use std::rc::Rc;
 use std::{error, fmt};
+
+use legion::world::{ComponentError, EntityAccessError};
 
 #[derive(Debug)]
 pub enum Error {
@@ -17,11 +15,13 @@ pub enum Error {
 }
 
 impl Error {
-  pub fn from_error (e: Box<dyn std::error::Error>) -> Self {
+  pub fn from_error(e: Box<dyn std::error::Error>) -> Self {
     Error::FromError(e)
   }
   pub fn from_other<S: AsRef<str>>(other: S) -> Self {
-    Self::Other{reason: other.as_ref().to_string()}
+    Self::Other {
+      reason: other.as_ref().to_string(),
+    }
   }
 }
 

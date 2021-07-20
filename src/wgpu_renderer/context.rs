@@ -1,19 +1,15 @@
-use crate::camera::Camera;
 use crate::error::Error;
 use crate::game::resources::Scene;
 use crate::game::GameState;
 
-use crate::platform::gui;
 use crate::window::AsWindow;
 
 use super::geometry::{Vertex, TRIANGLE_INDICES, TRIANGLE_VERT};
 use super::mesh::{Mesh, MeshGeometry};
 use super::uniforms::Uniforms;
 
-use legion::World;
 use std::fmt;
 use std::fmt::Formatter;
-use std::sync::{Arc, RwLock};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use wgpu::RenderPipeline;
 
@@ -70,7 +66,7 @@ impl<W: AsWindow> Context<W> {
       .get::<Scene>()
       .map(|s| s.main_camera_components(&game.world()))
       .unwrap_or(Ok(None))
-      .map_err(|error| format!("error accessing camera"))?;
+      .map_err(|error| format!("error accessing camera {:?}", error))?;
     match camera {
       None => {
         log::warn!("no main camera found");
@@ -142,8 +138,6 @@ pub struct Builder<W: AsWindow> {
 
 impl<W: AsWindow> Builder<W> {
   pub async fn build(self) -> Result<Context<W>, Error> {
-    use crate::platform;
-
     #[cfg(not(target_os = "linux"))]
     let backends = wgpu::BackendBit::all();
     #[cfg(target_os = "linux")]

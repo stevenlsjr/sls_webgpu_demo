@@ -1,7 +1,5 @@
 use crate::camera::Camera;
-use legion::*;
 use nalgebra_glm::*;
-use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 #[derive(Clone, Default, Debug)]
@@ -24,6 +22,15 @@ impl Default for Transform3D {
       rotation: Quat::identity(),
       scale: vec3(1.0, 1.0, 1.0),
     }
+  }
+}
+
+impl Transform3D {
+  pub fn matrix(&self) -> Mat4 {
+    let rotation = quat_to_mat4(&self.rotation);
+    let translation = translation(&self.position);
+    let scale = scale(&Mat4::identity(), &self.scale);
+    scale * rotation * translation
   }
 }
 

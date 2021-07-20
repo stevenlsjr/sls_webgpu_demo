@@ -1,6 +1,7 @@
 use crate::platform::keyboard::{Keycode, Scancode};
 use downcast_rs::{impl_downcast, Downcast};
-use nalgebra_glm::*;
+use std::fmt::{Debug, Formatter};
+// use nalgebra_glm::*;
 use std::collections::HashSet;
 
 pub trait InputBackend: Downcast {
@@ -46,11 +47,7 @@ impl Debug for InputResource {
 mod sdl2_input {
   use crate::game::input::*;
   use crate::platform::keyboard::{Keycode, Scancode};
-  use log::info;
-  use nalgebra_glm::vec2;
   use std::collections::HashSet;
-  use std::option::Option::None;
-  use std::sync::RwLock;
 
   #[derive(Clone, Default)]
   pub struct Sdl2Input {
@@ -65,7 +62,7 @@ mod sdl2_input {
       Self::default()
     }
 
-    pub fn sync_input(&mut self, sdl: &sdl2::Sdl, event_pump: &sdl2::EventPump) {
+    pub fn sync_input(&mut self, _sdl: &sdl2::Sdl, event_pump: &sdl2::EventPump) {
       let key_state = event_pump.keyboard_state();
       self.mouse_state = Some(event_pump.mouse_state().clone());
       self.relative_mouse_state = Some(event_pump.relative_mouse_state().clone());
@@ -97,5 +94,3 @@ mod sdl2_input {
 
 #[cfg(feature = "sdl2")]
 pub use sdl2_input::*;
-use std::fmt::{Debug, Formatter};
-use std::sync::Arc;
