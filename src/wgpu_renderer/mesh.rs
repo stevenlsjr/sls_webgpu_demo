@@ -1,6 +1,9 @@
-use super::geometry::Vertex;
+use super::geometry::{Vertex, self};
+
 use crate::error::Error;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
+use genmesh::{Vertices, Triangulate};
+use genmesh::generators::{SharedVertex, IcoSphere};
 
 #[derive(Debug)]
 pub struct Mesh {
@@ -66,6 +69,41 @@ impl MeshGeometry {
       vertex_buffer: vbo,
       index_buffer: ibo,
     });
+  }
+
+  pub fn unit_shere(u: usize, v: usize) -> Self {
+    use genmesh::{generators::{SphereUv}, *};
+    type MyVertex = geometry::Vertex;
+    let mut found = false;
+    let mut indexer = LruIndexer::new(u * v * 4, |a, b| {
+      found = true;
+    });
+
+    let sphere: Vec<MyVertex> = SphereUv::new(u, v)
+      .vertex(|Vertex { pos, normal }| MyVertex {
+        position: [pos.x, pos.y, pos.z],
+        normal: [normal.x, normal.y, normal.z, 1.0],
+        color: [1.0; 4],
+      })
+        .triangulate()
+      // wrap triangles counter-clockwise
+      .vertices().collect();
+    let mut vertices: Vec<MyVertex> = Vec::with_capacity(sphere.len());
+    let mut indices: Vec<u16> = Vec::with_capacity(sphere.len());
+
+    for (i, vert) in sphere.iter().enumerate() {
+      let shared_index = indexer.index(vert.clone());
+
+      vertices.push(vert.clone());
+      indices.push(i as u16);
+    }
+
+
+    MeshGeometry {
+      label: Some("unit sphere".to_owned()),
+      vertices,
+      indices: indices,
+    }
   }
 }
 

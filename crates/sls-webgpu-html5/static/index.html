@@ -11,10 +11,13 @@
 
     </div>
     <div id="wgpu-ui-root">
-        <label for="backend-select">Choose your backend</label>
-        <select name="backend" id="backend-select">
-            <option value="webgl_renderer">Webgl</option>
-        </select>
+        <form action="/" method="get">
+            <label for="backend-select">Choose your backend</label>
+            <select name="backend" id="backend-select">
+                <option value="webgl_renderer">Webgl</option>
+            </select>
+            <input type="submit" value="Submit">
+        </form>
     </div>
 </div>
 <script src="index.js"></script>

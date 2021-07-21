@@ -78,7 +78,7 @@ impl Default for Camera {
       fovy: 45.0,
       znear: 0.1,
       zfar: 100.0,
-      movement_speed: 1.0,
+      movement_speed: 2.0,
       pitch: 0f32,
       yaw: -f32::pi() / 2f32,
       mouse_sensitivity: 0.0,

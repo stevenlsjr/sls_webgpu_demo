@@ -100,12 +100,12 @@ impl SlsWgpuDemo {
     Ok(())
   }
 
-  #[wasm_bindgen(getter)]
+  #[wasm_bindgen(getter, js_name="isRunning")]
   pub fn is_running(&self) -> bool {
     return self.app.borrow().is_running;
   }
 
-  #[wasm_bindgen(setter)]
+  #[wasm_bindgen(setter, js_name="isRunning")]
   pub fn set_is_running(&mut self, value: bool) {
     self.app.borrow_mut().is_running = value;
   }

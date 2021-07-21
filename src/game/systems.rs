@@ -21,7 +21,7 @@ pub fn per_frame_logging(#[resource] game_loop: &GameLoopTimer) {
 #[system]
 pub fn setup_scene(#[resource] scene: &mut Scene, command_buffer: &mut CommandBuffer) {
   let mut main_camera: CameraEntityRow = (Transform3D::default(), Camera::default());
-  main_camera.0.position = glm::vec3(0f32, 0f32, 1f32);
+  main_camera.0.position = glm::vec3(0f32, 0f32, 3f32);
 
   let main_camera_entity = command_buffer.push(main_camera);
   scene.main_camera = Some(main_camera_entity);

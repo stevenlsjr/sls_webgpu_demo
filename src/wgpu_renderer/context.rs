@@ -12,7 +12,7 @@ use crate::wgpu_renderer::render_hooks::OnRenderUiClosure;
 use std::fmt;
 use std::fmt::Formatter;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
-use wgpu::RenderPipeline;
+use wgpu::{RenderPipeline, Face};
 
 pub struct Context<W: AsWindow> {
   pub window: W,
@@ -216,9 +216,9 @@ pub struct Builder<W: AsWindow> {
 impl<W: AsWindow> Builder<W> {
   pub async fn build(self) -> Result<Context<W>, Error> {
     #[cfg(not(target_os = "linux"))]
-    let backends = wgpu::BackendBit::all();
+      let backends = wgpu::BackendBit::all();
     #[cfg(target_os = "linux")]
-    let backends = wgpu::BackendBit::VULKAN;
+      let backends = wgpu::BackendBit::VULKAN;
 
     let instance = wgpu::Instance::new(backends);
     let surface = unsafe { instance.create_surface(&self.window) };
@@ -304,11 +304,7 @@ impl<W: AsWindow> Builder<W> {
     )?;
 
     let mesh = {
-      let geom = MeshGeometry {
-        vertices: TRIANGLE_VERT.to_vec(),
-        indices: TRIANGLE_INDICES.to_vec(),
-        label: Some("Triangle".to_string()),
-      };
+      let geom = MeshGeometry::unit_shere(10, 10);
       Mesh::from_geometry(geom, &device)?
     };
 
@@ -357,7 +353,10 @@ fn create_render_pipeline(
       entry_point: "main",
       targets: &[sc_desc.format.into()],
     }),
-    primitive: wgpu::PrimitiveState::default(),
+    primitive: wgpu::PrimitiveState {
+      cull_mode: Some(Face::Back),
+      ..wgpu::PrimitiveState::default()
+    },
     depth_stencil: None,
     multisample: wgpu::MultisampleState::default(),
   });

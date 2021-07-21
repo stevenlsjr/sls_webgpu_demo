@@ -2,7 +2,7 @@
 name = "sls-webgpu"
 version = "0.1.0"
 authors = ["Steve Shea <stevenlsjr@gmail.com>"]
-license="MIT"
+license = "MIT"
 edition = "2018"
 [features]
 sdl2_backend = ["sdl2"]
@@ -33,6 +33,10 @@ imgui = { version = "0.7.0", optional = true }
 atomic_refcell = "*"
 glow = { version = "*", optional = true }
 smallvec = "1.6.1"
+genmesh = "0.6.2"
+memoffset = { version = "0.6", features = ["unstable_const"] }
+
+
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
 version = "=0.3.50"
@@ -178,4 +182,4 @@ legion = { version = "0.4.0", default-features = false, features = ["wasm-bindge
 [dependencies.sdl2]
 version = "0.34.4"
 optional = true
-features = ["default", "raw-window-handle", "bundled"]
+features = ["default", "raw-window-handle"]

@@ -1,6 +1,7 @@
 import {createWgpuContext, webGpuIsAvailable} from "./wgpu";
 import DemoUI from './ui'
 
+
 const loadWasm = import("../pkg/index.js").catch(console.error);
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -12,31 +13,46 @@ document.addEventListener("DOMContentLoaded", async () => {
     const {SlsWgpuDemo, features} = module;
 
     /** @type {Set<string>} */
-     const APP_FEATURES = new Set(features());
+    const APP_FEATURES = new Set(features());
     const ui = new DemoUI({appRoot: uiRoot, features: APP_FEATURES})
-    ui.render();
-    window.SLS_APP_FEATURES = APP_FEATURES;
-    await startApp({module, features: APP_FEATURES, wasmAppRoot});
+    /** @type {null | import("../pkg").SlsWgpuApp} */
+    let app = null;
+    startApp({module, features: APP_FEATURES, wasmAppRoot, backend: ui.currentBackend}).catch((e) => {
+        console.error('app could not start: ', e);
+    })
 
+    ui.render();
+    //
 
 
 })
 
-async function startApp({module, features, wasmAppRoot}){
+/**
+ *
+ * @param {import('../pkg')} module
+ * @param features
+ * @param wasmAppRoot
+ * @param backend
+ * @returns {Promise<import('../pkg).SlsWgpuDemo>}
+ */
+async function startApp({module, features, wasmAppRoot, backend}) {
     const {SlsWgpuDemo} = module;
 
-    const isBuiltWithWgpu = features.has("wgpu_renderer")
+    backend = backend || 'opengl_renderer'
+    wasmAppRoot.innerHTML = ''
 
-    if (isBuiltWithWgpu && webGpuIsAvailable()) {
-        window.GPU_API = await createWgpuContext({appRoot: wasmAppRoot});
-    } else {
-        console.log(`app ${ isBuiltWithWgpu? "is": "is not" } built with webgpu support`);
-        console.log(`browser ${webGpuIsAvailable()? "does": "does not"} support webgpu`)
+    const isBuiltWithWgpu = features.has("wgpu_renderer")
+    if (backend === 'wgpu_renderer') {
+        if (isBuiltWithWgpu && webGpuIsAvailable()) {
+            window.GPU_API = await createWgpuContext({appRoot: wasmAppRoot});
+        } else {
+            console.log(`app ${isBuiltWithWgpu ? "is" : "is not"} built with webgpu support`);
+            console.log(`browser ${webGpuIsAvailable() ? "does" : "does not"} support webgpu`)
+        }
     }
     let app = new SlsWgpuDemo(wasmAppRoot);
     app.on('keyup', (event) => {
         console.log("key up: ", event);
-
     });
 
     app.on('keydown', (event) => {
@@ -45,4 +61,5 @@ async function startApp({module, features, wasmAppRoot}){
     });
     window.$app = app;
     app.run();
+    return app;
 }
