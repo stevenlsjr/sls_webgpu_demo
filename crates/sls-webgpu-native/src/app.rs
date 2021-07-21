@@ -5,7 +5,9 @@ use sdl2::video::{Window, WindowBuildError};
 use sdl2::EventPump;
 use sls_webgpu::game::input::{InputResource, Sdl2Input};
 use sls_webgpu::game::{CreateGameParams, GameState};
+use sls_webgpu::imgui_wgpu::Renderer;
 use sls_webgpu::platform::gui::DrawUi;
+use sls_webgpu::wgpu_renderer::render_hooks::OnRenderUiClosure;
 use sls_webgpu::{imgui, imgui_wgpu, platform::sdl2_backend::ImguiSdlPlatform, Context};
 use std::ops::DerefMut;
 use std::sync::{Arc, PoisonError, RwLock, RwLockWriteGuard};
@@ -65,33 +67,37 @@ impl App {
     }
   }
   fn on_render(&mut self) -> Result<(), sls_webgpu::Error> {
-    let render_result = match (
-      self.imgui_context.write(),
-      self.imgui_renderer.write(),
-      self.imgui_platform.clone().write(),
-    ) {
-      (Ok(mut context), Ok(mut renderer), Ok(mut platform)) => {
-        {
-          let window = self.context.window();
-          platform.prepare_frame(context.io_mut(), window, &self.event_pump.mouse_state());
-        }
-        let mut ui = context.frame();
-        self.game_state.draw_ui(&mut ui);
-        platform.prepare_render(&ui, self.context.window());
-        self.context.render(&self.game_state)
-      }
-      (a, b, c) => {
-        log::warn!(
-          "could not acquire write locks! {:?}, {:?}, {:?}",
-          a.err(),
-          b.err(),
-          c.err()
-        );
-        self.context.render(&self.game_state)
-      }
-    };
+    use sls_webgpu::Error;
+    let platform_arc = self.imgui_platform.clone();
+    let context_arc = self.imgui_context.clone();
 
-    render_result.map_err(|e| sls_webgpu::Error::Other { reason: e })
+    let mut im_ctx = context_arc
+      .write()
+      .map_err(|e| Error::from_other(format!("lock is poisoned! {:?}", e)))?;
+
+    {
+      let mut im_platform = platform_arc
+        .write()
+        .map_err(|e| Error::from_other(format!("lock is poisoned! {:?}", e)))?;
+
+      im_platform.prepare_frame(
+        im_ctx.io_mut(),
+        self.context.window(),
+        &self.event_pump.mouse_state(),
+      );
+    }
+    let mut ui = im_ctx.frame();
+    self.game_state.draw_ui(&mut ui);
+
+    let mut gui_renderer_arc = self
+      .imgui_renderer
+      .write()
+      .map_err(|e| Error::from_other(format!("lock is poisoned! {:?}", e)))?;
+
+    self
+      .context
+      .render_with_ui(&self.game_state, ui, &mut gui_renderer_arc)
+      .map_err(|e| sls_webgpu::Error::Other { reason: e })
   }
 
   pub(crate) fn handle_input(&mut self, imgui_context: &mut imgui::Context) {

@@ -8,6 +8,7 @@ use super::geometry::{Vertex, TRIANGLE_INDICES, TRIANGLE_VERT};
 use super::mesh::{Mesh, MeshGeometry};
 use super::uniforms::Uniforms;
 
+use crate::wgpu_renderer::render_hooks::OnRenderUiClosure;
 use std::fmt;
 use std::fmt::Formatter;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
@@ -119,6 +120,82 @@ impl<W: AsWindow> Context<W> {
             render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             render_pass.draw_indexed(0..n_indices, 0, 0..1);
           };
+        }
+        self.queue.submit(std::iter::once(encoder.finish()));
+        Ok(())
+      }
+    }
+  }
+
+  #[cfg(feature = "wgpu_imgui")]
+  pub fn render_with_ui(
+    &mut self,
+    game: &GameState,
+    mut imgui_frame: imgui::Ui,
+    imgui_renderer: &mut imgui_wgpu::Renderer,
+  ) -> Result<(), String> {
+    let camera = game
+      .resources()
+      .get::<Scene>()
+      .map(|s| s.main_camera_components(&game.world()))
+      .unwrap_or(Ok(None))
+      .map_err(|error| format!("error accessing camera {:?}", error))?;
+    match camera {
+      None => {
+        log::warn!("no main camera found");
+        Ok(())
+      }
+      Some(camera) => {
+        self.uniforms.update_from_camera(camera);
+        self.queue.write_buffer(
+          &self.uniform_buffer,
+          0,
+          bytemuck::cast_slice(&[self.uniforms]),
+        );
+
+        let frame = self
+          .swapchain
+          .get_current_frame()
+          .map_err(|e| format!("swapchain error {:?}", e))?
+          .output;
+
+        let mut encoder = self
+          .device
+          .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Render Encoder"),
+          });
+        {
+          let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("render pass"),
+            color_attachments: &[wgpu::RenderPassColorAttachment {
+              view: &frame.view,
+              resolve_target: None,
+              ops: wgpu::Operations {
+                load: wgpu::LoadOp::Clear(wgpu::Color {
+                  r: 0.1,
+                  g: 0.2,
+                  b: 0.3,
+                  a: 1.0,
+                }),
+                store: true,
+              },
+            }],
+            depth_stencil_attachment: None,
+          });
+
+          render_pass.set_pipeline(&self.render_pipeline);
+          render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+
+          if let Some(mesh) = self.mesh.buffers() {
+            let n_indices = self.mesh.geometry().indices.len() as u32;
+            render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+            render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            render_pass.draw_indexed(0..n_indices, 0, 0..1);
+          };
+          {
+            let draw_data = imgui_frame.render();
+            imgui_renderer.render(draw_data, &self.queue, &self.device, &mut render_pass);
+          }
         }
         self.queue.submit(std::iter::once(encoder.finish()));
         Ok(())
