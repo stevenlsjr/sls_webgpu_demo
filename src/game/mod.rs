@@ -8,7 +8,7 @@ pub use wgpu_imgui::*;
 
 use crate::game::components::{DebugShowScene, GameLoopTimer};
 use crate::game::input::{InputBackend, InputResource};
-use crate::game::resources::Scene;
+use crate::game::resources::{Scene, UIDataIn, UIDataOut};
 use crate::game::systems::*;
 
 mod camera_systems;
@@ -49,6 +49,7 @@ impl GameState {
     let is_running = false;
     let fixed_schedule = Schedule::builder()
       .add_system(systems::fixed_update_logging_system())
+      .add_system(systems::write_camera_ui_data_system())
       .build();
     let per_frame_schedule = Schedule::builder()
       .add_system(systems::per_frame_logging_system())
@@ -72,6 +73,8 @@ impl GameState {
     resources.insert(GameLoopTimer::default());
     resources.insert(DebugShowScene(false));
     resources.insert(Scene { main_camera: None });
+    resources.insert(UIDataIn::default());
+    resources.insert(UIDataOut::default());
     resources
   }
 
@@ -171,10 +174,21 @@ mod wgpu_imgui {
   use crate::platform::gui::wgpu_imgui::DrawUi;
 
   use super::*;
+  use crate::game::components::Transform3D;
+  use crate::camera::Camera;
+  use crate::nalgebra_glm::Vec3;
+  use crate::game::resources::CameraDisplayData;
+  use atomic_refcell::AtomicRef;
 
   impl DrawUi for GameState {
     fn draw_ui(&self, ui: &mut Ui) {
       use imgui::*;
+
+      let main_camera_data = self.resources
+        .get::<UIDataIn>()
+        .map(|data| data.camera.clone());
+
+
       Window::new(im_str!("Window!!"))
         .size([300.0, 300.0], Condition::Appearing)
         .position([0.0, 0.0], Condition::Appearing)
@@ -186,6 +200,10 @@ mod wgpu_imgui {
               "Frame DT: {}s",
               loop_timer.per_frame_dt.as_secs_f64()
             ));
+          }
+          if let Some(camera) = main_camera_data {
+            ui.text(format!("camera position {:?}", camera.position));
+            ui.text(format!("camera front vector {:?}", camera.forward));
           }
         });
     }

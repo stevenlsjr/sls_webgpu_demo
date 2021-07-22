@@ -1,5 +1,6 @@
 use crate::camera::Camera;
 use legion::*;
+use crate::nalgebra_glm::{Vec3, vec3};
 
 #[derive(Clone, Debug, Default)]
 pub struct Scene {
@@ -42,3 +43,22 @@ impl Scene {
     Ok(None)
   }
 }
+
+#[derive(Debug, Clone)]
+pub struct CameraDisplayData {
+  pub position: Vec3,
+  pub forward: Vec3,
+}
+impl Default for CameraDisplayData {
+  fn default() -> Self {
+    Self{position: Vec3::zeros(), forward: vec3(0.0, 0.0, 1.0)}
+  }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct UIDataIn {
+  pub camera: CameraDisplayData,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct UIDataOut {}

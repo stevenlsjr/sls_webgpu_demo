@@ -4,7 +4,7 @@ use crate::game::GameState;
 
 use crate::window::AsWindow;
 
-use super::geometry::{Vertex, TRIANGLE_INDICES, TRIANGLE_VERT};
+use super::geometry::{Vertex};
 use super::mesh::{Mesh, MeshGeometry};
 use super::uniforms::Uniforms;
 
@@ -68,6 +68,7 @@ impl<W: AsWindow> Context<W> {
       .map(|s| s.main_camera_components(&game.world()))
       .unwrap_or(Ok(None))
       .map_err(|error| format!("error accessing camera {:?}", error))?;
+
     match camera {
       None => {
         log::warn!("no main camera found");
@@ -304,7 +305,7 @@ impl<W: AsWindow> Builder<W> {
     )?;
 
     let mesh = {
-      let geom = MeshGeometry::unit_shere(10, 10);
+      let geom = MeshGeometry::unit_shere(50, 50);
       Mesh::from_geometry(geom, &device)?
     };
 

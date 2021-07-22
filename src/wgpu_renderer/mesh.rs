@@ -80,12 +80,18 @@ impl MeshGeometry {
     });
 
     let sphere: Vec<MyVertex> = SphereUv::new(u, v)
-      .vertex(|Vertex { pos, normal }| MyVertex {
-        position: [pos.x, pos.y, pos.z],
-        normal: [normal.x, normal.y, normal.z, 1.0],
-        color: [1.0; 4],
+      .vertex(|Vertex { pos, normal }| {
+        let pi = std::f32::consts::PI;
+        let u = 0.5 + (f32::atan2(pos.x, pos.y)/2.0*pi);
+        let v = 0.5 + (f32::asin(pos.y)/pi);
+        MyVertex {
+          position: [pos.x, pos.y, pos.z],
+          normal: [normal.x, normal.y, normal.z, 1.0],
+          uv: [u, v],
+          color: [1.0; 4],
+        }
       })
-        .triangulate()
+      .triangulate()
       // wrap triangles counter-clockwise
       .vertices().collect();
     let mut vertices: Vec<MyVertex> = Vec::with_capacity(sphere.len());

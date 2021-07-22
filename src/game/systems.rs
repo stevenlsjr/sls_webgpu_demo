@@ -4,6 +4,10 @@ use legion::systems::CommandBuffer;
 use legion::*;
 use log::*;
 use nalgebra_glm as glm;
+pub use super::camera_systems::*;
+use crate::game::resources::{Scene, UIDataIn};
+use legion::world::SubWorld;
+
 
 #[system]
 pub fn fixed_update_logging(#[resource] game_loop: &GameLoopTimer) {
@@ -27,5 +31,18 @@ pub fn setup_scene(#[resource] scene: &mut Scene, command_buffer: &mut CommandBu
   scene.main_camera = Some(main_camera_entity);
 }
 
-pub use super::camera_systems::*;
-use crate::game::resources::Scene;
+#[system(for_each)]
+#[read_component(Entity)]
+#[read_component(Camera)]
+#[read_component(Transform3D)]
+pub fn write_camera_ui_data(#[resource] scene: &Scene,
+                            #[resource] ui_data: &mut UIDataIn,
+                            entity: &Entity,
+  camera: &Camera,
+  transform: &Transform3D
+) {
+  if Some(entity) == scene.main_camera.as_ref() {
+    ui_data.camera.position = transform.position.clone_owned();
+    ui_data.camera.forward = camera.front.clone_owned();
+  }
+}

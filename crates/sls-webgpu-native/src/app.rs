@@ -12,6 +12,11 @@ use sls_webgpu::{imgui, imgui_wgpu, platform::sdl2_backend::ImguiSdlPlatform, Co
 use std::ops::DerefMut;
 use std::sync::{Arc, PoisonError, RwLock, RwLockWriteGuard};
 use std::time::*;
+use sls_webgpu::game::resources::Scene;
+use sls_webgpu::legion::{EntityStore, IntoQuery};
+use sls_webgpu::game::components::Transform3D;
+use sls_webgpu::camera::Camera;
+use sls_webgpu::nalgebra_glm::Vec3;
 
 pub struct App {
   pub(crate) context: Context<Window>,
@@ -146,7 +151,15 @@ impl App {
   }
 
   fn update_gui<'a>(&mut self, ui: imgui::Ui<'a>, dt: &Duration) -> imgui::Ui<'a> {
+    use sls_webgpu::legion::*;
+
+
     use sls_webgpu::imgui::*;
+
+    let world = self.game_state.world();
+
+
+
     Window::new(im_str!("Hello"))
       .size([300.0, 100.0], Condition::FirstUseEver)
       .build(&ui, || {
