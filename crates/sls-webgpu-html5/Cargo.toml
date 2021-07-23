@@ -190,7 +190,7 @@ features = ["html5_backend", "opengl_renderer"]
 [target."cfg(debug_assertions)".dependencies]
 console_error_panic_hook = "0.1.5"
 
-# These crates are used for running unit tests.
+# These crates are used for running unit test.
 [dev-dependencies]
 wasm-bindgen-test = "0.2.45"
 futures = "0.1.27"

@@ -3,20 +3,20 @@ use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
 use sdl2::video::{Window, WindowBuildError};
 use sdl2::EventPump;
+use sls_webgpu::camera::Camera;
+use sls_webgpu::game::components::Transform3D;
 use sls_webgpu::game::input::{InputResource, Sdl2Input};
+use sls_webgpu::game::resources::Scene;
 use sls_webgpu::game::{CreateGameParams, GameState};
 use sls_webgpu::imgui_wgpu::Renderer;
+use sls_webgpu::legion::{EntityStore, IntoQuery};
+use sls_webgpu::nalgebra_glm::Vec3;
 use sls_webgpu::platform::gui::DrawUi;
 use sls_webgpu::wgpu_renderer::render_hooks::OnRenderUiClosure;
 use sls_webgpu::{imgui, imgui_wgpu, platform::sdl2_backend::ImguiSdlPlatform, Context};
 use std::ops::DerefMut;
 use std::sync::{Arc, PoisonError, RwLock, RwLockWriteGuard};
 use std::time::*;
-use sls_webgpu::game::resources::Scene;
-use sls_webgpu::legion::{EntityStore, IntoQuery};
-use sls_webgpu::game::components::Transform3D;
-use sls_webgpu::camera::Camera;
-use sls_webgpu::nalgebra_glm::Vec3;
 
 pub struct App {
   pub(crate) context: Context<Window>,
@@ -122,12 +122,18 @@ impl App {
           keycode: Some(Keycode::Escape),
           ..
         } => self.game_state.set_is_running(false),
-        Event::Window { win_event, .. } => match win_event {
-          WindowEvent::Resized(width, height) => {
-            self.context.on_resize((width as u32, height as u32));
-          }
-          _ => {}
-        },
+        Event::Window {
+          win_event: WindowEvent::Resized(width, height),
+          ..
+        } => {
+          let window_size = (width as usize, height as usize);
+          let drawable_size = self.context.window.drawable_size();
+          self.context.on_resize((width as u32, height as u32));
+          self.game_state.on_resize(
+            (drawable_size.0 as usize, drawable_size.1 as usize),
+            window_size,
+          );
+        }
         _ => {}
       }
     }
@@ -153,12 +159,9 @@ impl App {
   fn update_gui<'a>(&mut self, ui: imgui::Ui<'a>, dt: &Duration) -> imgui::Ui<'a> {
     use sls_webgpu::legion::*;
 
-
     use sls_webgpu::imgui::*;
 
     let world = self.game_state.world();
-
-
 
     Window::new(im_str!("Hello"))
       .size([300.0, 100.0], Condition::FirstUseEver)

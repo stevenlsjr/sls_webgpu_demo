@@ -35,7 +35,8 @@ glow = { version = "*", optional = true }
 smallvec = "1.6.1"
 genmesh = "0.6.2"
 memoffset = { version = "0.6", features = ["unstable_const"] }
-
+image = "^0.23"
+hibitset = "0.6.3"
 
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]

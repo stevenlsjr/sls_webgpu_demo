@@ -1,7 +1,7 @@
 use super::components::*;
 use super::input::InputResource;
 use crate::camera::Camera;
-use crate::game::resources::Scene;
+use crate::game::resources::{Scene, ScreenResolution};
 use crate::platform::keyboard::Keycode;
 use legion::*;
 use nalgebra_glm::*;
@@ -51,5 +51,15 @@ pub fn camera_move(
       camera.position,
       transform.position
     );
+  }
+}
+
+///
+#[system(for_each)]
+#[write_component(Camera)]
+pub fn camera_on_resize(#[resource] screen_resolution: &ScreenResolution, camera: &mut Camera) {
+  let aspect = screen_resolution.drawable_size.0 as f32 / screen_resolution.drawable_size.1 as f32;
+  if camera.aspect_matches_window {
+    camera.aspect = aspect;
   }
 }

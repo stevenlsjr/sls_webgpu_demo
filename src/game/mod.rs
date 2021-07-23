@@ -8,7 +8,7 @@ pub use wgpu_imgui::*;
 
 use crate::game::components::{DebugShowScene, GameLoopTimer};
 use crate::game::input::{InputBackend, InputResource};
-use crate::game::resources::{Scene, UIDataIn, UIDataOut};
+use crate::game::resources::{Scene, ScreenResolution, UIDataIn, UIDataOut};
 use crate::game::systems::*;
 
 mod camera_systems;
@@ -22,9 +22,18 @@ pub mod html5_backend;
 
 pub struct GameState {
   world: World,
+  /// legion schedule triggered every fixed time update
   fixed_schedule: Schedule,
+  /// legion schedule triggered every frame
   per_frame_schedule: Schedule,
+
+  /// legion schedule triggered when the window size changes
+  on_resize_schedule: Schedule,
+
+  /// the world's resource store
   resources: Resources,
+
+  /// if set to false, end the game loop
   is_running: bool,
 }
 
@@ -55,6 +64,11 @@ impl GameState {
       .add_system(systems::per_frame_logging_system())
       .add_thread_local(systems::camera_move_system())
       .build();
+
+    let on_resize_schedule = Schedule::builder()
+      .add_system(camera_systems::camera_on_resize_system())
+      .build();
+
     let mut resources = Self::initial_resources();
     resources.insert(InputResource {
       backend: input_backend,
@@ -65,6 +79,7 @@ impl GameState {
       fixed_schedule,
       per_frame_schedule,
       resources,
+      on_resize_schedule,
     }
   }
 
@@ -77,6 +92,8 @@ impl GameState {
     resources.insert(UIDataOut::default());
     resources
   }
+  /// Lifecycle functions
+  /// on_start, update, fixed_update, resize, etc
 
   pub fn on_start(&mut self) {
     let mut scheduler = Schedule::builder()
@@ -109,6 +126,23 @@ impl GameState {
       .fixed_schedule
       .execute(&mut self.world, &mut self.resources);
   }
+
+  pub fn on_resize(&mut self, drawable_size: (usize, usize), window_size: (usize, usize)) {
+    let resize = resources::ScreenResolution {
+      drawable_size,
+      window_size,
+    };
+    {
+      let mut screen_resolution = self.resources.get_mut_or_insert(resize.clone());
+      screen_resolution.drawable_size = resize.drawable_size;
+      screen_resolution.window_size = resize.window_size;
+    }
+    self
+      .on_resize_schedule
+      .execute(&mut self.world, &mut self.resources);
+  }
+
+  /// accessors and setters
 
   pub fn is_running(&self) -> bool {
     self.is_running
@@ -174,20 +208,20 @@ mod wgpu_imgui {
   use crate::platform::gui::wgpu_imgui::DrawUi;
 
   use super::*;
-  use crate::game::components::Transform3D;
   use crate::camera::Camera;
-  use crate::nalgebra_glm::Vec3;
+  use crate::game::components::Transform3D;
   use crate::game::resources::CameraDisplayData;
+  use crate::nalgebra_glm::Vec3;
   use atomic_refcell::AtomicRef;
 
   impl DrawUi for GameState {
     fn draw_ui(&self, ui: &mut Ui) {
       use imgui::*;
 
-      let main_camera_data = self.resources
+      let main_camera_data = self
+        .resources
         .get::<UIDataIn>()
         .map(|data| data.camera.clone());
-
 
       Window::new(im_str!("Window!!"))
         .size([300.0, 300.0], Condition::Appearing)

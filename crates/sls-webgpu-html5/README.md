@@ -21,13 +21,13 @@ npm run build
 ## How to run unit tests
 
 ```sh
-# Runs tests in Firefox
+# Runs test in Firefox
 npm test -- --firefox
 
-# Runs tests in Chrome
+# Runs test in Chrome
 npm test -- --chrome
 
-# Runs tests in Safari
+# Runs test in Safari
 npm test -- --safari
 ```
 

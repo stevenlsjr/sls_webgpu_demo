@@ -1,9 +1,9 @@
-use super::geometry::{Vertex, self};
+use crate::renderer_common::geometry::{self, Vertex};
 
 use crate::error::Error;
+use genmesh::generators::{IcoSphere, SharedVertex};
+use genmesh::{Triangulate, Vertices};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
-use genmesh::{Vertices, Triangulate};
-use genmesh::generators::{SharedVertex, IcoSphere};
 
 #[derive(Debug)]
 pub struct Mesh {
@@ -72,7 +72,7 @@ impl MeshGeometry {
   }
 
   pub fn unit_shere(u: usize, v: usize) -> Self {
-    use genmesh::{generators::{SphereUv}, *};
+    use genmesh::{generators::SphereUv, *};
     type MyVertex = geometry::Vertex;
     let mut found = false;
     let mut indexer = LruIndexer::new(u * v * 4, |a, b| {
@@ -82,8 +82,8 @@ impl MeshGeometry {
     let sphere: Vec<MyVertex> = SphereUv::new(u, v)
       .vertex(|Vertex { pos, normal }| {
         let pi = std::f32::consts::PI;
-        let u = 0.5 + (f32::atan2(pos.x, pos.y)/2.0*pi);
-        let v = 0.5 + (f32::asin(pos.y)/pi);
+        let u = 0.5 + (f32::atan2(pos.x, pos.y) / 2.0 * pi);
+        let v = 0.5 + (f32::asin(pos.y) / pi);
         MyVertex {
           position: [pos.x, pos.y, pos.z],
           normal: [normal.x, normal.y, normal.z, 1.0],
@@ -93,7 +93,8 @@ impl MeshGeometry {
       })
       .triangulate()
       // wrap triangles counter-clockwise
-      .vertices().collect();
+      .vertices()
+      .collect();
     let mut vertices: Vec<MyVertex> = Vec::with_capacity(sphere.len());
     let mut indices: Vec<u16> = Vec::with_capacity(sphere.len());
 
@@ -103,7 +104,6 @@ impl MeshGeometry {
       vertices.push(vert.clone());
       indices.push(i as u16);
     }
-
 
     MeshGeometry {
       label: Some("unit sphere".to_owned()),

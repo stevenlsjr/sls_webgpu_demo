@@ -4,15 +4,15 @@ use crate::game::GameState;
 
 use crate::window::AsWindow;
 
-use super::geometry::{Vertex};
 use super::mesh::{Mesh, MeshGeometry};
 use super::uniforms::Uniforms;
+use crate::renderer_common::geometry::Vertex;
 
 use crate::wgpu_renderer::render_hooks::OnRenderUiClosure;
 use std::fmt;
 use std::fmt::Formatter;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
-use wgpu::{RenderPipeline, Face};
+use wgpu::{Face, RenderPipeline};
 
 pub struct Context<W: AsWindow> {
   pub window: W,
@@ -217,9 +217,9 @@ pub struct Builder<W: AsWindow> {
 impl<W: AsWindow> Builder<W> {
   pub async fn build(self) -> Result<Context<W>, Error> {
     #[cfg(not(target_os = "linux"))]
-      let backends = wgpu::BackendBit::all();
+    let backends = wgpu::BackendBit::all();
     #[cfg(target_os = "linux")]
-      let backends = wgpu::BackendBit::VULKAN;
+    let backends = wgpu::BackendBit::VULKAN;
 
     let instance = wgpu::Instance::new(backends);
     let surface = unsafe { instance.create_surface(&self.window) };
@@ -305,7 +305,7 @@ impl<W: AsWindow> Builder<W> {
     )?;
 
     let mesh = {
-      let geom = MeshGeometry::unit_shere(50, 50);
+      let geom = MeshGeometry::unit_shere(10, 10);
       Mesh::from_geometry(geom, &device)?
     };
 

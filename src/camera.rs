@@ -20,6 +20,11 @@ pub struct Camera {
 
   pub movement_speed: f32,
   pub mouse_sensitivity: f32,
+
+  /// If true, aspect ratio should
+  /// be the same as the main window's drawable
+  /// size
+  pub aspect_matches_window: bool,
 }
 
 impl Camera {
@@ -82,6 +87,7 @@ impl Default for Camera {
       pitch: 0f32,
       yaw: -f32::pi() / 2f32,
       mouse_sensitivity: 0.0,
+      aspect_matches_window: true,
     };
     cam.front = cam.get_front_vector();
     cam
