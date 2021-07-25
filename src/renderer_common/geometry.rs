@@ -1,5 +1,3 @@
-use lazy_static::lazy_static;
-use memoffset::offset_of;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable, PartialEq)]

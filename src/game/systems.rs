@@ -6,7 +6,6 @@ use log::*;
 use nalgebra_glm as glm;
 pub use super::camera_systems::*;
 use crate::game::resources::{Scene, UIDataIn};
-use legion::world::SubWorld;
 
 
 #[system]

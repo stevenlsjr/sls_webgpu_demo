@@ -8,7 +8,7 @@ pub use wgpu_imgui::*;
 
 use crate::game::components::{DebugShowScene, GameLoopTimer};
 use crate::game::input::{InputBackend, InputResource};
-use crate::game::resources::{Scene, ScreenResolution, UIDataIn, UIDataOut};
+use crate::game::resources::{Scene, UIDataIn, UIDataOut};
 use crate::game::systems::*;
 
 mod camera_systems;
@@ -246,7 +246,6 @@ mod wgpu_imgui {
 
 #[cfg(test)]
 mod test {
-  use nalgebra_glm::*;
 
   use crate::game::input::DummyInputBackend;
 
@@ -264,5 +263,7 @@ mod test {
   }
 
   #[test]
-  fn test_is_main_camera() {}
+  fn test_is_main_camera() {
+    let _foo = setup();
+  }
 }
