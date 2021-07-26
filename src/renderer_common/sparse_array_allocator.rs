@@ -25,12 +25,8 @@ impl<T: Sized> SparseArrayAllocator<T> {
   pub fn with_capacity(capacity: usize) -> Self {
     let values = Vec::with_capacity(capacity);
     let free_list = LinkedList::new();
-    Self {
-      values,
-      free_list,
-    }
+    Self { values, free_list }
   }
-
 
   ///
   ///
@@ -54,7 +50,7 @@ impl<T: Sized> SparseArrayAllocator<T> {
         self.values.push(None);
         self.values.len() - 1
       }
-      Some(i) => { i }
+      Some(i) => i,
     };
     self.values[index] = Some(val);
     index
@@ -86,10 +82,9 @@ impl<T: Sized> SparseArrayAllocator<T> {
         self.free_list.push_back(index);
         Ok(val)
       }
-      None => Err(AlreadyFreedError)
+      None => Err(AlreadyFreedError),
     }
   }
-
 
   ///
   ///
@@ -131,7 +126,6 @@ impl<T: Sized> SparseArrayAllocator<T> {
     self.values[index].as_mut()
   }
 
-
   ///
   ///
   /// # Arguments
@@ -161,6 +155,44 @@ impl<T: Sized> SparseArrayAllocator<T> {
     // self.free_list.l
     self.values.len() - self.free_list.len()
   }
+
+  ///
+  ///
+  /// # Arguments
+  ///
+  ///
+  /// returns: iterator to present items in the array
+  ///
+  ///
+  /// # Examples
+  ///
+  /// ```
+  ///  use sls_webgpu::renderer_common::allocator::SparseArrayAllocator;
+  ///  use sls_webgpu::renderer_common::sparse_array_allocator::AlreadyFreedError;
+  ///  let mut allocator: SparseArrayAllocator<i32> = SparseArrayAllocator::new();
+  ///  for i in 3..6 {
+  ///   allocator.allocate(i);
+  ///  }
+  ///  
+  ///  let mut iter = allocator.iter().cloned();
+  ///  assert_eq!(iter.next(), Some(3));
+  ///  assert_eq!(iter.next(), Some(4));
+  ///  assert_eq!(iter.next(), Some(5));
+  ///  assert_eq!(iter.next(), None);
+  /// ```
+  pub fn iter(&self) -> SparseArrayAllocatorIter<T> {
+    SparseArrayAllocatorIter {
+      array: self,
+      index: 0,
+    }
+  }
+
+  pub fn iter_mut(&mut self) -> SparseArrayAllocatorIterMut<T> {
+    SparseArrayAllocatorIterMut {
+      array: self,
+      index: 0,
+    }
+  }
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -173,3 +205,49 @@ impl Display for AlreadyFreedError {
 }
 
 impl std::error::Error for AlreadyFreedError {}
+
+// iterator
+#[derive(Clone, Debug)]
+pub struct SparseArrayAllocatorIter<'a, T> {
+  index: usize,
+  array: &'a SparseArrayAllocator<T>,
+}
+
+impl<'a, T> Iterator for SparseArrayAllocatorIter<'a, T> {
+  type Item = &'a T;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    while self.index < self.array.values.len() {
+      let index = self.index;
+      self.index += 1;
+      if let Some(item) = &self.array.values[index] {
+        return Some(item);
+      }
+    }
+    None
+  }
+}
+
+#[derive(Debug)]
+pub struct SparseArrayAllocatorIterMut<'a, T> {
+  index: usize,
+  array: &'a mut SparseArrayAllocator<T>,
+}
+
+impl<'a, T> Iterator for SparseArrayAllocatorIterMut<'a, T> {
+  type Item = &'a mut T;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    while self.index < self.array.values.len() {
+      let index = self.index;
+      self.index += 1;
+      let item = self.array.mut_ref(index);
+
+      if let Some(item) = item {
+        let mut_ptr = item as *mut T;
+        return Some(unsafe { mut_ptr.as_mut::<'a>() }.unwrap());
+      }
+    }
+    None
+  }
+}
