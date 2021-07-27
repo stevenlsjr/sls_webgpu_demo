@@ -1,4 +1,4 @@
-use crate::camera::Camera;
+use crate::{camera::Camera, renderer_common::allocator::Handle};
 use nalgebra_glm::*;
 use std::time::Duration;
 
@@ -32,6 +32,12 @@ impl Transform3D {
     let scale = scale(&Mat4::identity(), &self.scale);
     scale * rotation * translation
   }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct RenderModel {
+  pub mesh: Option<Handle>,
+  pub label: Option<String>,
 }
 
 pub type CameraEntityRow = (Transform3D, Camera);

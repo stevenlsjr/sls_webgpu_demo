@@ -1,5 +1,4 @@
-use image::GenericImageView;
-use image::ImageError;
+use image::{GenericImageView, ImageError};
 use std::num::NonZeroU32;
 use thiserror::Error;
 use wgpu::{Device, Queue, Sampler, Texture, TextureView};

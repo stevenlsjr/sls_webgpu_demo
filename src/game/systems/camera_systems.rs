@@ -1,8 +1,12 @@
-use super::components::*;
-use super::input::InputResource;
-use crate::camera::Camera;
-use crate::game::resources::{Scene, ScreenResolution};
-use crate::platform::keyboard::Keycode;
+use crate::{
+  camera::Camera,
+  game::{
+    components::*,
+    input::InputResource,
+    resources::{Scene, ScreenResolution},
+  },
+  platform::keyboard::Keycode,
+};
 use legion::*;
 use nalgebra_glm::*;
 

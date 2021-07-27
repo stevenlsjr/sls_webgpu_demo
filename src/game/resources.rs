@@ -1,6 +1,11 @@
-use crate::camera::Camera;
-use crate::nalgebra_glm::{vec3, Vec3};
+use crate::{
+  camera::Camera,
+  game::components::{RenderModel, Transform3D},
+  nalgebra_glm::{vec3, Vec3},
+  renderer_common::allocator::Handle,
+};
 use legion::*;
+use std::collections::HashMap;
 
 #[derive(Clone, Debug, Default)]
 pub struct Scene {
@@ -61,6 +66,7 @@ impl Default for CameraDisplayData {
 #[derive(Debug, Clone, Default)]
 pub struct UIDataIn {
   pub camera: CameraDisplayData,
+  pub drawable_meshes: Vec<(RenderModel, Transform3D)>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -71,3 +77,6 @@ pub struct ScreenResolution {
   pub drawable_size: (usize, usize),
   pub window_size: (usize, usize),
 }
+
+#[derive(Debug, Clone, Default)]
+pub struct MeshLookup(pub HashMap<String, Handle>);

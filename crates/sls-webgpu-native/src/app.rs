@@ -1,45 +1,46 @@
 use log::error;
-use sdl2::event::{Event, WindowEvent};
-use sdl2::keyboard::Keycode;
-use sdl2::video::{Window};
-use sdl2::EventPump;
-
+use sdl2::{
+  event::{Event, WindowEvent},
+  keyboard::Keycode,
+  video::Window,
+  EventPump,
+};
 
 use sls_webgpu::game::input::{InputResource, Sdl2Input};
 
-use sls_webgpu::game::{GameState};
-
-
+use sls_webgpu::game::GameState;
 
 use sls_webgpu::platform::gui::DrawUi;
 
 use sls_webgpu::{imgui, imgui_wgpu, platform::sdl2_backend::ImguiSdlPlatform, Context};
-use std::ops::DerefMut;
-use std::sync::{Arc, RwLock};
-use std::time::*;
+use std::{
+  ops::DerefMut,
+  sync::{Arc, RwLock},
+  time::*,
+};
 
 pub struct App {
-  pub(crate) context: Context<Window>,
+  pub(crate) context: Arc<RwLock<Context>>,
   pub(crate) event_pump: EventPump,
   pub(crate) game_state: GameState,
   pub(crate) imgui_context: Arc<RwLock<imgui::Context>>,
   pub(crate) imgui_renderer: Arc<RwLock<imgui_wgpu::Renderer>>,
   pub(crate) imgui_platform: Arc<RwLock<ImguiSdlPlatform>>,
   pub(crate) sdl: sdl2::Sdl,
+  pub window: Window,
 }
 
 impl App {
   pub(crate) fn run(mut self) {
     self.game_state.set_is_running(true);
+    self.load_assets();
     let mut previous_time = Instant::now();
     let mut update_lag = Duration::from_nanos(0);
     let ms_per_update = Duration::from_millis(1000 / 60);
     let imgui_context = self.imgui_context.clone(); // take ownership from the App object
     {
       match (self.imgui_platform.write(), imgui_context.write()) {
-        (Ok(mut platform), Ok(mut context)) => {
-          platform.on_start(context.io_mut(), self.context.window())
-        }
+        (Ok(mut platform), Ok(mut context)) => platform.on_start(context.io_mut(), &self.window),
         (a, b) => log::error!("write lock poisoned! {:?}, {:?}", a.err(), b.err()),
       };
     }
@@ -64,8 +65,13 @@ impl App {
         self.game_state.fixed_update(&ms_per_update);
         update_lag -= ms_per_update;
       }
-      self.context.update();
-
+      {
+        self
+          .context
+          .write()
+          .expect("could not write to context")
+          .update();
+      }
       if let Err(e) = self.on_render() {
         panic!("render error! {:?}", e);
       }
@@ -87,7 +93,7 @@ impl App {
 
       im_platform.prepare_frame(
         im_ctx.io_mut(),
-        self.context.window(),
+        &self.window,
         &self.event_pump.mouse_state(),
       );
     }
@@ -101,6 +107,8 @@ impl App {
 
     self
       .context
+      .write()
+      .expect("Deadlock on render context")
       .render_with_ui(&self.game_state, ui, &mut gui_renderer_arc)
       .map_err(|e| sls_webgpu::Error::FromError(e.into()))
   }
@@ -127,8 +135,9 @@ impl App {
           ..
         } => {
           let window_size = (width as usize, height as usize);
-          let drawable_size = self.context.window.drawable_size();
-          self.context.on_resize((width as u32, height as u32));
+          let mut context = self.context.write().expect("deadlock on render context");
+          let drawable_size = self.window.drawable_size();
+          context.on_resize((width as u32, height as u32));
           self.game_state.on_resize(
             (drawable_size.0 as usize, drawable_size.1 as usize),
             window_size,
@@ -155,4 +164,6 @@ impl App {
     sdl2_input.sync_input(&self.sdl, &self.event_pump);
     Ok(())
   }
+
+  fn load_assets(&mut self) {}
 }

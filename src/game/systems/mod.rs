@@ -1,12 +1,21 @@
-use crate::camera::Camera;
-use crate::game::components::{CameraEntityRow, GameLoopTimer, Transform3D};
-use legion::systems::CommandBuffer;
-use legion::*;
+use legion::{systems::CommandBuffer, *};
 use log::*;
 use nalgebra_glm as glm;
-pub use super::camera_systems::*;
-use crate::game::resources::{Scene, UIDataIn};
 
+use crate::{
+  camera::Camera,
+  game::{
+    components::{CameraEntityRow, GameLoopTimer, Transform3D},
+    resources::{Scene, UIDataIn},
+  },
+};
+
+pub mod camera_systems;
+pub mod model_systems;
+
+use super::components::RenderModel;
+pub use camera_systems::*;
+use legion::world::SubWorld;
 
 #[system]
 pub fn fixed_update_logging(#[resource] game_loop: &GameLoopTimer) {
@@ -17,7 +26,6 @@ pub fn fixed_update_logging(#[resource] game_loop: &GameLoopTimer) {
 pub fn per_frame_logging(#[resource] game_loop: &GameLoopTimer) {
   debug!("update! {:?}", game_loop.per_frame_dt)
 }
-
 /**
  * This is executed when the scene is initialized
  */
@@ -34,14 +42,32 @@ pub fn setup_scene(#[resource] scene: &mut Scene, command_buffer: &mut CommandBu
 #[read_component(Entity)]
 #[read_component(Camera)]
 #[read_component(Transform3D)]
-pub fn write_camera_ui_data(#[resource] scene: &Scene,
-                            #[resource] ui_data: &mut UIDataIn,
-                            entity: &Entity,
+pub fn write_camera_ui_data(
+  #[resource] scene: &Scene,
+  #[resource] ui_data: &mut UIDataIn,
+  entity: &Entity,
   camera: &Camera,
-  transform: &Transform3D
+  transform: &Transform3D,
 ) {
   if Some(entity) == scene.main_camera.as_ref() {
     ui_data.camera.position = transform.position.clone_owned();
     ui_data.camera.forward = camera.front.clone_owned();
+  }
+}
+
+#[system]
+#[read_component(RenderModel)]
+#[read_component(Transform3D)]
+pub fn write_renderable_ui_data(
+  #[resource] scene: &Scene,
+  #[resource] ui_data: &mut UIDataIn,
+  world: &SubWorld,
+) {
+  let mut query = <(&RenderModel, &Transform3D)>::query();
+  ui_data.drawable_meshes = Vec::new();
+  for (render_model, xform) in query.iter(world) {
+    ui_data
+      .drawable_meshes
+      .push((render_model.clone(), xform.clone()))
   }
 }

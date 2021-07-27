@@ -1,17 +1,18 @@
-use std::fmt;
-use std::time::Duration;
+use std::{fmt, time::Duration};
 
 use legion::*;
 
 #[cfg(feature = "wgpu_imgui")]
 pub use wgpu_imgui::*;
 
-use crate::game::components::{DebugShowScene, GameLoopTimer};
-use crate::game::input::{InputBackend, InputResource};
-use crate::game::resources::{Scene, UIDataIn, UIDataOut};
-use crate::game::systems::*;
+use crate::game::{
+  components::{DebugShowScene, GameLoopTimer},
+  input::{InputBackend, InputResource},
+  resources::{Scene, UIDataIn, UIDataOut},
+  systems::*,
+};
+use std::borrow::BorrowMut;
 
-mod camera_systems;
 pub mod components;
 pub mod input;
 pub mod resources;
@@ -63,6 +64,7 @@ impl GameState {
     let per_frame_schedule = Schedule::builder()
       .add_system(systems::per_frame_logging_system())
       .add_thread_local(systems::camera_move_system())
+      .add_system(systems::write_renderable_ui_data_system())
       .build();
 
     let on_resize_schedule = Schedule::builder()
@@ -90,14 +92,19 @@ impl GameState {
     resources.insert(Scene { main_camera: None });
     resources.insert(UIDataIn::default());
     resources.insert(UIDataOut::default());
+
+    resources.insert(MeshLookup::default());
+
     resources
   }
+
   /// Lifecycle functions
   /// on_start, update, fixed_update, resize, etc
 
   pub fn on_start(&mut self) {
     let mut scheduler = Schedule::builder()
       .add_thread_local(setup_scene_system())
+      .add_thread_local(systems::model_systems::create_models_system())
       .build();
     scheduler.execute(&mut self.world, &mut self.resources);
   }
@@ -177,10 +184,12 @@ impl GameState {
   ) -> Result<R, String> {
     let resource = self
       .resources
-      .get::<InputResource>().ok_or("input resource is not loaded")?;
+      .get::<InputResource>()
+      .ok_or("input resource is not loaded")?;
     let backend: &B = resource
       .backend
-      .downcast_ref().ok_or("resource is not the correct type")?;
+      .downcast_ref()
+      .ok_or("resource is not the correct type")?;
     Ok(callback(backend))
   }
   pub fn map_input_backend_mut<B: InputBackend, R, F: FnOnce(&mut B) -> R>(
@@ -189,10 +198,12 @@ impl GameState {
   ) -> Result<R, String> {
     let mut resource = self
       .resources
-      .get_mut::<InputResource>().ok_or("input resource is not loaded")?;
+      .get_mut::<InputResource>()
+      .ok_or("input resource is not loaded")?;
     let backend: &mut B = resource
       .backend
-      .downcast_mut().ok_or("resource is not the correct type")?;
+      .downcast_mut()
+      .ok_or("resource is not the correct type")?;
     Ok(callback(backend))
   }
 }
@@ -209,10 +220,7 @@ mod wgpu_imgui {
     fn draw_ui(&self, ui: &mut Ui) {
       use imgui::*;
 
-      let main_camera_data = self
-        .resources
-        .get::<UIDataIn>()
-        .map(|data| data.camera.clone());
+      let main_camera_data = self.resources.get::<UIDataIn>();
 
       Window::new(im_str!("Window!!"))
         .size([300.0, 300.0], Condition::Appearing)
@@ -226,15 +234,38 @@ mod wgpu_imgui {
               loop_timer.per_frame_dt.as_secs_f64()
             ));
           }
-          if let Some(camera) = main_camera_data {
-            ui.text(format!("camera position {:?}", camera.position));
-            ui.text(format!("camera front vector {:?}", camera.forward));
+          if let Some(ui_data) = main_camera_data {
+            ui.text(format!("camera position {:?}", ui_data.camera.position));
+            ui.text(format!("camera front vector {:?}", ui_data.camera.forward));
+
+            ui.group(|| {
+              for (model, xform) in &ui_data.drawable_meshes {
+                ui.text(format!("model: {:?}, {:?}", model, xform.position));
+              }
+            });
           }
         });
     }
   }
 }
 
+use crate::game::resources::MeshLookup;
+#[cfg(feature = "wgpu_renderer")]
+pub use wgpu_renderer::*;
+
+#[cfg(feature = "wgpu_renderer")]
+mod wgpu_renderer {
+  use super::*;
+  use crate::wgpu_renderer::context::Context;
+  use std::sync::{Arc, RwLock};
+
+  // methods with wgpu render backend
+  impl GameState {
+    pub fn wgpu_setup(&mut self, context_ptr: Arc<RwLock<Context>>) {
+      self.resources.insert(context_ptr);
+    }
+  }
+}
 #[cfg(test)]
 mod test {
   use crate::game::input::DummyInputBackend;

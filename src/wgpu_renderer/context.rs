@@ -1,22 +1,32 @@
-use crate::error::Error;
-use crate::game::resources::Scene;
-use crate::game::GameState;
+use crate::{
+  error::Error,
+  game::{resources::Scene, GameState},
+};
 use anyhow::{anyhow, Error as AnyError};
 
 use crate::window::AsWindow;
 
-use super::mesh::{Mesh, MeshGeometry};
-use super::uniforms::Uniforms;
+use super::{
+  mesh::{Mesh, MeshGeometry},
+  uniforms::Uniforms,
+};
 use crate::renderer_common::geometry::Vertex;
 
-use crate::renderer_common::allocator::ResourceManager;
-use std::fmt;
-use std::fmt::Formatter;
-use wgpu::util::{BufferInitDescriptor, DeviceExt};
-use wgpu::{Face, RenderPipeline, Texture};
+use crate::{
+  game::components::{RenderModel, Transform3D},
+  renderer_common::allocator::ResourceManager,
+};
+use std::{
+  fmt,
+  fmt::Formatter,
+  sync::{Arc, RwLock},
+};
+use wgpu::{
+  util::{BufferInitDescriptor, DeviceExt},
+  Face, RenderPass, RenderPipeline, Texture,
+};
 
-pub struct Context<W: AsWindow> {
-  pub window: W,
+pub struct Context {
   pub instance: wgpu::Instance,
   pub surface: wgpu::Surface,
   pub adapter: wgpu::Adapter,
@@ -32,17 +42,11 @@ pub struct Context<W: AsWindow> {
   mesh: Mesh,
   uniforms: Uniforms,
   uniform_buffer: wgpu::Buffer,
-  meshes: ResourceManager<Mesh>,
-  textures: ResourceManager<Texture>,
+  pub meshes: Arc<RwLock<ResourceManager<Mesh>>>,
+  pub textures: Arc<RwLock<ResourceManager<Texture>>>,
 }
 
-impl<W: AsWindow> Context<W> {
-  pub fn window(&self) -> &W {
-    &self.window
-  }
-}
-
-impl<W: AsWindow> fmt::Debug for Context<W> {
+impl fmt::Debug for Context {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     f.debug_struct("Context")
       .field("instance", &self.instance)
@@ -50,8 +54,8 @@ impl<W: AsWindow> fmt::Debug for Context<W> {
   }
 }
 
-impl<W: AsWindow> Context<W> {
-  pub fn new(window: W) -> Builder<W> {
+impl Context {
+  pub fn new<W: AsWindow>(window: &mut W) -> Builder<W> {
     Builder { window, size: None }
   }
 
@@ -208,24 +212,20 @@ impl<W: AsWindow> Context<W> {
   }
 }
 
-impl<W: AsWindow> Drop for Context<W> {
-  fn drop(&mut self) {}
-}
-
-pub struct Builder<W: AsWindow> {
+pub struct Builder<'a, W: AsWindow> {
   size: Option<(i32, i32)>,
-  window: W,
+  window: &'a mut W,
 }
 
-impl<W: AsWindow> Builder<W> {
-  pub async fn build(self) -> Result<Context<W>, Error> {
+impl<'a, W: AsWindow> Builder<'a, W> {
+  pub async fn build(self) -> Result<Context, Error> {
     #[cfg(not(target_os = "linux"))]
     let backends = wgpu::BackendBit::all();
     #[cfg(target_os = "linux")]
     let backends = wgpu::BackendBit::VULKAN;
 
     let instance = wgpu::Instance::new(backends);
-    let surface = unsafe { instance.create_surface(&self.window) };
+    let surface = unsafe { instance.create_surface(self.window) };
     let adapter = instance
       .request_adapter(&wgpu::RequestAdapterOptions {
         power_preference: wgpu::PowerPreference::default(),
@@ -313,7 +313,6 @@ impl<W: AsWindow> Builder<W> {
     };
 
     let result = Ok(Context {
-      window: self.window,
       surface,
       instance,
       adapter,

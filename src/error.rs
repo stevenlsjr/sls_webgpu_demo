@@ -7,7 +7,7 @@ pub enum Error {
   #[error("problem creating Context: {reason}")]
   Create { reason: String },
   #[error("caused by error {0:?}")]
-  FromError(#[from] Box<dyn std::error::Error>),
+  FromError(#[from] Box<dyn std::error::Error + Send + Sync>),
   #[error("creating resource object {reason}")]
   CreateObject { reason: String },
   #[error("miscellaneous: {reason}")]
@@ -19,7 +19,7 @@ pub enum Error {
 }
 
 impl Error {
-  pub fn from_error(e: Box<dyn std::error::Error>) -> Self {
+  pub fn from_error(e: Box<dyn std::error::Error + Send + Sync>) -> Self {
     Error::FromError(e)
   }
   pub fn from_other<S: AsRef<str>>(other: S) -> Self {

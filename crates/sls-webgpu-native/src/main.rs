@@ -1,19 +1,12 @@
-
-
 use std::sync::{Arc, RwLock};
 
-
-
-
-
-
 use app::*;
-use sls_webgpu::game::input::{Sdl2Input};
-use sls_webgpu::game::{CreateGameParams, GameState};
-use sls_webgpu::platform::gui;
-use sls_webgpu::platform::sdl2_backend::ImguiSdlPlatform;
-use sls_webgpu::Context;
-use sls_webgpu::{imgui_wgpu};
+use sls_webgpu::{
+  game::{input::Sdl2Input, CreateGameParams, GameState},
+  imgui_wgpu,
+  platform::{gui, sdl2_backend::ImguiSdlPlatform},
+  Context,
+};
 
 mod app;
 mod traits;
@@ -22,19 +15,17 @@ fn main() -> Result<(), String> {
   env_logger::init();
   let sdl = sdl2::init()?;
   let video_sys = sdl.video()?;
-  let window = video_sys
+  let mut window = video_sys
     .window("Webgpu demo!", 800, 800)
     .resizable()
     .position_centered()
     .build()
     .map_err(|e| e.to_string())?;
   let event_pump = sdl.event_pump()?;
-  let context = pollster::block_on(Context::new(window).build()).map_err(|e| format!("{}", e))?;
-
+  let context =
+    pollster::block_on(Context::new(&mut window).build()).map_err(|e| format!("{}", e))?;
   let input_backend = Sdl2Input::new();
-  let game_state = GameState::new(CreateGameParams {
-    input_backend: Box::new(input_backend),
-  });
+
   let mut imgui_context = gui::create_imgui(gui::Options {
     ..Default::default()
   });
@@ -57,7 +48,14 @@ fn main() -> Result<(), String> {
   )));
 
   let imgui_platform = Arc::new(RwLock::new(imgui_platform));
+  let context = Arc::new(RwLock::new(context));
 
+  let mut game_state = GameState::new(CreateGameParams {
+    input_backend: Box::new(input_backend),
+  });
+  {
+    game_state.wgpu_setup(context.clone());
+  }
   let app = App {
     imgui_context: Arc::new(RwLock::new(imgui_context)),
     context,
@@ -66,6 +64,7 @@ fn main() -> Result<(), String> {
     event_pump,
     imgui_platform,
     sdl,
+    window,
   };
   app.run();
   Ok(())

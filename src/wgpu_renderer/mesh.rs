@@ -1,8 +1,10 @@
 use crate::renderer_common::geometry::{self, Vertex};
 
 use crate::error::Error;
-use genmesh::generators::{IcoSphere, SharedVertex};
-use genmesh::{Triangulate, Vertices};
+use genmesh::{
+  generators::{IcoSphere, SharedVertex},
+  Indexer, LruIndexer, MapToVertices, Triangulate, Vertices,
+};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
 #[derive(Debug)]
@@ -74,10 +76,6 @@ impl MeshGeometry {
   pub fn unit_shere(u: usize, v: usize) -> Self {
     use genmesh::{generators::SphereUv, *};
     type MyVertex = geometry::Vertex;
-    let mut found = false;
-    let mut indexer = LruIndexer::new(u * v * 4, |a, b| {
-      found = true;
-    });
 
     let sphere: Vec<MyVertex> = SphereUv::new(u, v)
       .vertex(|Vertex { pos, normal }| {
@@ -95,20 +93,37 @@ impl MeshGeometry {
       // wrap triangles counter-clockwise
       .vertices()
       .collect();
-    let mut vertices: Vec<MyVertex> = Vec::with_capacity(sphere.len());
-    let mut indices: Vec<u16> = Vec::with_capacity(sphere.len());
 
-    for (i, vert) in sphere.iter().enumerate() {
-      let shared_index = indexer.index(vert.clone());
+    Self::from_vertices(sphere)
+  }
 
-      vertices.push(vert.clone());
-      indices.push(i as u16);
-    }
+  pub fn cube() -> Self {
+    let cube = genmesh::generators::Cube::new()
+      .vertex(|genmesh::Vertex { pos, normal }| {
+        let pi = std::f32::consts::PI;
+        let u = 0.5 + (f32::atan2(pos.x, pos.y) / 2.0 * pi);
+        let v = 0.5 + (f32::asin(pos.y) / pi);
+        Vertex {
+          position: [pos.x, pos.y, pos.z],
+          normal: [normal.x, normal.y, normal.z, 1.0],
+          uv: [u, v],
+          color: [1.0; 4],
+        }
+      })
+      .triangulate()
+      // wrap triangles counter-clockwise
+      .vertices()
+      .collect();
 
-    MeshGeometry {
+    Self::from_vertices(cube)
+  }
+
+  fn from_vertices(verts: Vec<Vertex>) -> Self {
+    let len = verts.len() as u16;
+    Self {
       label: Some("unit sphere".to_owned()),
-      vertices,
-      indices: indices,
+      vertices: verts,
+      indices: (0u16..len).collect(),
     }
   }
 }
