@@ -308,7 +308,7 @@ impl<'a, W: AsWindow> Builder<'a, W> {
     )?;
 
     let mesh = {
-      let geom = MeshGeometry::unit_shere(10, 10);
+      let geom = MeshGeometry::subdivision_plane(2);
       Mesh::from_geometry(geom, &device)?
     };
 

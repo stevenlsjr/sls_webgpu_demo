@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Error as AnyError, Result as AnyResult};
+use legion::*;
 
 use crate::{
   game::components::{RenderModel, Transform3D},
@@ -83,8 +84,8 @@ fn create_random_model(mesh_choices: &[Handle]) -> (RenderModel, Transform3D) {
   };
   (model, transform)
 }
-
 #[cfg(not(feature = "wgpu_renderer"))]
+#[system]
 pub fn create_models() {
   // noop
 }
