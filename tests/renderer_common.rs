@@ -18,7 +18,7 @@ fn test_handle() {
     (36277, 3143, Handle::new(36277, 3143)),
     (4917, 381, Handle::new(4917, 381)),
   ];
-  for (i, &(index, generation, handle)) in cases.into_iter().enumerate() {
+  for (i, &(index, generation, handle)) in cases.iter().enumerate() {
     assert_eq!(index, handle.index(), "index() failed on case {}", i);
     assert_eq!(
       generation,

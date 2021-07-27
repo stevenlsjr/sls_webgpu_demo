@@ -41,8 +41,8 @@ impl Camera {
 impl Camera {
   #[inline]
   pub fn view(&self) -> Mat4 {
-    let mat = look_at(&self.position, &(&self.position + &self.front), &self.up);
-    mat
+    
+    look_at(&self.position, &(&self.position + &self.front), &self.up)
   }
 
   #[inline]
@@ -76,7 +76,7 @@ impl Default for Camera {
 
     let mut cam = Self {
       position: vec3(0.0, 0.0, 0.0),
-      world_up: up.clone() as Vec3,
+      world_up: up as Vec3,
       up,
       front: Vec3::zeros(),
       aspect: 1.0,

@@ -21,7 +21,7 @@ pub fn camera_move(
     return;
   }
   camera.position = transform.position.clone_owned();
-  let front = camera.update_front().clone();
+  let front = *camera.update_front();
   let right = front.cross(&camera.world_up).normalize();
   let mut movement_step: Vec3 = vec3(0f32, 0f32, 0f32);
   let frame_speed = camera.movement_speed * game_loop.fixed_dt.as_secs_f32();

@@ -108,7 +108,7 @@ impl GameState {
         .resources
         .get_mut::<GameLoopTimer>()
         .unwrap_or_else(|| panic!("game loop missing! "));
-      loop_timer.per_frame_dt = dt.clone();
+      loop_timer.per_frame_dt = *dt;
     }
     self
       .per_frame_schedule
@@ -120,7 +120,7 @@ impl GameState {
         .resources
         .get_mut::<GameLoopTimer>()
         .unwrap_or_else(|| panic!("game loop missing! "));
-      loop_timer.fixed_dt = dt.clone();
+      loop_timer.fixed_dt = *dt;
     }
     self
       .fixed_schedule
@@ -177,12 +177,10 @@ impl GameState {
   ) -> Result<R, String> {
     let resource = self
       .resources
-      .get::<InputResource>()
-      .ok_or_else(|| "input resource is not loaded")?;
+      .get::<InputResource>().ok_or("input resource is not loaded")?;
     let backend: &B = resource
       .backend
-      .downcast_ref()
-      .ok_or_else(|| "resource is not the correct type")?;
+      .downcast_ref().ok_or("resource is not the correct type")?;
     Ok(callback(backend))
   }
   pub fn map_input_backend_mut<B: InputBackend, R, F: FnOnce(&mut B) -> R>(
@@ -191,12 +189,10 @@ impl GameState {
   ) -> Result<R, String> {
     let mut resource = self
       .resources
-      .get_mut::<InputResource>()
-      .ok_or_else(|| "input resource is not loaded")?;
+      .get_mut::<InputResource>().ok_or("input resource is not loaded")?;
     let backend: &mut B = resource
       .backend
-      .downcast_mut()
-      .ok_or_else(|| "resource is not the correct type")?;
+      .downcast_mut().ok_or("resource is not the correct type")?;
     Ok(callback(backend))
   }
 }
