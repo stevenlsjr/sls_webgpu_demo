@@ -24,7 +24,7 @@ pub struct TextureResource {
 impl TextureResource {
   pub fn from_texture(tex: Texture, queue: &Queue, device: &Device) -> Result<Self, TextureError> {
     let texture_view = tex.create_view(&wgpu::TextureViewDescriptor {
-      label: Some(std::file!() + ":" + std::line!()),
+      label: Some(concat!(std::file!(), ":", std::line!())),
       ..Default::default()
     });
     let sampler = device.create_sampler(&wgpu::SamplerDescriptor {

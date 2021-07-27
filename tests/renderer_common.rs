@@ -31,7 +31,7 @@ fn test_handle() {
 
 mod test_allocator {
   // use super::*;
-  use sls_webgpu::renderer_common::allocator::{ResourceManager, SparseArrayAllocator};
+  use sls_webgpu::renderer_common::allocator::{SparseArrayAllocator};
   use sls_webgpu::renderer_common::sparse_array_allocator::AlreadyFreedError;
 
   #[test]
@@ -119,7 +119,7 @@ mod test_allocator {
   #[test]
   fn iter() {
     use sls_webgpu::renderer_common::allocator::SparseArrayAllocator;
-    use sls_webgpu::renderer_common::sparse_array_allocator::AlreadyFreedError;
+    
     let mut allocator: SparseArrayAllocator<i32> = SparseArrayAllocator::new();
     for i in 0..6 {
       allocator.allocate(i);
@@ -137,7 +137,7 @@ mod test_allocator {
   #[test]
   fn iter_mut() {
     use sls_webgpu::renderer_common::allocator::SparseArrayAllocator;
-    use sls_webgpu::renderer_common::sparse_array_allocator::AlreadyFreedError;
+    
     let mut allocator: SparseArrayAllocator<i32> = SparseArrayAllocator::new();
     for i in 0..6 {
       allocator.allocate(i);

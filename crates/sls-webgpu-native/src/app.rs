@@ -1,21 +1,21 @@
 use log::error;
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
-use sdl2::video::{Window, WindowBuildError};
+use sdl2::video::{Window};
 use sdl2::EventPump;
-use sls_webgpu::camera::Camera;
-use sls_webgpu::game::components::Transform3D;
+
+
 use sls_webgpu::game::input::{InputResource, Sdl2Input};
-use sls_webgpu::game::resources::Scene;
-use sls_webgpu::game::{CreateGameParams, GameState};
-use sls_webgpu::imgui_wgpu::Renderer;
-use sls_webgpu::legion::{EntityStore, IntoQuery};
-use sls_webgpu::nalgebra_glm::Vec3;
+
+use sls_webgpu::game::{GameState};
+
+
+
 use sls_webgpu::platform::gui::DrawUi;
-use sls_webgpu::wgpu_renderer::render_hooks::OnRenderUiClosure;
+
 use sls_webgpu::{imgui, imgui_wgpu, platform::sdl2_backend::ImguiSdlPlatform, Context};
 use std::ops::DerefMut;
-use std::sync::{Arc, RwLock, RwLockWriteGuard};
+use std::sync::{Arc, RwLock};
 use std::time::*;
 
 pub struct App {

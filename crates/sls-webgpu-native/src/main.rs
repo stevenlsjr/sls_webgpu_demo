@@ -1,19 +1,19 @@
-use std::any::Any;
-use std::error::Error;
-use std::sync::{Arc, RwLock};
-use std::time::*;
 
-use sdl2::keyboard::Keycode;
-use sdl2::video::{Window, WindowBuildError};
-use sdl2::{EventPump, Sdl};
+
+use std::sync::{Arc, RwLock};
+
+
+
+
+
 
 use app::*;
-use sls_webgpu::game::input::{InputResource, Sdl2Input};
+use sls_webgpu::game::input::{Sdl2Input};
 use sls_webgpu::game::{CreateGameParams, GameState};
 use sls_webgpu::platform::gui;
 use sls_webgpu::platform::sdl2_backend::ImguiSdlPlatform;
 use sls_webgpu::Context;
-use sls_webgpu::{imgui, imgui_wgpu};
+use sls_webgpu::{imgui_wgpu};
 
 mod app;
 mod traits;
