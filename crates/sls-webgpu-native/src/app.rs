@@ -15,7 +15,7 @@ use sls_webgpu::platform::gui::DrawUi;
 use sls_webgpu::wgpu_renderer::render_hooks::OnRenderUiClosure;
 use sls_webgpu::{imgui, imgui_wgpu, platform::sdl2_backend::ImguiSdlPlatform, Context};
 use std::ops::DerefMut;
-use std::sync::{Arc, PoisonError, RwLock, RwLockWriteGuard};
+use std::sync::{Arc, RwLock, RwLockWriteGuard};
 use std::time::*;
 
 pub struct App {
@@ -34,7 +34,7 @@ impl App {
     let mut previous_time = Instant::now();
     let mut update_lag = Duration::from_nanos(0);
     let ms_per_update = Duration::from_millis(1000 / 60);
-    let mut imgui_context = self.imgui_context.clone(); // take ownership from the App object
+    let imgui_context = self.imgui_context.clone(); // take ownership from the App object
     {
       match (self.imgui_platform.write(), imgui_context.write()) {
         (Ok(mut platform), Ok(mut context)) => {
@@ -102,7 +102,7 @@ impl App {
     self
       .context
       .render_with_ui(&self.game_state, ui, &mut gui_renderer_arc)
-      .map_err(|e| sls_webgpu::Error::Other { reason: e })
+      .map_err(|e| sls_webgpu::Error::FromError(e.into()))
   }
 
   pub(crate) fn handle_input(&mut self, imgui_context: &mut imgui::Context) {
@@ -154,22 +154,5 @@ impl App {
       .ok_or("input backend is not set as SDL2!")?;
     sdl2_input.sync_input(&self.sdl, &self.event_pump);
     Ok(())
-  }
-
-  fn update_gui<'a>(&mut self, ui: imgui::Ui<'a>, dt: &Duration) -> imgui::Ui<'a> {
-    use sls_webgpu::legion::*;
-
-    use sls_webgpu::imgui::*;
-
-    let world = self.game_state.world();
-
-    Window::new(im_str!("Hello"))
-      .size([300.0, 100.0], Condition::FirstUseEver)
-      .build(&ui, || {
-        ui.text(im_str!("Hello world!!!"));
-        ui.text(format!("DT: {:?}", dt));
-      });
-
-    ui
   }
 }

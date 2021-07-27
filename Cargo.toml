@@ -37,6 +37,8 @@ genmesh = "0.6.2"
 memoffset = { version = "0.6", features = ["unstable_const"] }
 image = "^0.23"
 hibitset = "0.6.3"
+anyhow = "^1.0"
+thiserror="^1.0"
 
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]

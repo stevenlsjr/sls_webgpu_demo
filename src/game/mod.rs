@@ -208,11 +208,6 @@ mod wgpu_imgui {
   use crate::platform::gui::wgpu_imgui::DrawUi;
 
   use super::*;
-  use crate::camera::Camera;
-  use crate::game::components::Transform3D;
-  use crate::game::resources::CameraDisplayData;
-  use crate::nalgebra_glm::Vec3;
-  use atomic_refcell::AtomicRef;
 
   impl DrawUi for GameState {
     fn draw_ui(&self, ui: &mut Ui) {
@@ -246,7 +241,6 @@ mod wgpu_imgui {
 
 #[cfg(test)]
 mod test {
-
   use crate::game::input::DummyInputBackend;
 
   use super::*;

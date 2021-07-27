@@ -1,17 +1,21 @@
-use std::fmt::Formatter;
-use std::option::Option::None;
-use std::{error, fmt};
+use thiserror::Error as ThisError;
 
 use legion::world::{ComponentError, EntityAccessError};
 
-#[derive(Debug)]
+#[derive(Debug, ThisError)]
 pub enum Error {
+  #[error("problem creating Context: {reason}")]
   Create { reason: String },
-  FromError(Box<dyn std::error::Error>),
+  #[error("caused by error {0:?}")]
+  FromError(#[from] Box<dyn std::error::Error>),
+  #[error("creating resource object {reason}")]
   CreateObject { reason: String },
+  #[error("miscellaneous: {reason}")]
   Other { reason: String },
-  LegionComponent(ComponentError),
-  LegionEntityAccess(EntityAccessError),
+  #[error("legion component: {0:?}")]
+  LegionComponent(#[from] ComponentError),
+  #[error("legion entity access: {0:?}")]
+  LegionEntityAccess(#[from] EntityAccessError),
 }
 
 impl Error {
@@ -25,42 +29,15 @@ impl Error {
   }
 }
 
-impl fmt::Display for Error {
-  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-    match self {
-      Error::Create { reason } => write!(f, "creation error: {}", reason),
-      Error::FromError(e) => write!(f, "error: {}", e),
-      Error::CreateObject { reason } => write!(f, "error creating object: {}", reason),
-      Error::Other { reason } => write!(f, "other error {}", reason),
-
-      Error::LegionComponent(err) => {
-        write!(f, "ComponentError: {:?}", err)
-      }
-      Error::LegionEntityAccess(err) => {
-        write!(f, "EntityAccessError: {:?}", err)
-      }
-    }
-  }
-}
-
-impl From<ComponentError> for Error {
-  fn from(err: ComponentError) -> Self {
-    Error::LegionComponent(err)
-  }
-}
-
-impl From<EntityAccessError> for Error {
-  fn from(err: EntityAccessError) -> Self {
-    Error::LegionEntityAccess(err)
-  }
-}
-
-impl error::Error for Error {
-  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-    match &self {
-      Error::LegionEntityAccess(ref err) => Some(err),
-      Error::LegionComponent(ref err) => Some(err),
-      _ => None,
-    }
-  }
-}
+//
+// impl From<ComponentError> for Error {
+//   fn from(err: ComponentError) -> Self {
+//     Error::LegionComponent(err)
+//   }
+// }
+//
+// impl From<EntityAccessError> for Error {
+//   fn from(err: EntityAccessError) -> Self {
+//     Error::LegionEntityAccess(err)
+//   }
+// }

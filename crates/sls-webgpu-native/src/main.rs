@@ -58,7 +58,7 @@ fn main() -> Result<(), String> {
 
   let imgui_platform = Arc::new(RwLock::new(imgui_platform));
 
-  let mut app = App {
+  let app = App {
     imgui_context: Arc::new(RwLock::new(imgui_context)),
     context,
     imgui_renderer,

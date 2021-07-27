@@ -1,6 +1,7 @@
 use crate::error::Error;
 use crate::game::resources::Scene;
 use crate::game::GameState;
+use anyhow::{anyhow, Error as AnyError};
 
 use crate::window::AsWindow;
 
@@ -8,11 +9,11 @@ use super::mesh::{Mesh, MeshGeometry};
 use super::uniforms::Uniforms;
 use crate::renderer_common::geometry::Vertex;
 
-use crate::wgpu_renderer::render_hooks::OnRenderUiClosure;
+use crate::renderer_common::allocator::ResourceManager;
 use std::fmt;
 use std::fmt::Formatter;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
-use wgpu::{Face, RenderPipeline};
+use wgpu::{Face, RenderPipeline, Texture};
 
 pub struct Context<W: AsWindow> {
   pub window: W,
@@ -31,6 +32,8 @@ pub struct Context<W: AsWindow> {
   mesh: Mesh,
   uniforms: Uniforms,
   uniform_buffer: wgpu::Buffer,
+  meshes: ResourceManager<Mesh>,
+  textures: ResourceManager<Texture>,
 }
 
 impl<W: AsWindow> Context<W> {
@@ -61,13 +64,13 @@ impl<W: AsWindow> Context<W> {
 
   pub fn update(&mut self) {}
 
-  pub fn render(&mut self, game: &GameState) -> Result<(), String> {
+  pub fn render(&mut self, game: &GameState) -> Result<(), AnyError> {
     let camera = game
       .resources()
       .get::<Scene>()
       .map(|s| s.main_camera_components(&game.world()))
       .unwrap_or(Ok(None))
-      .map_err(|error| format!("error accessing camera {:?}", error))?;
+      .map_err(|error| anyhow!("error accessing camera {:?}", error))?;
 
     match camera {
       None => {
@@ -85,7 +88,7 @@ impl<W: AsWindow> Context<W> {
         let frame = self
           .swapchain
           .get_current_frame()
-          .map_err(|e| format!("swapchain error {:?}", e))?
+          .map_err(|e| anyhow!("swapchain error {:?}", e))?
           .output;
 
         let mut encoder = self
@@ -134,13 +137,13 @@ impl<W: AsWindow> Context<W> {
     game: &GameState,
     mut imgui_frame: imgui::Ui,
     imgui_renderer: &mut imgui_wgpu::Renderer,
-  ) -> Result<(), String> {
+  ) -> Result<(), anyhow::Error> {
     let camera = game
       .resources()
       .get::<Scene>()
       .map(|s| s.main_camera_components(&game.world()))
       .unwrap_or(Ok(None))
-      .map_err(|error| format!("error accessing camera {:?}", error))?;
+      .map_err(|error| anyhow!("error accessing camera {:?}", error))?;
     match camera {
       None => {
         log::warn!("no main camera found");
@@ -157,7 +160,7 @@ impl<W: AsWindow> Context<W> {
         let frame = self
           .swapchain
           .get_current_frame()
-          .map_err(|e| format!("swapchain error {:?}", e))?
+          .map_err(|e| anyhow!("swapchain error {:?}", e))?
           .output;
 
         let mut encoder = self
@@ -195,7 +198,7 @@ impl<W: AsWindow> Context<W> {
           };
           {
             let draw_data = imgui_frame.render();
-            imgui_renderer.render(draw_data, &self.queue, &self.device, &mut render_pass);
+            imgui_renderer.render(draw_data, &self.queue, &self.device, &mut render_pass)?;
           }
         }
         self.queue.submit(std::iter::once(encoder.finish()));
@@ -245,7 +248,7 @@ impl<W: AsWindow> Builder<W> {
       .await
       .map_err(|e| crate::Error::from_error(Box::new(e)))?;
 
-    let mut uniforms = Uniforms::default();
+    let uniforms = Uniforms::default();
     // let camera = self.camera;
     // uniforms.update_from_camera(&camera);
 
@@ -324,6 +327,8 @@ impl<W: AsWindow> Builder<W> {
       uniforms,
       uniform_buffer,
       uniform_bind_group,
+      meshes: Default::default(),
+      textures: Default::default(),
     });
     result
   }

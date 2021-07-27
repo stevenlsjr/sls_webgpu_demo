@@ -1,8 +1,8 @@
 // Renderer resource management and handles.
 
-use std::fmt::{Debug, Formatter, Display};
 pub use super::sparse_array_allocator::SparseArrayAllocator;
 use crate::renderer_common::sparse_array_allocator::AlreadyFreedError;
+use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct Handle(u32);
@@ -35,7 +35,7 @@ impl Display for AllocatorError {
   fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
     let msg = match self {
       AllocatorError::NotFound => "Not found",
-      AllocatorError::HandleFreed => "Handle already freed"
+      AllocatorError::HandleFreed => "Handle already freed",
     };
     f.write_str(msg)
   }
@@ -49,7 +49,6 @@ impl Into<String> for AllocatorError {
   }
 }
 
-
 ///
 /// A generational allocator for resources
 /// with a handle
@@ -62,7 +61,7 @@ pub struct ResourceManager<T: Sized> {
 }
 
 impl<T: Sized> ResourceManager<T> {
-  pub fn new(capacity: usize) -> Self {
+  pub fn with_capacity(capacity: usize) -> Self {
     let generation_count = 0;
     Self {
       resource_index: SparseArrayAllocator::with_capacity(capacity),
@@ -70,7 +69,6 @@ impl<T: Sized> ResourceManager<T> {
       generation_count,
     }
   }
-
 
   /// Inserts a resource into the manager
   ///
@@ -91,8 +89,7 @@ impl<T: Sized> ResourceManager<T> {
     let value_index = self.resources.allocate(value);
     assert_handle_index_size(value_index);
 
-    let value_handle = Handle::new(value_index as u32,
-                                   self.generation_count as _);
+    let value_handle = Handle::new(value_index as u32, self.generation_count as _);
     let resource_index_index = self.resource_index.allocate(value_handle);
     assert_handle_index_size(resource_index_index);
     Handle::new(resource_index_index as _, self.generation_count as _)
@@ -105,7 +102,45 @@ impl<T: Sized> ResourceManager<T> {
         if handle_to_resource.generation() != handle.generation() {
           return Err(AllocatorError::HandleFreed);
         }
-        self.resources.get_ref(handle_to_resource.index() as _).ok_or(AllocatorError::NotFound)
+        self
+          .resources
+          .get_ref(handle_to_resource.index() as _)
+          .ok_or(AllocatorError::NotFound)
+      }
+    }
+  }
+
+  ///
+  ///
+  /// # Arguments
+  ///
+  /// * `handle`:
+  ///
+  /// returns: Result<&mut T, AllocatorError>
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use sls_webgpu::renderer_common::allocator::ResourceManager;
+  /// let mut mgr: ResourceManager<i64> = ResourceManager::with_capacity(1);
+  /// let handle = mgr.insert(0);
+  /// {
+  ///   let reference = mgr.mut_ref(handle).unwrap();
+  ///   *reference = 1;
+  /// }
+  /// assert_eq!(mgr.get_ref(handle), Ok(&1));
+  /// ```
+  pub fn mut_ref(&mut self, handle: Handle) -> Result<&mut T, AllocatorError> {
+    match self.resource_index.get_ref(handle.index() as _) {
+      None => Err(AllocatorError::NotFound),
+      Some(handle_to_resource) => {
+        if handle_to_resource.generation() != handle.generation() {
+          return Err(AllocatorError::HandleFreed);
+        }
+        self
+          .resources
+          .mut_ref(handle_to_resource.index() as _)
+          .ok_or(AllocatorError::NotFound)
       }
     }
   }
@@ -121,7 +156,7 @@ impl<T: Sized> ResourceManager<T> {
   ///
   /// ```
   /// use sls_webgpu::renderer_common::allocator::ResourceManager;
-  /// let mut mgr = ResourceManager::new(0);
+  /// let mut mgr = ResourceManager::with_capacity(0);
   /// assert_eq!(mgr.generation_count(), 0);
   /// for i in 0..100{
   ///   mgr.insert(i);
@@ -146,7 +181,7 @@ impl<T: Sized> ResourceManager<T> {
   ///
   /// ```
   /// use sls_webgpu::renderer_common::allocator::{ResourceManager};
-  /// let mut al = ResourceManager::new(10);
+  /// let mut al = ResourceManager::with_capacity(10);
   /// let mut handles = Vec::new();
   /// for i in 0..10 {
   ///   handles.push(al.insert(0));
@@ -162,7 +197,6 @@ impl<T: Sized> ResourceManager<T> {
     self.resources.len()
   }
 
-
   /// Removes the resource managed by a given handle
   ///
   /// # Arguments
@@ -176,7 +210,7 @@ impl<T: Sized> ResourceManager<T> {
   /// ```
   /// use sls_webgpu::renderer_common::allocator::{ResourceManager};
   /// use sls_webgpu::renderer_common::sparse_array_allocator::AlreadyFreedError;
-  /// let mut al = ResourceManager::new(10);
+  /// let mut al = ResourceManager::with_capacity(10);
   /// let handle_a = al.insert(0);
   /// let handle_b = al.insert(1);
   /// assert_eq!(al.remove(handle_a), Ok(0));
@@ -189,8 +223,8 @@ impl<T: Sized> ResourceManager<T> {
     let val = self.resources.free(resource_handle.index() as _)?;
     self.resource_index.free(handle.index() as _)?;
     Ok(val)
-
   }
+
   fn incr_generation(&mut self) {
     self.generation_count += 1;
     if self.generation_count > GENERATION_MAX_SIZE {
@@ -205,12 +239,18 @@ impl<T: Sized> ResourceManager<T> {
   fn get_resource_handle(&self, index_handle: Handle) -> Result<Handle, AlreadyFreedError> {
     let resource_handle = self
       .resource_index
-      .get_ref(index_handle.index() as _).ok_or(AlreadyFreedError)?;
+      .get_ref(index_handle.index() as _)
+      .ok_or(AlreadyFreedError)?;
     if resource_handle.generation() != index_handle.generation() {
       Err(AlreadyFreedError)
     } else {
       Ok(*resource_handle)
     }
+  }
+}
+impl<T: Sized> Default for ResourceManager<T> {
+  fn default() -> Self {
+    Self::with_capacity(0)
   }
 }
 
@@ -220,4 +260,3 @@ fn assert_handle_index_size(index: usize) {
     panic!("index {} cannot be larger than {}", index, INDEX_MAXSIZE);
   }
 }
-
