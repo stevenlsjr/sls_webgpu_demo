@@ -12,7 +12,7 @@ pub enum MouseButton {
 
 #[derive(Default, Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct MouseButtonState {
-  mask: u32,
+  pub(crate) mask: u32,
 }
 
 impl MouseButtonState {

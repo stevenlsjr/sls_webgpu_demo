@@ -1,7 +1,7 @@
 use crate::{
   camera::Camera,
   game::components::{RenderModel, Transform3D},
-  nalgebra_glm::{vec3, Vec3},
+  nalgebra_glm::{vec3, TVec2, Vec3},
   renderer_common::allocator::Handle,
 };
 use legion::*;
@@ -63,10 +63,22 @@ impl Default for CameraDisplayData {
   }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct UIDataIn {
   pub camera: CameraDisplayData,
   pub drawable_meshes: Vec<(RenderModel, Transform3D)>,
+  pub mouse_pos: TVec2<i32>,
+  pub mouse_delta: TVec2<i32>,
+}
+impl Default for UIDataIn {
+  fn default() -> Self {
+    Self {
+      camera: Default::default(),
+      drawable_meshes: Default::default(),
+      mouse_pos: TVec2::zeros(),
+      mouse_delta: TVec2::zeros(),
+    }
+  }
 }
 
 #[derive(Debug, Clone, Default)]

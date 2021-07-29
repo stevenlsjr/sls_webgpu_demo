@@ -45,7 +45,7 @@ mod wgpu_renderer {
           .map_err(|e| anyhow!("Could not access context RwLock: Poisoned {:?}", e))?;
         let cube = Mesh::from_geometry(MeshGeometry::cube(), &context.device)?;
         let cube = meshes.insert(cube);
-        let sphere = Mesh::from_geometry(MeshGeometry::unit_shere(30, 30), &context.device)?;
+        let sphere = Mesh::from_geometry(MeshGeometry::unit_sphere(30, 30), &context.device)?;
         let sphere = meshes.insert(sphere);
 
         mesh_lookup.0.insert("sphere".to_owned(), sphere);

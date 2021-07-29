@@ -6,7 +6,7 @@ use sdl2::{
   EventPump,
 };
 
-use sls_webgpu::game::input::{InputResource, Sdl2Input};
+use sls_webgpu::game::input::InputResource;
 
 use sls_webgpu::game::GameState;
 
@@ -118,7 +118,24 @@ impl App {
     let mut imgui_lock = imgui_platform
       .write()
       .unwrap_or_else(|e| panic!("imgui rwlock is poisoned!: {:?}", e));
+    {
+      let mut game_input = self
+        .game_state
+        .resources()
+        .get_mut::<InputResource>()
+        .expect("game input is not available to write");
+      game_input.backend.on_start_frame();
+    }
     for event in self.event_pump.poll_iter() {
+      {
+        self
+          .game_state
+          .resources()
+          .get_mut::<InputResource>()
+          .expect("game input is not available to write")
+          .backend
+          .handle_sdl_event(&event, &self.window)
+      }
       if !imgui_lock.ignore_event(&event) {
         imgui_lock.handle_event(imgui_context, &event);
       } else {
@@ -157,10 +174,7 @@ impl App {
       .resources()
       .get_mut::<InputResource>()
       .ok_or("Could not get input resource as writable")?;
-    let sdl2_input = input_res
-      .backend
-      .downcast_mut::<Sdl2Input>()
-      .ok_or("input backend is not set as SDL2!")?;
+    let sdl2_input = &mut input_res.backend;
     sdl2_input.sync_input(&self.sdl, &self.event_pump);
     Ok(())
   }

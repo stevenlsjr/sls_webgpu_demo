@@ -2,7 +2,7 @@ use crate::{
   camera::Camera,
   game::{
     components::*,
-    input::InputResource,
+    input::{InputBackend, InputResource},
     resources::{Scene, ScreenResolution},
   },
   platform::keyboard::Keycode,
@@ -47,6 +47,9 @@ pub fn camera_move(
     movement_step.normalize_mut();
     movement_step *= frame_speed;
     transform.position += movement_step;
+  }
+  if input.is_mouselook_enabled() {
+    camera.mouselook(input.backend.mouse_delta(), &game_loop.fixed_dt);
   }
   camera.position.clone_from(&transform.position);
   if input.backend.pressed_keycodes().contains(&Keycode::P) {

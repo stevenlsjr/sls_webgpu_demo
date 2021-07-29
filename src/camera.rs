@@ -1,6 +1,7 @@
 use crate::game::components::*;
 use lazy_static::lazy_static;
 use nalgebra_glm::*;
+use std::time::Duration;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Camera {
@@ -18,7 +19,9 @@ pub struct Camera {
   pub znear: f32,
   pub zfar: f32,
 
+  /// Camera movement speed, in units per second
   pub movement_speed: f32,
+  /// Camera mouselook speed, in radians per second
   pub mouse_sensitivity: f32,
 
   /// If true, aspect ratio should
@@ -41,7 +44,6 @@ impl Camera {
 impl Camera {
   #[inline]
   pub fn view(&self) -> Mat4 {
-    
     look_at(&self.position, &(&self.position + &self.front), &self.up)
   }
 
@@ -68,6 +70,16 @@ impl Camera {
   pub fn update_transformation(&mut self, transform: &Transform3D) {
     self.position.clone_from(&transform.position);
   }
+
+  pub fn mouselook(&mut self, mouse_delta_i: TVec2<i32>, dt: &Duration) {
+    let mouse_delta: TVec2<f32> =
+      vec2(mouse_delta_i.x as _, mouse_delta_i.y as _) * self.mouse_sensitivity * dt.as_secs_f32();
+    self.pitch -= mouse_delta.y;
+    self.yaw += mouse_delta.x;
+    self.pitch = self
+      .pitch
+      .clamp((-89f32).to_radians(), (89f32).to_radians());
+  }
 }
 
 impl Default for Camera {
@@ -86,7 +98,7 @@ impl Default for Camera {
       movement_speed: 2.0,
       pitch: 0f32,
       yaw: -f32::pi() / 2f32,
-      mouse_sensitivity: 0.0,
+      mouse_sensitivity: (10.0f32).to_radians(),
       aspect_matches_window: true,
     };
     cam.front = cam.get_front_vector();

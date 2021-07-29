@@ -14,6 +14,7 @@ pub mod camera_systems;
 pub mod model_systems;
 
 use super::components::RenderModel;
+use crate::game::input::InputResource;
 pub use camera_systems::*;
 use legion::world::SubWorld;
 
@@ -60,11 +61,14 @@ pub fn write_camera_ui_data(
 #[read_component(Transform3D)]
 pub fn write_renderable_ui_data(
   #[resource] scene: &Scene,
+  #[resource] input: &InputResource,
   #[resource] ui_data: &mut UIDataIn,
   world: &SubWorld,
 ) {
   let mut query = <(&RenderModel, &Transform3D)>::query();
   ui_data.drawable_meshes = Vec::new();
+  ui_data.mouse_pos = input.backend.current_mouse_pos;
+  ui_data.mouse_delta = input.backend.mouse_delta();
   for (render_model, xform) in query.iter(world) {
     ui_data
       .drawable_meshes

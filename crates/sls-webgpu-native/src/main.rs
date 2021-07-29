@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use app::*;
 use sls_webgpu::{
-  game::{input::Sdl2Input, CreateGameParams, GameState},
+  game::{CreateGameParams, GameState},
   imgui_wgpu,
   platform::{gui, sdl2_backend::ImguiSdlPlatform},
   Context,
@@ -24,7 +24,6 @@ fn main() -> Result<(), String> {
   let event_pump = sdl.event_pump()?;
   let context =
     pollster::block_on(Context::new(&mut window).build()).map_err(|e| format!("{}", e))?;
-  let input_backend = Sdl2Input::new();
 
   let mut imgui_context = gui::create_imgui(gui::Options {
     ..Default::default()
@@ -50,9 +49,7 @@ fn main() -> Result<(), String> {
   let imgui_platform = Arc::new(RwLock::new(imgui_platform));
   let context = Arc::new(RwLock::new(context));
 
-  let mut game_state = GameState::new(CreateGameParams {
-    input_backend: Box::new(input_backend),
-  });
+  let mut game_state = GameState::new(CreateGameParams {});
   {
     game_state.wgpu_setup(context.clone());
   }

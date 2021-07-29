@@ -1,5 +1,6 @@
 pub mod keyboard;
 pub mod mouse;
+pub use mouse::{MouseButton, MouseButtonState};
 
 #[cfg(test)]
 pub mod tests;

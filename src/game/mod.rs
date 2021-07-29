@@ -47,14 +47,10 @@ impl fmt::Debug for GameState {
   }
 }
 
-pub struct CreateGameParams {
-  pub input_backend: Box<dyn InputBackend>,
-}
+pub struct CreateGameParams {}
 
 impl GameState {
   pub fn new(options: CreateGameParams) -> Self {
-    let CreateGameParams { input_backend } = options;
-
     let world = World::default();
     let is_running = false;
     let fixed_schedule = Schedule::builder()
@@ -73,7 +69,7 @@ impl GameState {
 
     let mut resources = Self::initial_resources();
     resources.insert(InputResource {
-      backend: input_backend,
+      backend: InputState::default(),
     });
     Self {
       world,
@@ -178,7 +174,7 @@ impl GameState {
     &self.per_frame_schedule
   }
 
-  pub fn map_input_backend<B: InputBackend, R, F: FnOnce(&B) -> R>(
+  pub fn map_input_backend<R, F: FnOnce(&InputState) -> R>(
     &self,
     callback: F,
   ) -> Result<R, String> {
@@ -186,13 +182,10 @@ impl GameState {
       .resources
       .get::<InputResource>()
       .ok_or("input resource is not loaded")?;
-    let backend: &B = resource
-      .backend
-      .downcast_ref()
-      .ok_or("resource is not the correct type")?;
+    let backend = &resource.backend;
     Ok(callback(backend))
   }
-  pub fn map_input_backend_mut<B: InputBackend, R, F: FnOnce(&mut B) -> R>(
+  pub fn map_input_backend_mut<R, F: FnOnce(&mut InputState) -> R>(
     &mut self,
     callback: F,
   ) -> Result<R, String> {
@@ -200,10 +193,7 @@ impl GameState {
       .resources
       .get_mut::<InputResource>()
       .ok_or("input resource is not loaded")?;
-    let backend: &mut B = resource
-      .backend
-      .downcast_mut()
-      .ok_or("resource is not the correct type")?;
+    let backend = &mut resource.backend;
     Ok(callback(backend))
   }
 }
@@ -239,6 +229,11 @@ mod wgpu_imgui {
             ui.text(format!("camera front vector {:?}", ui_data.camera.forward));
 
             ui.group(|| {
+              ui.text(format!("mouse pos {:?}", ui_data.mouse_pos));
+              ui.text(format!("mouse delta: {:?}", ui_data.mouse_delta))
+            });
+
+            ui.group(|| {
               for (model, xform) in &ui_data.drawable_meshes {
                 ui.text(format!("model: {:?}, {:?}", model, xform.position));
               }
@@ -249,7 +244,7 @@ mod wgpu_imgui {
   }
 }
 
-use crate::game::resources::MeshLookup;
+use crate::game::{input::InputState, resources::MeshLookup};
 #[cfg(feature = "wgpu_renderer")]
 pub use wgpu_renderer::*;
 
@@ -277,9 +272,7 @@ mod test {
   }
 
   fn setup() -> Suite {
-    let game = GameState::new(CreateGameParams {
-      input_backend: Box::new(DummyInputBackend::default()),
-    });
+    let game = GameState::new(CreateGameParams {});
     Suite { game }
   }
 

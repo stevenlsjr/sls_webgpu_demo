@@ -23,7 +23,7 @@ use std::{
 };
 use wgpu::{
   util::{BufferInitDescriptor, DeviceExt},
-  Face, RenderPass, RenderPipeline, Texture,
+  DepthStencilState, Face, PrimitiveState, RenderPass, RenderPipeline, Texture,
 };
 
 pub struct Context {
@@ -308,7 +308,7 @@ impl<'a, W: AsWindow> Builder<'a, W> {
     )?;
 
     let mesh = {
-      let geom = MeshGeometry::subdivision_plane(2);
+      let geom = MeshGeometry::unit_sphere(40, 40);
       Mesh::from_geometry(geom, &device)?
     };
 

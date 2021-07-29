@@ -26,13 +26,14 @@ impl Vertex {}
 #[cfg(feature = "wgpu_renderer")]
 pub use wgpu_renderer::*;
 
-
 #[cfg(feature = "wgpu_renderer")]
 mod wgpu_renderer {
   use super::*;
-  use crate::error::Error;
-  use crate::wgpu::util::{DeviceExt, BufferInitDescriptor};
-  use crate::wgpu_renderer::mesh::MeshBuffers;
+  use crate::{
+    error::Error,
+    wgpu::util::{BufferInitDescriptor, DeviceExt},
+    wgpu_renderer::mesh::MeshBuffers,
+  };
 
   static VERTEX_ATTR_ARRAY: &'static [wgpu::VertexAttribute] = &wgpu::vertex_attr_array![
     0=>Float32x3,
@@ -50,7 +51,6 @@ mod wgpu_renderer {
       }
     }
   }
-
 
   impl MeshGeometry {
     pub fn create_buffers(&self, device: &wgpu::Device) -> Result<MeshBuffers, Error> {
@@ -76,7 +76,6 @@ mod wgpu_renderer {
     }
   }
 }
-
 
 #[derive(Debug, Clone)]
 pub struct MeshGeometry {
@@ -135,7 +134,7 @@ impl MeshGeometry {
     }
   }
 
-  pub fn unit_shere(u: usize, v: usize) -> Self {
+  pub fn unit_sphere(u: usize, v: usize) -> Self {
     use genmesh::{generators::SphereUv, Vertex as GMVertex};
 
     let sphere: Vec<Vertex> = SphereUv::new(u, v)
