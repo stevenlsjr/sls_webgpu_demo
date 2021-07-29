@@ -49,7 +49,7 @@ impl Camera {
 
   #[inline]
   pub fn projection(&self) -> Mat4 {
-    perspective(self.aspect, self.fovy, self.znear, self.zfar)
+    *OPENGL_TO_WGPU_MATRIX * perspective(self.aspect, self.fovy, self.znear, self.zfar)
   }
 
   pub fn view_projection(&self) -> Mat4 {

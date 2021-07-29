@@ -308,7 +308,7 @@ impl<'a, W: AsWindow> Builder<'a, W> {
     )?;
 
     let mesh = {
-      let geom = MeshGeometry::unit_sphere(40, 40);
+      let geom = MeshGeometry::unit_plane();
       Mesh::from_geometry(geom, &device)?
     };
 
@@ -359,7 +359,8 @@ fn create_render_pipeline(
       targets: &[sc_desc.format.into()],
     }),
     primitive: wgpu::PrimitiveState {
-      cull_mode: Some(Face::Back),
+      cull_mode: None,
+      // cull_mode: Some(Face::Back),
       ..wgpu::PrimitiveState::default()
     },
     depth_stencil: None,

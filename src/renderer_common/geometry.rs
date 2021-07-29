@@ -157,6 +157,40 @@ impl MeshGeometry {
     Self::from_vertices(sphere)
   }
 
+  pub fn unit_plane() -> Self {
+    let verts = [
+      Vertex {
+        position: [-0.5, -0.5, 0.0],
+        uv: [0.0, 0.0],
+        normal: [0.0, 1.0, 0.0, 1.0],
+        ..Default::default()
+      },
+      Vertex {
+        position: [-0.5, 0.5, 0.0],
+        uv: [0.0, 1.0],
+        normal: [0.0, 1.0, 0.0, 1.0],
+        ..Default::default()
+      },
+      Vertex {
+        position: [0.5, 0.5, 0.0],
+        uv: [1.0, 1.0],
+        normal: [0.0, 1.0, 0.0, 1.0],
+        ..Default::default()
+      },
+      Vertex {
+        position: [0.5, -0.5, 0.0],
+        uv: [1.0, 0.0],
+        normal: [0.0, 1.0, 0.0, 1.0],
+        ..Default::default()
+      },
+    ];
+    Self {
+      label: Some("unit plane".to_owned()),
+      vertices: verts.to_vec(),
+      indices: vec![0, 2, 1, 2, 0, 3],
+    }
+  }
+
   pub fn cube() -> Self {
     let cube = genmesh::generators::Cube::new()
       .vertex(|genmesh::Vertex { pos, normal }| {
