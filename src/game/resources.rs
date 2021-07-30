@@ -90,5 +90,11 @@ pub struct ScreenResolution {
   pub window_size: (usize, usize),
 }
 
+impl ScreenResolution {
+  pub fn aspect_ratio(&self) -> f32 {
+    (self.drawable_size.0 as f32) / (self.drawable_size.1 as f32)
+  }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct MeshLookup(pub HashMap<String, Handle>);

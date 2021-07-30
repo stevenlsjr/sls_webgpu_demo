@@ -12,7 +12,14 @@ use sls_webgpu::game::GameState;
 
 use sls_webgpu::platform::gui::DrawUi;
 
-use sls_webgpu::{imgui, imgui_wgpu, platform::sdl2_backend::ImguiSdlPlatform, Context};
+use sls_webgpu::{
+  anyhow::{self, anyhow},
+  game::resources::ScreenResolution,
+  image, imgui, imgui_wgpu,
+  platform::sdl2_backend::ImguiSdlPlatform,
+  wgpu_renderer::textures::{BindTexture, TextureResource},
+  Context,
+};
 use std::{
   ops::DerefMut,
   sync::{Arc, RwLock},
@@ -33,7 +40,10 @@ pub struct App {
 impl App {
   pub(crate) fn run(mut self) {
     self.game_state.set_is_running(true);
-    self.load_assets();
+    if let Err(e) = self.load_assets() {
+      panic!("fatal error loading assets! {:?}", e);
+    }
+
     let mut previous_time = Instant::now();
     let mut update_lag = Duration::from_nanos(0);
     let ms_per_update = Duration::from_millis(1000 / 60);
@@ -179,5 +189,28 @@ impl App {
     Ok(())
   }
 
-  fn load_assets(&mut self) {}
+  fn load_assets(&mut self) -> Result<(), anyhow::Error> {
+    // load screen resolution and render information into game state
+    let window_size = self.window.size();
+    let drawable_size = self.window.drawable_size();
+    self.game_state.resources_mut().insert(ScreenResolution {
+      window_size: (window_size.0 as _, window_size.1 as _),
+      drawable_size: (drawable_size.0 as _, drawable_size.1 as _),
+    });
+    let uv_grid_image = image::open("assets/uv_grid_opengl.jpg")?;
+    let uv_texture_handle = {
+      let read_ctx = self.context.read().map_err(|e| anyhow!("{:?}", e))?;
+      let mut write_textures = read_ctx.textures.write().map_err(|e| anyhow!("{:?}", e))?;
+      let tex = TextureResource::from_image(uv_grid_image, &read_ctx.queue, &read_ctx.device)?;
+      let uv_texture_handle = write_textures.insert(tex);
+      uv_texture_handle
+    };
+
+    {
+      let mut write_ctx = self.context.write().map_err(|e| anyhow!("{:?}", e))?;
+      write_ctx.bind_texture(uv_texture_handle)?;
+    }
+
+    Ok(())
+  }
 }

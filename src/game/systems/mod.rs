@@ -14,7 +14,7 @@ pub mod camera_systems;
 pub mod model_systems;
 
 use super::components::RenderModel;
-use crate::game::input::InputResource;
+use crate::game::{input::InputResource, resources::ScreenResolution};
 pub use camera_systems::*;
 use legion::world::SubWorld;
 
@@ -31,8 +31,15 @@ pub fn per_frame_logging(#[resource] game_loop: &GameLoopTimer) {
  * This is executed when the scene is initialized
  */
 #[system]
-pub fn setup_scene(#[resource] scene: &mut Scene, command_buffer: &mut CommandBuffer) {
-  let mut main_camera: CameraEntityRow = (Transform3D::default(), Camera::default());
+pub fn setup_scene(
+  #[resource] scene: &mut Scene,
+  #[resource] resolution: &ScreenResolution,
+  command_buffer: &mut CommandBuffer,
+) {
+  let mut main_camera: CameraEntityRow = (
+    Transform3D::default(),
+    Camera::new(resolution.aspect_ratio()),
+  );
   main_camera.0.position = glm::vec3(0f32, 0f32, 3f32);
 
   let main_camera_entity = command_buffer.push(main_camera);

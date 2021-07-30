@@ -39,6 +39,13 @@ impl Camera {
     )
     .normalize()
   }
+
+  pub fn new(aspect: f32) -> Self {
+    Self {
+      aspect,
+      ..Default::default()
+    }
+  }
 }
 
 impl Camera {

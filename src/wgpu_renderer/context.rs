@@ -14,8 +14,11 @@ use crate::renderer_common::geometry::Vertex;
 
 use crate::{
   game::components::{RenderModel, Transform3D},
-  renderer_common::allocator::ResourceManager,
+  renderer_common::allocator::{Handle, ResourceManager},
+  wgpu::{BindGroupLayout, Device, PipelineLayout},
+  wgpu_renderer::textures::{BindTexture, TextureResource},
 };
+use smallvec::SmallVec;
 use std::{
   fmt,
   fmt::Formatter,
@@ -23,7 +26,8 @@ use std::{
 };
 use wgpu::{
   util::{BufferInitDescriptor, DeviceExt},
-  DepthStencilState, Face, PrimitiveState, RenderPass, RenderPipeline, Texture,
+  BindGroup, BindGroupLayoutEntry, DepthStencilState, Face, PrimitiveState, RenderPass,
+  RenderPipeline, Texture,
 };
 
 pub struct Context {
@@ -42,8 +46,18 @@ pub struct Context {
   mesh: Mesh,
   uniforms: Uniforms,
   uniform_buffer: wgpu::Buffer,
+
+  main_vert_shader: wgpu::ShaderModule,
+  main_frag_shader: wgpu::ShaderModule,
+
+  pub main_tex_handle: Option<Handle>,
+  fallback_texture: Handle,
+
   pub meshes: Arc<RwLock<ResourceManager<Mesh>>>,
-  pub textures: Arc<RwLock<ResourceManager<Texture>>>,
+  pub textures: Arc<RwLock<ResourceManager<TextureResource>>>,
+  pub model_texture_bind_group_layout: BindGroupLayout,
+  pub model_texture_bind_group: Option<BindGroup>,
+  pub uniform_bind_group_layout: BindGroupLayout,
 }
 
 impl fmt::Debug for Context {
@@ -193,6 +207,9 @@ impl Context {
 
           render_pass.set_pipeline(&self.render_pipeline);
           render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+          if let Some(tex_bind_group) = &self.model_texture_bind_group {
+            render_pass.set_bind_group(1, tex_bind_group, &[])
+          }
 
           if let Some(mesh) = self.mesh.buffers() {
             let n_indices = self.mesh.geometry().indices.len() as u32;
@@ -210,6 +227,20 @@ impl Context {
       }
     }
   }
+  pub fn rebuild_render_pipeline(&mut self) {
+    self.pipeline_layout = create_pipeline_layout(
+      &self.device,
+      &self.uniform_bind_group_layout,
+      Some(&self.model_texture_bind_group_layout),
+    );
+    self.render_pipeline = create_render_pipeline(
+      &self.device,
+      &self.sc_desc,
+      &self.pipeline_layout,
+      &self.main_vert_shader,
+      &self.main_frag_shader,
+    );
+  }
 }
 
 pub struct Builder<'a, W: AsWindow> {
@@ -226,6 +257,7 @@ impl<'a, W: AsWindow> Builder<'a, W> {
 
     let instance = wgpu::Instance::new(backends);
     let surface = unsafe { instance.create_surface(self.window) };
+    let mut textures: ResourceManager<TextureResource> = Default::default();
     let adapter = instance
       .request_adapter(&wgpu::RequestAdapterOptions {
         power_preference: wgpu::PowerPreference::default(),
@@ -280,11 +312,22 @@ impl<'a, W: AsWindow> Builder<'a, W> {
       label: Some("ubo_bind_group"),
     });
 
-    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-      label: Some("pipeline_layout"),
-      bind_group_layouts: &[&ubo_layout],
-      push_constant_ranges: &[],
-    });
+    let fallback_texture = {
+      use super::textures::*;
+      let img = image::load_from_memory(DEFAULT_TEX_JPEG)
+        .map_err(|e| Error::from_other(format!("{:?}", e)))?;
+
+      textures.insert(
+        TextureResource::from_image(img, &queue, &device)
+          .map_err(|e| Error::from_other(format!("{:?}", e)))?,
+      )
+    };
+
+    let model_texture_bind_group_layout =
+      super::textures::create_texture_bind_group_layout(&device);
+
+    let pipeline_layout =
+      create_pipeline_layout(&device, &ubo_layout, Some(&model_texture_bind_group_layout));
     let (w_width, w_height) = self.window.size();
     let sc_desc = wgpu::SwapChainDescriptor {
       usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
@@ -305,14 +348,14 @@ impl<'a, W: AsWindow> Builder<'a, W> {
       &pipeline_layout,
       &main_vert_shader,
       &main_frag_shader,
-    )?;
+    );
 
     let mesh = {
       let geom = MeshGeometry::unit_plane();
       Mesh::from_geometry(geom, &device)?
     };
 
-    let result = Ok(Context {
+    let mut result = Context {
       surface,
       instance,
       adapter,
@@ -325,11 +368,21 @@ impl<'a, W: AsWindow> Builder<'a, W> {
       mesh,
       uniforms,
       uniform_buffer,
+      uniform_bind_group_layout: ubo_layout,
       uniform_bind_group,
+      model_texture_bind_group_layout,
+      model_texture_bind_group: None,
       meshes: Default::default(),
-      textures: Default::default(),
-    });
+      textures: Arc::new(RwLock::new(textures)),
+      main_tex_handle: None,
+      fallback_texture,
+      main_frag_shader,
+      main_vert_shader,
+    };
     result
+      .bind_texture(fallback_texture)
+      .map_err(|e| Error::from_other(format!("{:?}", e)))?;
+    Ok(result)
   }
 
   pub fn with_size(mut self, size: (i32, i32)) -> Self {
@@ -338,13 +391,30 @@ impl<'a, W: AsWindow> Builder<'a, W> {
   }
 }
 
+pub fn create_pipeline_layout(
+  device: &Device,
+  ubo_layout: &BindGroupLayout,
+  texture_layout: Option<&BindGroupLayout>,
+) -> PipelineLayout {
+  let layouts: SmallVec<[&BindGroupLayout; 2]> = match texture_layout {
+    Some(texture_layout) => smallvec::smallvec![ubo_layout, texture_layout],
+    None => smallvec::smallvec![ubo_layout],
+  };
+  let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+    label: Some("pipeline_layout"),
+    bind_group_layouts: &layouts,
+    push_constant_ranges: &[],
+  });
+  pipeline_layout
+}
+
 fn create_render_pipeline(
   device: &wgpu::Device,
   sc_desc: &wgpu::SwapChainDescriptor,
   layout: &wgpu::PipelineLayout,
   vert_shader: &wgpu::ShaderModule,
   frag_shader: &wgpu::ShaderModule,
-) -> Result<RenderPipeline, Error> {
+) -> RenderPipeline {
   let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
     label: Some("Render Pipeline"),
     layout: Some(layout),
@@ -367,7 +437,14 @@ fn create_render_pipeline(
     multisample: wgpu::MultisampleState::default(),
   });
 
-  Ok(render_pipeline)
+  render_pipeline
+}
+
+pub fn createe_bind_group(device: &Device) {
+  device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+    label: Some(concat!(std::file!(), ":BindGroupLayout")),
+    entries: &[],
+  });
 }
 
 #[cfg(target_arch = "wasm32")]

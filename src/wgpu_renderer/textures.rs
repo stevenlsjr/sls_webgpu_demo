@@ -1,7 +1,12 @@
-use image::{GenericImageView, ImageError};
+use image::{DynamicImage, GenericImageView, ImageError};
 use std::num::NonZeroU32;
 use thiserror::Error;
-use wgpu::{Device, Queue, Sampler, Texture, TextureView};
+use wgpu::{
+  BindGroup, BindGroupDescriptor, BindGroupEntry, Device, Queue, Sampler, ShaderStage, Texture,
+  TextureSampleType, TextureView,
+};
+
+pub const DEFAULT_TEX_JPEG: &[u8] = include_bytes!("../../assets/default_tex.png");
 
 #[derive(Debug, Error)]
 pub enum TextureError {
@@ -21,6 +26,14 @@ pub struct TextureResource {
 }
 
 impl TextureResource {
+  pub fn from_image(
+    img: DynamicImage,
+    queue: &Queue,
+    device: &Device,
+  ) -> Result<Self, TextureError> {
+    let tex = load_texture_from_image(img, queue, device)?;
+    Self::from_texture(tex, queue, device)
+  }
   pub fn from_texture(tex: Texture, queue: &Queue, device: &Device) -> Result<Self, TextureError> {
     let texture_view = tex.create_view(&wgpu::TextureViewDescriptor {
       label: Some(concat!(std::file!(), ":", std::line!())),
@@ -70,9 +83,8 @@ pub fn load_texture_from_image(
   queue: &Queue,
   device: &Device,
 ) -> Result<Texture, TextureError> {
-  let rgba = img
-    .as_rgba8()
-    .ok_or_else(|| TextureError::Other(format!("image {:?} cannot be converted to rgba", img)))?;
+  let rgba = img.to_rgba8();
+
   let dimensions = img.dimensions();
   let texture_size = wgpu::Extent3d {
     width: dimensions.0,
@@ -94,7 +106,7 @@ pub fn load_texture_from_image(
       mip_level: 0,
       origin: wgpu::Origin3d::ZERO,
     },
-    rgba,
+    &rgba,
     wgpu::ImageDataLayout {
       offset: 0,
       bytes_per_row: NonZeroU32::new(4 * dimensions.0),
@@ -106,6 +118,74 @@ pub fn load_texture_from_image(
   Ok(texture)
 }
 
+pub fn create_texture_bind_group_layout(device: &Device) -> BindGroupLayout {
+  let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+    label: Some("create_texture_bind_group"),
+    entries: &[
+      wgpu::BindGroupLayoutEntry {
+        binding: 0,
+        visibility: ShaderStage::FRAGMENT,
+        ty: wgpu::BindingType::Texture {
+          multisampled: false,
+          view_dimension: TextureViewDimension::D2,
+          sample_type: TextureSampleType::Float { filterable: true },
+        },
+        count: None,
+      },
+      wgpu::BindGroupLayoutEntry {
+        binding: 1,
+        visibility: ShaderStage::FRAGMENT,
+        ty: wgpu::BindingType::Sampler {
+          comparison: false,
+          filtering: true,
+        },
+        count: None,
+      },
+    ],
+  });
+  layout
+}
+
+pub trait BindTexture {
+  fn bind_texture(&mut self, tex: Handle) -> Result<(), anyhow::Error>;
+}
+
+impl BindTexture for Context {
+  fn bind_texture(&mut self, tex_handle: Handle) -> Result<(), anyhow::Error> {
+    self.main_tex_handle = Some(tex_handle);
+    let textures_arc = self.textures.clone();
+    let textures = textures_arc
+      .read()
+      .map_err(|e| anyhow::anyhow!("{:?}", e))?;
+    let tex = textures.get_ref(tex_handle)?;
+    let bind_group = self.device.create_bind_group(&BindGroupDescriptor {
+      label: Some(concat!(std::file!(), ":", std::line!())),
+      layout: &self.model_texture_bind_group_layout,
+      entries: &[
+        BindGroupEntry {
+          binding: 0,
+          resource: BindingResource::TextureView(&tex.view),
+        },
+        BindGroupEntry {
+          binding: 1,
+          resource: BindingResource::Sampler(&tex.sampler),
+        },
+      ],
+    });
+    let need_pipeline_rebuild = self.model_texture_bind_group.is_none();
+    self.model_texture_bind_group = Some(bind_group);
+    if need_pipeline_rebuild {
+      self.rebuild_render_pipeline();
+    }
+    Ok(())
+  }
+}
+
+use crate::{
+  renderer_common::allocator::Handle,
+  wgpu::{BindGroupLayout, BindingResource, TextureViewDimension},
+  Context,
+};
 #[cfg(not(target_arch = "wasm32"))]
 pub use native::*;
 

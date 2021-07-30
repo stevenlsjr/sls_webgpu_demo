@@ -34,4 +34,7 @@ mod tests;
 pub mod gl_renderer;
 pub mod renderer_common;
 
+// crate re-imports
+pub use anyhow;
+pub use image;
 pub use nalgebra_glm;

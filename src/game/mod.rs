@@ -160,7 +160,7 @@ impl GameState {
     &self.resources
   }
   #[inline]
-  pub fn mut_resources(&mut self) -> &mut Resources {
+  pub fn resources_mut(&mut self) -> &mut Resources {
     &mut self.resources
   }
 
@@ -213,7 +213,7 @@ mod wgpu_imgui {
       let main_camera_data = self.resources.get::<UIDataIn>();
 
       Window::new(im_str!("Window!!"))
-        .size([300.0, 300.0], Condition::Appearing)
+        .size([600.0, 300.0], Condition::Appearing)
         .position([0.0, 0.0], Condition::Appearing)
         .build(ui, || {
           ui.text(im_str!("Hellooo!"));
