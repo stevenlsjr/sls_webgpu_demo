@@ -1,9 +1,9 @@
 use crate::platform::{
-  keyboard::{Keycode, Scancode},
+  keyboard::*,
   mouse::*,
 };
 use downcast_rs::{impl_downcast, Downcast};
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Formatter, Display};
 // use nalgebra_glm::*;
 use std::collections::HashSet;
 
@@ -20,6 +20,7 @@ pub struct InputState {
   mouse_state: MouseButtonState,
   relative_mouse_state: MouseButtonState,
   mouse_delta: TVec2<i32>,
+  keymod: KeyMod,
 
   pub(crate) current_mouse_pos: TVec2<i32>,
   pub(crate) previous_frame_mouse_pos: Option<TVec2<i32>>,
@@ -35,9 +36,12 @@ impl Default for InputState {
       current_mouse_pos: vec2(0, 0),
       mouse_delta: vec2(0, 0),
       previous_frame_mouse_pos: Some(vec2(0, 0)),
+      keymod: KeyMod::empty(),
     }
   }
 }
+
+
 
 impl InputState {
   pub fn on_start_frame(&mut self) {
@@ -74,7 +78,8 @@ impl InputResource {
     Self { backend }
   }
   pub fn is_mouselook_enabled(&self) -> bool {
-    self.backend.mouse_state.contains(MouseButton::Middle)
+    self.backend.mouse_state.contains(MouseButton::Middle) ||
+      self.backend.keymod.contains(KeyMod::LALTMOD)
   }
 }
 
@@ -99,6 +104,7 @@ mod sdl2_input {
   use nalgebra_glm::TVec2;
   use sdl2::{event::Event, video::Window};
   use std::{collections::HashSet, time::Duration};
+
   impl InputState {
     pub fn new() -> Self {
       Self::default()
@@ -128,8 +134,12 @@ mod sdl2_input {
         Event::AppDidEnterBackground { .. } => {}
         Event::AppWillEnterForeground { .. } => {}
         Event::AppDidEnterForeground { .. } => {}
-        Event::KeyDown { scancode, .. } => {}
-        Event::KeyUp { scancode, .. } => {}
+        Event::KeyDown { keymod, .. } => {
+          self.keymod = (*keymod).into()
+        }
+        Event::KeyUp { keymod, .. } => {
+          self.keymod = (*keymod).into()
+        }
         Event::TextEditing { .. } => {}
         Event::TextInput { .. } => {}
         Event::MouseMotion {
@@ -180,3 +190,4 @@ use crate::{
 #[cfg(feature = "sdl2")]
 pub use sdl2_input::*;
 use std::time::Duration;
+use crate::platform::keyboard::KeyMod;

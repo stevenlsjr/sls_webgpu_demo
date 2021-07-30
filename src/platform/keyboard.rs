@@ -1,5 +1,8 @@
+use bitflags::bitflags;
+
 /// Replica of
 /// SDL2's keycode type
+///
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Keycode {
   Backspace,
@@ -483,11 +486,45 @@ pub enum Scancode {
   App2,
   Num,
 }
+bitflags! {
+  /// Key modifier mask.
+  /// Copied from SDL2
+  #[derive()]
+  pub struct KeyMod: u16 {
+    const NOMOD = 0x0000;
+    const LSHIFTMOD = 0x0001;
+    const RSHIFTMOD = 0x0002;
+    const LCTRLMOD = 0x0040;
+    const RCTRLMOD = 0x0080;
+    const LALTMOD = 0x0100;
+    const RALTMOD = 0x0200;
+    const LGUIMOD = 0x0400;
+    const RGUIMOD = 0x0800;
+    const NUMMOD = 0x1000;
+    const CAPSMOD = 0x2000;
+    const MODEMOD = 0x4000;
+    const RESERVsEDMOD = 0x8000;
+  }
+}
 
 #[cfg(feature = "sdl2_backend")]
 mod sdl_backend {
-  use crate::platform::keyboard::{Keycode, Scancode};
-  use sdl2::keyboard::{Keycode as SdlKeycode, Scancode as SdlScancode};
+  use super::*;
+  use sdl2::keyboard::{Keycode as SdlKeycode, Scancode as SdlScancode, Mod as SdlMod};
+
+  impl From<SdlMod> for KeyMod {
+    fn from(sdl_mod: SdlMod) -> Self {
+      unsafe {
+        Self::from_bits_unchecked(sdl_mod.bits())
+      }
+    }
+  }
+
+  impl Into<SdlMod> for KeyMod {
+    fn into(self) -> SdlMod {
+      unsafe { SdlMod::from_bits_unchecked(self.bits) }
+    }
+  }
 
   impl From<SdlKeycode> for Keycode {
     fn from(code: SdlKeycode) -> Self {
