@@ -197,19 +197,7 @@ impl App {
       window_size: (window_size.0 as _, window_size.1 as _),
       drawable_size: (drawable_size.0 as _, drawable_size.1 as _),
     });
-    let uv_grid_image = image::open("assets/uv_grid_opengl.jpg")?;
-    let uv_texture_handle = {
-      let read_ctx = self.context.read().map_err(|e| anyhow!("{:?}", e))?;
-      let mut write_textures = read_ctx.textures.write().map_err(|e| anyhow!("{:?}", e))?;
-      let tex = TextureResource::from_image(uv_grid_image, &read_ctx.queue, &read_ctx.device)?;
-      let uv_texture_handle = write_textures.insert(tex);
-      uv_texture_handle
-    };
 
-    {
-      let mut write_ctx = self.context.write().map_err(|e| anyhow!("{:?}", e))?;
-      write_ctx.bind_texture(uv_texture_handle)?;
-    }
 
     Ok(())
   }

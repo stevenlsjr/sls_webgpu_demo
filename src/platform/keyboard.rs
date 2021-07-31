@@ -503,7 +503,7 @@ bitflags! {
     const NUMMOD = 0x1000;
     const CAPSMOD = 0x2000;
     const MODEMOD = 0x4000;
-    const RESERVsEDMOD = 0x8000;
+    const RESERVEDMOD = 0x8000;
   }
 }
 

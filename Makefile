@@ -11,11 +11,11 @@ MKDIR:=mkdir
 ifneq ($(OS),Windows_NT)
 FRAG_GLSL=src/shaders/main.frag
 VERT_GLSL=src/shaders/main.vert
-OUT_DIR:=./out
+OUT_DIR:=./
 else
 FRAG_GLSL=src\shaders\main.frag
 VERT_GLSL=src\shaders\main.vert
-OUT_DIR:=.\\target\\
+OUT_DIR:=
 endif
 
 
@@ -29,7 +29,7 @@ $(OUT_DIR)%.vert.spv: %.vert
 $(OUT_DIR)%.frag.spv: %.frag
 	$(GLSLC)  $(GLSLCFLAGS) -o $@ $^
 
-all: before $(SPIRV_OUT) copy_assets
+all: before $(SPIRV_OUT)
 debug:
 	@echo OUT_DIR $(OUT_DIR)
 	@echo FRAG_GLSL $(FRAG_GLSL)

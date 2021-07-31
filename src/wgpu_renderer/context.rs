@@ -41,7 +41,6 @@ pub struct Context {
   pub pipeline_layout: wgpu::PipelineLayout,
 
   render_pipeline: wgpu::RenderPipeline,
-  uniform_bind_group: wgpu::BindGroup,
   // scene resources
   mesh: Mesh,
   uniforms: Uniforms,
@@ -55,9 +54,11 @@ pub struct Context {
 
   pub meshes: Arc<RwLock<ResourceManager<Mesh>>>,
   pub textures: Arc<RwLock<ResourceManager<TextureResource>>>,
-  pub model_texture_bind_group_layout: BindGroupLayout,
-  pub model_texture_bind_group: Option<BindGroup>,
+  pub texture_bind_group_layout: BindGroupLayout,
+  pub diffuse_bind_group: BindGroup,
   pub uniform_bind_group_layout: BindGroupLayout,
+  uniform_bind_group: wgpu::BindGroup,
+
 }
 
 impl fmt::Debug for Context {
@@ -207,9 +208,7 @@ impl Context {
 
           render_pass.set_pipeline(&self.render_pipeline);
           render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-          if let Some(tex_bind_group) = &self.model_texture_bind_group {
-            render_pass.set_bind_group(1, tex_bind_group, &[])
-          }
+          render_pass.set_bind_group(1, &self.diffuse_bind_group, &[]);
 
           if let Some(mesh) = self.mesh.buffers() {
             let n_indices = self.mesh.geometry().indices.len() as u32;
@@ -231,7 +230,7 @@ impl Context {
     self.pipeline_layout = create_pipeline_layout(
       &self.device,
       &self.uniform_bind_group_layout,
-      Some(&self.model_texture_bind_group_layout),
+      &self.texture_bind_group_layout,
     );
     self.render_pipeline = create_render_pipeline(
       &self.device,
@@ -251,9 +250,9 @@ pub struct Builder<'a, W: AsWindow> {
 impl<'a, W: AsWindow> Builder<'a, W> {
   pub async fn build(self) -> Result<Context, Error> {
     #[cfg(not(target_os = "linux"))]
-    let backends = wgpu::BackendBit::all();
+      let backends = wgpu::BackendBit::all();
     #[cfg(target_os = "linux")]
-    let backends = wgpu::BackendBit::VULKAN;
+      let backends = wgpu::BackendBit::VULKAN;
 
     let instance = wgpu::Instance::new(backends);
     let surface = unsafe { instance.create_surface(self.window) };
@@ -312,22 +311,21 @@ impl<'a, W: AsWindow> Builder<'a, W> {
       label: Some("ubo_bind_group"),
     });
 
-    let fallback_texture = {
-      use super::textures::*;
-      let img = image::load_from_memory(DEFAULT_TEX_JPEG)
-        .map_err(|e| Error::from_other(format!("{:?}", e)))?;
-
-      textures.insert(
-        TextureResource::from_image(img, &queue, &device)
-          .map_err(|e| Error::from_other(format!("{:?}", e)))?,
-      )
-    };
-
     let model_texture_bind_group_layout =
       super::textures::create_texture_bind_group_layout(&device);
+    let (fallback_texture, diffuse_bind_group) = {
+      use super::textures::*;
+      let img = image::load_from_memory(super::textures::DEFAULT_TEX_JPEG)
+        .map_err(|e| Error::from_other(format!("{:?}", e)))?;
+      let tex_resource = TextureResource::from_image(img, &queue, &device)
+        .map_err(|e| Error::from_other(format!("{:?}", e)))?;
+      let bg = super::textures::basic_texture_bind_group(&tex_resource, &model_texture_bind_group_layout, &device);
+      (textures.insert(tex_resource), bg)
+    };
+
 
     let pipeline_layout =
-      create_pipeline_layout(&device, &ubo_layout, Some(&model_texture_bind_group_layout));
+      create_pipeline_layout(&device, &ubo_layout, &model_texture_bind_group_layout);
     let (w_width, w_height) = self.window.size();
     let sc_desc = wgpu::SwapChainDescriptor {
       usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
@@ -370,8 +368,8 @@ impl<'a, W: AsWindow> Builder<'a, W> {
       uniform_buffer,
       uniform_bind_group_layout: ubo_layout,
       uniform_bind_group,
-      model_texture_bind_group_layout,
-      model_texture_bind_group: None,
+      texture_bind_group_layout: model_texture_bind_group_layout,
+      diffuse_bind_group,
       meshes: Default::default(),
       textures: Arc::new(RwLock::new(textures)),
       main_tex_handle: None,
@@ -394,15 +392,11 @@ impl<'a, W: AsWindow> Builder<'a, W> {
 pub fn create_pipeline_layout(
   device: &Device,
   ubo_layout: &BindGroupLayout,
-  texture_layout: Option<&BindGroupLayout>,
+  texture_layout: &BindGroupLayout,
 ) -> PipelineLayout {
-  let layouts: SmallVec<[&BindGroupLayout; 2]> = match texture_layout {
-    Some(texture_layout) => smallvec::smallvec![ubo_layout, texture_layout],
-    None => smallvec::smallvec![ubo_layout],
-  };
   let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
     label: Some("pipeline_layout"),
-    bind_group_layouts: &layouts,
+    bind_group_layouts: &[ubo_layout, texture_layout],
     push_constant_ranges: &[],
   });
   pipeline_layout

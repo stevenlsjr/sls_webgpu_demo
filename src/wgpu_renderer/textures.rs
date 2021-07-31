@@ -6,7 +6,7 @@ use wgpu::{
   TextureSampleType, TextureView,
 };
 
-pub const DEFAULT_TEX_JPEG: &[u8] = include_bytes!("../../assets/default_tex.png");
+pub const DEFAULT_TEX_JPEG: &[u8] = include_bytes!("../../assets/uv_grid_opengl.jpg");
 
 #[derive(Debug, Error)]
 pub enum TextureError {
@@ -44,8 +44,8 @@ impl TextureResource {
       address_mode_v: wgpu::AddressMode::ClampToEdge,
       address_mode_w: wgpu::AddressMode::ClampToEdge,
       mag_filter: wgpu::FilterMode::Linear,
-      min_filter: wgpu::FilterMode::Nearest,
-      mipmap_filter: wgpu::FilterMode::Nearest,
+      min_filter: wgpu::FilterMode::Linear,
+      mipmap_filter: wgpu::FilterMode::Linear,
       ..Default::default()
     });
     Ok(Self {
@@ -150,6 +150,25 @@ pub trait BindTexture {
   fn bind_texture(&mut self, tex: Handle) -> Result<(), anyhow::Error>;
 }
 
+pub fn basic_texture_bind_group(tex: &TextureResource,
+                                bgl: &BindGroupLayout,
+                                device: &Device) -> BindGroup {
+  device.create_bind_group(&BindGroupDescriptor {
+    label: Some("basic_texture_bind_group"),
+    layout: bgl,
+    entries: &[
+      BindGroupEntry {
+        binding: 0,
+        resource: BindingResource::TextureView(&tex.view),
+      },
+      BindGroupEntry {
+        binding: 1,
+        resource: BindingResource::Sampler(&tex.sampler),
+      },
+    ],
+  })
+}
+
 impl BindTexture for Context {
   fn bind_texture(&mut self, tex_handle: Handle) -> Result<(), anyhow::Error> {
     self.main_tex_handle = Some(tex_handle);
@@ -158,25 +177,7 @@ impl BindTexture for Context {
       .read()
       .map_err(|e| anyhow::anyhow!("{:?}", e))?;
     let tex = textures.get_ref(tex_handle)?;
-    let bind_group = self.device.create_bind_group(&BindGroupDescriptor {
-      label: Some(concat!(std::file!(), ":", std::line!())),
-      layout: &self.model_texture_bind_group_layout,
-      entries: &[
-        BindGroupEntry {
-          binding: 0,
-          resource: BindingResource::TextureView(&tex.view),
-        },
-        BindGroupEntry {
-          binding: 1,
-          resource: BindingResource::Sampler(&tex.sampler),
-        },
-      ],
-    });
-    let need_pipeline_rebuild = self.model_texture_bind_group.is_none();
-    self.model_texture_bind_group = Some(bind_group);
-    if need_pipeline_rebuild {
-      self.rebuild_render_pipeline();
-    }
+    let bind_group = basic_texture_bind_group(tex, &self.texture_bind_group_layout, &self.device);
     Ok(())
   }
 }

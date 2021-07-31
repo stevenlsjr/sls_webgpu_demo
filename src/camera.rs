@@ -104,7 +104,7 @@ impl Default for Camera {
       zfar: 100.0,
       movement_speed: 2.0,
       pitch: 0f32,
-      yaw: -f32::pi() / 2f32,
+      yaw: (-90f32).to_radians(),
       mouse_sensitivity: (10.0f32).to_radians(),
       aspect_matches_window: true,
     };

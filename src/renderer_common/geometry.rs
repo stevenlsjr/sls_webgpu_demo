@@ -161,25 +161,25 @@ impl MeshGeometry {
     let verts = [
       Vertex {
         position: [-0.5, -0.5, 0.0],
-        uv: [0.0, 0.0],
-        normal: [0.0, 1.0, 0.0, 1.0],
-        ..Default::default()
-      },
-      Vertex {
-        position: [-0.5, 0.5, 0.0],
         uv: [0.0, 1.0],
         normal: [0.0, 1.0, 0.0, 1.0],
         ..Default::default()
       },
       Vertex {
+        position: [-0.5, 0.5, 0.0],
+        uv: [0.0, 0.0],
+        normal: [0.0, 1.0, 0.0, 1.0],
+        ..Default::default()
+      },
+      Vertex {
         position: [0.5, 0.5, 0.0],
-        uv: [1.0, 1.0],
+        uv: [1.0, 0.0],
         normal: [0.0, 1.0, 0.0, 1.0],
         ..Default::default()
       },
       Vertex {
         position: [0.5, -0.5, 0.0],
-        uv: [1.0, 0.0],
+        uv: [1.0, 1.0],
         normal: [0.0, 1.0, 0.0, 1.0],
         ..Default::default()
       },

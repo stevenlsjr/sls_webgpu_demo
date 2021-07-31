@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Steve Shea <stevenlsjr@gmail.com>"]
 license = "MIT"
 edition = "2018"
+
 [features]
 sdl2_backend = ["sdl2"]
 html5_backend = ["web-sys"]
@@ -11,10 +12,13 @@ wgpu_renderer = ["wgpu"]
 wgpu_imgui = ["imgui", "imgui-wgpu", "wgpu_renderer"]
 opengl_renderer = ["glow"]
 
+
+
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [build-dependencies]
-#shaderc = "0.7"
 regex = "1.5.4"
+naga = "*"
 
 [dependencies]
 wasm-bindgen = "0.2.45"
@@ -38,8 +42,10 @@ memoffset = { version = "0.6", features = ["unstable_const"] }
 image = "^0.23"
 hibitset = "0.6.3"
 anyhow = "^1.0"
-thiserror="^1.0"
+thiserror = "^1.0"
 bitflags = "^1.2"
+naga = { version = "0.5.0", features = [
+    "glsl-in", "spv-in", "spv-out", "wgsl-out"] }
 
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
@@ -181,6 +187,7 @@ legion = { version = "0.4.0", default-features = false, features = ["wasm-bindge
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 legion = { version = "0.4.0", default-features = false, features = ["wasm-bindgen", "codegen", "serialize"] }
+shaderc = "0.7"
 
 
 [dependencies.sdl2]
