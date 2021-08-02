@@ -30,7 +30,7 @@ impl Transform3D {
     let rotation = quat_to_mat4(&self.rotation);
     let translation = translation(&self.position);
     let scale = scale(&Mat4::identity(), &self.scale);
-    scale * rotation * translation
+    translation * rotation * scale
   }
 }
 
@@ -38,6 +38,7 @@ impl Transform3D {
 pub struct RenderModel {
   pub mesh: Option<Handle>,
   pub label: Option<String>,
+  pub is_shown: bool
 }
 
 pub type CameraEntityRow = (Transform3D, Camera);

@@ -20,7 +20,7 @@ pub fn error_to_str(error: u32) -> Option<&'static str> {
     glow::OUT_OF_MEMORY => Some(GL_OUT_OF_MEMORY),
     glow::STACK_UNDERFLOW => Some(GL_STACK_UNDERFLOW),
     glow::STACK_OVERFLOW => Some(GL_STACK_OVERFLOW),
-    _ => None
+    _ => None,
   }
 }
 
@@ -28,16 +28,15 @@ pub fn check_errors<GL: HasContext>(gl: &GL) -> Result<(), Vec<(u32, String)>> {
   let mut errors = vec![];
   let mut checking = true;
   while checking {
-    let err = unsafe {
-      gl.get_error()
-    };
+    let err = unsafe { gl.get_error() };
     match err {
       glow::NO_ERROR => {
         checking = false;
       }
-      other => {
-        errors.push((other, error_to_str(other).unwrap_or(UNKNOWN_ERROR_CODE).to_owned()))
-      }
+      other => errors.push((
+        other,
+        error_to_str(other).unwrap_or(UNKNOWN_ERROR_CODE).to_owned(),
+      )),
     }
   }
   if errors.len() == 0 {

@@ -38,3 +38,4 @@ pub mod renderer_common;
 pub use anyhow;
 pub use image;
 pub use nalgebra_glm;
+pub use gltf;

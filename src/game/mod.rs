@@ -263,7 +263,7 @@ mod wgpu_renderer {
 }
 #[cfg(test)]
 mod test {
-  use crate::game::input::DummyInputBackend;
+  use crate::game::input::InputState;
 
   use super::*;
 

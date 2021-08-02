@@ -1,11 +1,12 @@
-use anyhow::{anyhow, Error as AnyError, Result as AnyResult};
+use anyhow::{Result as AnyResult};
 use legion::*;
+use anyhow::anyhow;
 
 use crate::{
   game::components::{RenderModel, Transform3D},
   renderer_common::allocator::Handle,
 };
-use rand::{distributions::Uniform, prelude::IteratorRandom, random, seq::SliceRandom, Rng};
+use rand::{distributions::Uniform, random};
 #[cfg(feature = "wgpu_renderer")]
 pub use wgpu_renderer::*;
 
@@ -13,13 +14,11 @@ pub use wgpu_renderer::*;
 mod wgpu_renderer {
   use super::*;
   use crate::{
-    game::{components::RenderModel, resources::MeshLookup},
-    renderer_common::allocator::Handle,
+    game::{resources::MeshLookup},
     wgpu_renderer::mesh::{Mesh, MeshGeometry},
     Context,
   };
-  use legion::{systems::CommandBuffer, world::SubWorld, *};
-  use rand::seq::SliceRandom;
+  use legion::{systems::CommandBuffer, };
   use std::{
     borrow::BorrowMut,
     sync::{Arc, RwLock},
@@ -72,18 +71,22 @@ fn create_random_model(mesh_choices: &[Handle]) -> (RenderModel, Transform3D) {
 
   let mesh = SliceRandom::choose(mesh_choices, &mut rng).cloned();
   let mut transform = Transform3D::default();
-  let rand_dist = Uniform::new(-20.0, 20.0);
+  let rand_dist = Uniform::new(-10.0, 10.0);
   transform.position = vec3(
     rng.sample(rand_dist),
-    rng.sample(rand_dist),
+    0.0,
     rng.sample(rand_dist),
   );
   let model = RenderModel {
     mesh,
     label: Some(format!("mesh_{:?}", mesh)),
+    is_shown: true
   };
   (model, transform)
 }
+
+
+
 #[cfg(not(feature = "wgpu_renderer"))]
 #[system]
 pub fn create_models() {

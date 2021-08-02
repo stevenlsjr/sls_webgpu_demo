@@ -1,5 +1,7 @@
-use std::collections::LinkedList;
-use std::fmt::{Display, Formatter};
+use std::{
+  collections::LinkedList,
+  fmt::{Display, Formatter},
+};
 
 ///
 /// Structure comprising of a sparse

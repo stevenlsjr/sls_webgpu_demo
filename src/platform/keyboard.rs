@@ -510,13 +510,11 @@ bitflags! {
 #[cfg(feature = "sdl2_backend")]
 mod sdl_backend {
   use super::*;
-  use sdl2::keyboard::{Keycode as SdlKeycode, Scancode as SdlScancode, Mod as SdlMod};
+  use sdl2::keyboard::{Keycode as SdlKeycode, Mod as SdlMod, Scancode as SdlScancode};
 
   impl From<SdlMod> for KeyMod {
     fn from(sdl_mod: SdlMod) -> Self {
-      unsafe {
-        Self::from_bits_unchecked(sdl_mod.bits())
-      }
+      unsafe { Self::from_bits_unchecked(sdl_mod.bits()) }
     }
   }
 

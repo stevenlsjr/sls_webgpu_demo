@@ -1,8 +1,10 @@
 use std::time::Duration;
 
-use sdl2::event::Event;
-use sdl2::mouse::MouseState;
-use sdl2::{mouse::MouseWheelDirection, video::Window};
+use sdl2::{
+  event::Event,
+  mouse::{MouseState, MouseWheelDirection},
+  video::Window,
+};
 
 use crate::imgui::Io;
 

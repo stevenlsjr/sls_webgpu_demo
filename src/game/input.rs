@@ -1,9 +1,6 @@
-use crate::platform::{
-  keyboard::*,
-  mouse::*,
-};
+use crate::platform::{keyboard::*};
 use downcast_rs::{impl_downcast, Downcast};
-use std::fmt::{Debug, Formatter, Display};
+use std::fmt::{Debug, Formatter};
 // use nalgebra_glm::*;
 use std::collections::HashSet;
 
@@ -41,8 +38,6 @@ impl Default for InputState {
   }
 }
 
-
-
 impl InputState {
   pub fn on_start_frame(&mut self) {
     self.previous_frame_mouse_pos = Some(self.current_mouse_pos);
@@ -78,8 +73,8 @@ impl InputResource {
     Self { backend }
   }
   pub fn is_mouselook_enabled(&self) -> bool {
-    self.backend.mouse_state.contains(MouseButton::Middle) ||
-      self.backend.keymod.contains(KeyMod::LALTMOD)
+    self.backend.mouse_state.contains(MouseButton::Middle)
+      || self.backend.keymod.contains(KeyMod::LALTMOD)
   }
 }
 
@@ -97,7 +92,6 @@ mod sdl2_input {
   use crate::{
     game::input::*,
     platform::{
-      keyboard::{Keycode, Scancode},
       mouse::*,
     },
   };
@@ -134,12 +128,8 @@ mod sdl2_input {
         Event::AppDidEnterBackground { .. } => {}
         Event::AppWillEnterForeground { .. } => {}
         Event::AppDidEnterForeground { .. } => {}
-        Event::KeyDown { keymod, .. } => {
-          self.keymod = (*keymod).into()
-        }
-        Event::KeyUp { keymod, .. } => {
-          self.keymod = (*keymod).into()
-        }
+        Event::KeyDown { keymod, .. } => self.keymod = (*keymod).into(),
+        Event::KeyUp { keymod, .. } => self.keymod = (*keymod).into(),
         Event::TextEditing { .. } => {}
         Event::TextInput { .. } => {}
         Event::MouseMotion {
@@ -185,9 +175,11 @@ mod sdl2_input {
 
 use crate::{
   nalgebra_glm::{vec2, TVec2},
-  platform::mouse::{MouseButton, MouseButtonState},
+  platform::{
+    keyboard::KeyMod,
+    mouse::{MouseButton, MouseButtonState},
+  },
 };
 #[cfg(feature = "sdl2")]
 pub use sdl2_input::*;
 use std::time::Duration;
-use crate::platform::keyboard::KeyMod;

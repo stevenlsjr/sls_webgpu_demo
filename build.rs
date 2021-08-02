@@ -1,8 +1,9 @@
-use std::process::{Command};
-use std::env;
-use std::path::{PathBuf, Path};
-use std::str::FromStr;
-
+use std::{
+  env,
+  path::{Path, PathBuf},
+  process::Command,
+  str::FromStr,
+};
 
 fn main() -> Result<(), String> {
   let is_windows = env::var("CARGO_CFG_TARGET_FAMILY") == Ok("windows".to_owned());
@@ -16,11 +17,9 @@ fn main() -> Result<(), String> {
   if is_windows {
     out_dir.push('\\');
   }
-  let ps = Command::new("make")
-    .status().unwrap();
+  let ps = Command::new("make").status().unwrap();
   if ps.code() != Some(0) {
     return Err(format!("make failed with status {:?}", ps.code()));
   }
   Ok(())
 }
-

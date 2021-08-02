@@ -8,23 +8,31 @@ use sdl2::{
 
 use sls_webgpu::game::input::InputResource;
 
-use sls_webgpu::game::GameState;
+use sls_webgpu::game::{GameState, CreateGameParams};
 
 use sls_webgpu::platform::gui::DrawUi;
+use crossbeam::channel::{unbounded, Sender, Receiver};
 
 use sls_webgpu::{
   anyhow::{self, anyhow},
+  gltf,
   game::resources::ScreenResolution,
   image, imgui, imgui_wgpu,
   platform::sdl2_backend::ImguiSdlPlatform,
   wgpu_renderer::textures::{BindTexture, TextureResource},
   Context,
 };
+
 use std::{
   ops::DerefMut,
   sync::{Arc, RwLock},
   time::*,
 };
+use sls_webgpu::platform::gui;
+use rayon::{ThreadPool, ThreadPoolBuilder};
+use sls_webgpu::renderer_common::asset_loading::AssetLoadedMessage;
+use sls_webgpu::gltf::{Error, Document};
+use sls_webgpu::gltf::buffer::Data;
 
 pub struct App {
   pub(crate) context: Arc<RwLock<Context>>,
@@ -34,10 +42,68 @@ pub struct App {
   pub(crate) imgui_renderer: Arc<RwLock<imgui_wgpu::Renderer>>,
   pub(crate) imgui_platform: Arc<RwLock<ImguiSdlPlatform>>,
   pub(crate) sdl: sdl2::Sdl,
+  worker_pool: rayon::ThreadPool,
+  assets_loaded_receiver: Receiver<anyhow::Result<AssetLoadedMessage>>,
+  assets_loaded_sender: Sender<anyhow::Result<AssetLoadedMessage>>,
   pub window: Window,
 }
 
 impl App {
+  pub fn new() -> anyhow::Result<Self> {
+    let sdl = sdl2::init().map_err(|s| anyhow!(s))?;
+    let video_sys = sdl.video().map_err(|s| anyhow!(s))?;
+    let mut window = create_window(&video_sys, (1600, 1200))?;
+    let event_pump = sdl.event_pump().map_err(|s| anyhow!(s))?;
+    let context =
+      pollster::block_on(Context::new(&mut window).build())?;
+
+    let mut imgui_context = gui::create_imgui(gui::Options {
+      hidpi_factor: 2.0,
+      font_size: 20.0,
+    });
+    let imgui_platform = ImguiSdlPlatform::new(&mut imgui_context)?;
+
+    let texture_format = context
+      .adapter
+      .get_swap_chain_preferred_format(&context.surface)
+      .ok_or(anyhow!("no swapchain texture format available"))?;
+    let renderer_options = imgui_wgpu::RendererConfig {
+      texture_format,
+      ..imgui_wgpu::RendererConfig::new_srgb()
+    };
+
+    let imgui_renderer = Arc::new(RwLock::new(imgui_wgpu::Renderer::new(
+      &mut imgui_context,
+      &context.device,
+      &context.queue,
+      renderer_options,
+    )));
+
+    let imgui_platform = Arc::new(RwLock::new(imgui_platform));
+    let context = Arc::new(RwLock::new(context));
+
+    let mut game_state = GameState::new(CreateGameParams {});
+    {
+      game_state.wgpu_setup(context.clone());
+    }
+    let worker_pool = rayon::ThreadPoolBuilder::new().build()?;
+    let (s, r) = unbounded();
+    let app = Self {
+      imgui_context: Arc::new(RwLock::new(imgui_context)),
+      context,
+      imgui_renderer,
+      game_state,
+      event_pump,
+      imgui_platform,
+      sdl,
+      worker_pool,
+      window,
+      assets_loaded_receiver: r,
+      assets_loaded_sender: s,
+    };
+    Ok(app)
+  }
+
   pub(crate) fn run(mut self) {
     self.game_state.set_is_running(true);
     if let Err(e) = self.load_assets() {
@@ -67,6 +133,9 @@ impl App {
       if !self.game_state.is_running() {
         break;
       }
+      // check for asset loaded messages, and handle the results
+      self.check_assets_loaded();
+
       // per frame update
       self.game_state.update(&elapsed_time);
 
@@ -197,8 +266,71 @@ impl App {
       window_size: (window_size.0 as _, window_size.1 as _),
       drawable_size: (drawable_size.0 as _, drawable_size.1 as _),
     });
+    let sender = self.assets_loaded_sender.clone();
+    self.worker_pool.spawn(move || {
+      let path = "assets/sheen-chair/SheenChair.glb";
+      let res = match gltf::import(path) {
+        Ok((documents, buffers, images)) => {
+          sender.send(Ok(AssetLoadedMessage::GltfModel {
+            model_name: "chair".to_owned(),
+            documents,
+            buffers,
+            images,
+          }))
+        }
+        Err(e) => {
+          sender.send(Err(e.into()))
+        }
+      };
+      if let Err(e) = res {
+        log::error!("could not send message: {:?}",e);
+      }
+    });
 
 
     Ok(())
   }
+
+  fn check_assets_loaded(&mut self) {
+    let results: Vec<_> = self.assets_loaded_receiver.try_iter().collect();
+    for r in results {
+      match r {
+        Ok(message) => {
+          println!("loaded asset: {:?}", message);
+          self.on_model_loaded(message);
+        }
+        Err(e) => {
+          log::error!("error loading asset: {:?}", e)
+        }
+      }
+    }
+  }
+
+  fn on_model_loaded(&mut self, message: AssetLoadedMessage) {
+    match message {
+      AssetLoadedMessage::GltfModel { model_name, documents, buffers, images } => {
+        if model_name == "chair" {
+          self.load_chair_model(documents, buffers, images);
+        }
+      }
+    };
+  }
+  fn load_chair_model(&self, documents: Document, buffers: Vec<gltf::buffer::Data>, images: Vec<gltf::image::Data>) {
+    todo!()
+  }
 }
+
+
+fn create_window(
+  video_sys: &sdl2::VideoSubsystem,
+  window_size: (u32, u32),
+) -> Result<Window, anyhow::Error> {
+  let window = video_sys
+    .window("Webgpu demo!", window_size.0, window_size.1)
+    .resizable()
+    .position_centered()
+    .allow_highdpi()
+    .build()?;
+  Ok(window)
+}
+

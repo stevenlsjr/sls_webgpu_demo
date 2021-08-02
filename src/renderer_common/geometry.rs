@@ -8,6 +8,8 @@ pub struct Vertex {
   pub color: [f32; 4],
   pub uv: [f32; 2],
   pub normal: [f32; 4],
+  pub tangent: [f32; 3],
+  pub bitangent: [f32; 3]
 }
 
 impl Default for Vertex {
@@ -17,6 +19,8 @@ impl Default for Vertex {
       color: [1.0; 4],
       uv: [0.0, 0.0],
       normal: [0.0, 0.0, 1.0, 1.0],
+      tangent: [0.0; 3],
+      bitangent: [0.0; 3],
     }
   }
 }
@@ -39,7 +43,9 @@ mod wgpu_renderer {
     0=>Float32x3,
     1=>Float32x4,
     2=>Float32x2,
-    3=>Float32x4
+    3=>Float32x4,
+    4=>Float32x3,
+    5=>Float32x3
   ];
 
   impl Vertex {
@@ -112,7 +118,7 @@ impl MeshGeometry {
     }
 
     let mut vi = 0;
-    'start: for y in 0..n_divisions {
+     for y in 0..n_divisions {
       for x in 0..n_divisions {
         let mut quad = [0u16; 6];
         quad[0] = vi;
@@ -147,6 +153,7 @@ impl MeshGeometry {
           normal: [normal.x, normal.y, normal.z, 1.0],
           uv: [u, v],
           color: [1.0; 4],
+          ..Default::default()
         }
       })
       .triangulate()
@@ -202,6 +209,8 @@ impl MeshGeometry {
           normal: [normal.x, normal.y, normal.z, 1.0],
           uv: [u, v],
           color: [1.0; 4],
+                    ..Default::default()
+
         }
       })
       .triangulate()

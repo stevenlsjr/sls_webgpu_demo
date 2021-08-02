@@ -2,7 +2,7 @@ use crate::{
   error::Error,
   game::{resources::Scene, GameState},
 };
-use anyhow::{anyhow, Error as AnyError};
+use anyhow::{anyhow};
 
 use crate::window::AsWindow;
 
@@ -13,22 +13,24 @@ use super::{
 use crate::renderer_common::geometry::Vertex;
 
 use crate::{
-  game::components::{RenderModel, Transform3D},
   renderer_common::allocator::{Handle, ResourceManager},
   wgpu::{BindGroupLayout, Device, PipelineLayout},
-  wgpu_renderer::textures::{BindTexture, TextureResource},
+  wgpu_renderer::{
+    textures::{BindTexture, TextureResource},
+    ModelInstance,
+  },
 };
-use smallvec::SmallVec;
 use std::{
   fmt,
   fmt::Formatter,
   sync::{Arc, RwLock},
 };
-use wgpu::{
-  util::{BufferInitDescriptor, DeviceExt},
-  BindGroup, BindGroupLayoutEntry, DepthStencilState, Face, PrimitiveState, RenderPass,
-  RenderPipeline, Texture,
-};
+use wgpu::{util::{BufferInitDescriptor, DeviceExt}, BindGroup, BindGroupLayoutEntry, BufferDescriptor, PrimitiveState, RenderPass, RenderPipeline, Texture, BufferUsage, BufferSize};
+use crate::game::components::{Transform3D, RenderModel};
+use legion::query::ChunkView;
+use imgui::StyleColor::TableRowBgAlt;
+use std::num::NonZeroU64;
+use crate::wgpu::TextureFormat;
 
 pub struct Context {
   pub instance: wgpu::Instance,
@@ -59,6 +61,13 @@ pub struct Context {
   pub uniform_bind_group_layout: BindGroupLayout,
   uniform_bind_group: wgpu::BindGroup,
 
+  /// Buffer storing instance state for render
+  instance_buffer: wgpu::Buffer,
+  n_instances: usize,
+  instance_buffer_view: Vec<u8>,
+
+  // Depth/stencil buffers
+  depth_stencil_texture: TextureResource,
 }
 
 impl fmt::Debug for Context {
@@ -78,77 +87,15 @@ impl Context {
     let (width, height) = size;
     self.sc_desc.width = width;
     self.sc_desc.height = height;
+    self.depth_stencil_texture = TextureResource::new_depth_stencil_texture(
+      &self.device,
+      &self.sc_desc,
+      "depth_stencil_texture",
+    );
     self.swapchain = self.device.create_swap_chain(&self.surface, &self.sc_desc);
   }
 
   pub fn update(&mut self) {}
-
-  pub fn render(&mut self, game: &GameState) -> Result<(), AnyError> {
-    let camera = game
-      .resources()
-      .get::<Scene>()
-      .map(|s| s.main_camera_components(&game.world()))
-      .unwrap_or(Ok(None))
-      .map_err(|error| anyhow!("error accessing camera {:?}", error))?;
-
-    match camera {
-      None => {
-        log::warn!("no main camera found");
-        Ok(())
-      }
-      Some(camera) => {
-        self.uniforms.update_from_camera(camera);
-        self.queue.write_buffer(
-          &self.uniform_buffer,
-          0,
-          bytemuck::cast_slice(&[self.uniforms]),
-        );
-
-        let frame = self
-          .swapchain
-          .get_current_frame()
-          .map_err(|e| anyhow!("swapchain error {:?}", e))?
-          .output;
-
-        let mut encoder = self
-          .device
-          .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Render Encoder"),
-          });
-        {
-          let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("render pass"),
-            color_attachments: &[wgpu::RenderPassColorAttachment {
-              view: &frame.view,
-              resolve_target: None,
-              ops: wgpu::Operations {
-                load: wgpu::LoadOp::Clear(wgpu::Color {
-                  r: 0.1,
-                  g: 0.2,
-                  b: 0.3,
-                  a: 1.0,
-                }),
-                store: true,
-              },
-            }],
-            depth_stencil_attachment: None,
-          });
-
-          render_pass.set_pipeline(&self.render_pipeline);
-          render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-
-          if let Some(mesh) = self.mesh.buffers() {
-            let n_indices = self.mesh.geometry().indices.len() as u32;
-            render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-            render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            render_pass.draw_indexed(0..n_indices, 0, 0..1);
-          };
-        }
-        self.queue.submit(std::iter::once(encoder.finish()));
-        Ok(())
-      }
-    }
-  }
 
   #[cfg(feature = "wgpu_imgui")]
   pub fn render_with_ui(
@@ -157,6 +104,7 @@ impl Context {
     mut imgui_frame: imgui::Ui,
     imgui_renderer: &mut imgui_wgpu::Renderer,
   ) -> Result<(), anyhow::Error> {
+    self.update_instance_state(game);
     let camera = game
       .resources()
       .get::<Scene>()
@@ -203,7 +151,14 @@ impl Context {
                 store: true,
               },
             }],
-            depth_stencil_attachment: None,
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+              view: self.depth_stencil_texture.view(),
+              depth_ops: Some(wgpu::Operations {
+                load: wgpu::LoadOp::Clear(1.0),
+                store: true
+              }),
+              stencil_ops: None
+            }),
           });
 
           render_pass.set_pipeline(&self.render_pipeline);
@@ -213,13 +168,17 @@ impl Context {
           if let Some(mesh) = self.mesh.buffers() {
             let n_indices = self.mesh.geometry().indices.len() as u32;
             render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+            // instance matrix data
+            render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
             render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            render_pass.draw_indexed(0..n_indices, 0, 0..1);
+
+
+            render_pass.draw_indexed(0..n_indices, 0, 0..(self.n_instances as u32));
           };
-          {
-            let draw_data = imgui_frame.render();
-            imgui_renderer.render(draw_data, &self.queue, &self.device, &mut render_pass)?;
-          }
+          // {
+          //   let draw_data = imgui_frame.render();
+          //   imgui_renderer.render(draw_data, &self.queue, &self.device, &mut render_pass)?;
+          // }
         }
         self.queue.submit(std::iter::once(encoder.finish()));
         Ok(())
@@ -239,6 +198,42 @@ impl Context {
       &self.main_vert_shader,
       &self.main_frag_shader,
     );
+  }
+  /// get instance data from game state
+  fn update_instance_state(&mut self, game: &GameState) {
+    use legion::*;
+    let mut query = <(&Transform3D, &RenderModel)>::query();
+    let mut instances: Vec<ModelInstance> = Vec::with_capacity(10);
+    for item in query.iter(game.world()) {
+      let (xform, model): (&Transform3D, &RenderModel) = item;
+      if model.is_shown {
+        instances.push(xform.into());
+      }
+    }
+    let binding = self.instance_buffer.as_entire_buffer_binding();
+    let buffer_data: &[u8] = bytemuck::cast_slice(&instances);
+    if self.instance_buffer_view == buffer_data {
+      // if instances haven't changed, don't update buffers
+      return;
+    }
+
+    let old_buffer_size: usize = binding.size
+      .unwrap_or(unsafe { NonZeroU64::new_unchecked(1) }).get() as _;
+    if old_buffer_size < buffer_data.len() {
+      let new_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
+        label: Some("Instance Buffer"),
+        contents: buffer_data,
+        usage: BufferUsage::VERTEX | BufferUsage::COPY_DST,
+      });
+      self.instance_buffer = new_buffer;
+    } else {
+      self.queue.write_buffer(&self.instance_buffer, 0 as _, buffer_data);
+    }
+
+
+    self.queue.write_buffer(&self.instance_buffer, 0, &bytemuck::cast_slice(&instances));
+    self.n_instances = instances.len();
+    self.instance_buffer_view = buffer_data.iter().cloned().collect();
   }
 }
 
@@ -279,6 +274,7 @@ impl<'a, W: AsWindow> Builder<'a, W> {
       .await
       .map_err(|e| crate::Error::from_error(Box::new(e)))?;
 
+    /// uniform buffer setup
     let uniforms = Uniforms::default();
     // let camera = self.camera;
     // uniforms.update_from_camera(&camera);
@@ -310,7 +306,7 @@ impl<'a, W: AsWindow> Builder<'a, W> {
       }],
       label: Some("ubo_bind_group"),
     });
-
+    // default diffuse texture setup
     let model_texture_bind_group_layout =
       super::textures::create_texture_bind_group_layout(&device);
     let (fallback_texture, diffuse_bind_group) = {
@@ -319,10 +315,15 @@ impl<'a, W: AsWindow> Builder<'a, W> {
         .map_err(|e| Error::from_other(format!("{:?}", e)))?;
       let tex_resource = TextureResource::from_image(img, &queue, &device)
         .map_err(|e| Error::from_other(format!("{:?}", e)))?;
-      let bg = super::textures::basic_texture_bind_group(&tex_resource, &model_texture_bind_group_layout, &device);
+      let bg = super::textures::basic_texture_bind_group(
+        &tex_resource,
+        &model_texture_bind_group_layout,
+        &device,
+      );
       (textures.insert(tex_resource), bg)
     };
 
+    // setup pipeline and swapchain
 
     let pipeline_layout =
       create_pipeline_layout(&device, &ubo_layout, &model_texture_bind_group_layout);
@@ -340,6 +341,9 @@ impl<'a, W: AsWindow> Builder<'a, W> {
     let main_frag_shader =
       device.create_shader_module(&wgpu::include_spirv!("../shaders/main.frag.spv"));
 
+    let depth_stencil_texture = TextureResource::new_depth_stencil_texture(&device, &sc_desc, "depth_stencil_tex");
+
+    // create render pipeline
     let render_pipeline = create_render_pipeline(
       &device,
       &sc_desc,
@@ -348,9 +352,20 @@ impl<'a, W: AsWindow> Builder<'a, W> {
       &main_frag_shader,
     );
 
+    // create default mesh to draw
+
     let mesh = {
       let geom = MeshGeometry::unit_plane();
       Mesh::from_geometry(geom, &device)?
+    };
+
+    let instance_buffer = {
+      let instance_data: &[ModelInstance] = &[];
+      device.create_buffer_init(&BufferInitDescriptor {
+        label: Some("Instance Buffer"),
+        contents: bytemuck::cast_slice(&instance_data),
+        usage: BufferUsage::VERTEX | BufferUsage::COPY_DST,
+      })
     };
 
     let mut result = Context {
@@ -376,6 +391,12 @@ impl<'a, W: AsWindow> Builder<'a, W> {
       fallback_texture,
       main_frag_shader,
       main_vert_shader,
+      instance_buffer,
+      instance_buffer_view: Vec::new(),
+
+      n_instances: 0,
+
+      depth_stencil_texture,
     };
     result
       .bind_texture(fallback_texture)
@@ -415,7 +436,7 @@ fn create_render_pipeline(
     vertex: wgpu::VertexState {
       module: vert_shader,
       entry_point: "main",
-      buffers: &[Vertex::desc()],
+      buffers: &[Vertex::desc(), ModelInstance::desc()],
     },
     fragment: Some(wgpu::FragmentState {
       module: &frag_shader,
@@ -427,7 +448,13 @@ fn create_render_pipeline(
       // cull_mode: Some(Face::Back),
       ..wgpu::PrimitiveState::default()
     },
-    depth_stencil: None,
+    depth_stencil: Some(wgpu::DepthStencilState {
+      format: TextureResource::DEPTH_TEXTURE_FORMAT,
+      depth_write_enabled: true,
+      depth_compare: wgpu::CompareFunction::Less,
+      stencil: Default::default(),
+      bias: Default::default(),
+    }),
     multisample: wgpu::MultisampleState::default(),
   });
 

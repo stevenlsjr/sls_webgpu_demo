@@ -1,5 +1,5 @@
+pub use crate::renderer_common::geometry::MeshGeometry;
 use crate::renderer_common::geometry::{self, Vertex};
-pub use crate::renderer_common::geometry::{MeshGeometry};
 
 use crate::error::Error;
 use genmesh::{
