@@ -18,6 +18,8 @@ pub mod input;
 pub mod resources;
 pub mod systems;
 
+pub mod asset_loading;
+
 #[cfg(feature = "html5_backend")]
 pub mod html5_backend;
 
@@ -90,6 +92,11 @@ impl GameState {
     resources.insert(UIDataOut::default());
 
     resources.insert(MeshLookup::default());
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+      use asset_loading::AssetLoaderResource;
+      resources.insert(AssetLoaderResource::new())
+    }
 
     resources
   }

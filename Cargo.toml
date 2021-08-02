@@ -49,6 +49,7 @@ anyhow = "^1.0"
 thiserror = "^1.0"
 bitflags = "^1.2"
 
+
 [dependencies.gltf]
 version = "0.16"
 features = ["extras", "names"]
@@ -193,7 +194,8 @@ legion = { version = "0.4.0", default-features = false, features = ["wasm-bindge
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 legion = { version = "0.4.0", default-features = false, features = ["wasm-bindgen", "codegen", "serialize"] }
 shaderc = "0.7"
-
+rayon = "1.5.1"
+crossbeam = "0.8.1"
 
 [dependencies.sdl2]
 version = "0.34.4"

@@ -2,7 +2,7 @@ use crate::{
   error::Error,
   game::{resources::Scene, GameState},
 };
-use anyhow::{anyhow};
+use anyhow::anyhow;
 
 use crate::window::AsWindow;
 
@@ -13,24 +13,28 @@ use super::{
 use crate::renderer_common::geometry::Vertex;
 
 use crate::{
+  game::components::{RenderModel, Transform3D},
   renderer_common::allocator::{Handle, ResourceManager},
-  wgpu::{BindGroupLayout, Device, PipelineLayout},
+  wgpu::{BindGroupLayout, Device, PipelineLayout, TextureFormat},
   wgpu_renderer::{
+    model::Model,
     textures::{BindTexture, TextureResource},
     ModelInstance,
   },
 };
+use imgui::StyleColor::TableRowBgAlt;
+use legion::query::ChunkView;
 use std::{
   fmt,
   fmt::Formatter,
+  num::NonZeroU64,
   sync::{Arc, RwLock},
 };
-use wgpu::{util::{BufferInitDescriptor, DeviceExt}, BindGroup, BindGroupLayoutEntry, BufferDescriptor, PrimitiveState, RenderPass, RenderPipeline, Texture, BufferUsage, BufferSize};
-use crate::game::components::{Transform3D, RenderModel};
-use legion::query::ChunkView;
-use imgui::StyleColor::TableRowBgAlt;
-use std::num::NonZeroU64;
-use crate::wgpu::TextureFormat;
+use wgpu::{
+  util::{BufferInitDescriptor, DeviceExt},
+  BindGroup, BindGroupLayoutEntry, BufferDescriptor, BufferSize, BufferUsage, PrimitiveState,
+  RenderPass, RenderPipeline, Texture,
+};
 
 pub struct Context {
   pub instance: wgpu::Instance,
@@ -155,9 +159,9 @@ impl Context {
               view: self.depth_stencil_texture.view(),
               depth_ops: Some(wgpu::Operations {
                 load: wgpu::LoadOp::Clear(1.0),
-                store: true
+                store: true,
               }),
-              stencil_ops: None
+              stencil_ops: None,
             }),
           });
 
@@ -171,7 +175,6 @@ impl Context {
             // instance matrix data
             render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
             render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-
 
             render_pass.draw_indexed(0..n_indices, 0, 0..(self.n_instances as u32));
           };
@@ -217,8 +220,10 @@ impl Context {
       return;
     }
 
-    let old_buffer_size: usize = binding.size
-      .unwrap_or(unsafe { NonZeroU64::new_unchecked(1) }).get() as _;
+    let old_buffer_size: usize = binding
+      .size
+      .unwrap_or(unsafe { NonZeroU64::new_unchecked(1) })
+      .get() as _;
     if old_buffer_size < buffer_data.len() {
       let new_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
         label: Some("Instance Buffer"),
@@ -227,11 +232,14 @@ impl Context {
       });
       self.instance_buffer = new_buffer;
     } else {
-      self.queue.write_buffer(&self.instance_buffer, 0 as _, buffer_data);
+      self
+        .queue
+        .write_buffer(&self.instance_buffer, 0 as _, buffer_data);
     }
 
-
-    self.queue.write_buffer(&self.instance_buffer, 0, &bytemuck::cast_slice(&instances));
+    self
+      .queue
+      .write_buffer(&self.instance_buffer, 0, &bytemuck::cast_slice(&instances));
     self.n_instances = instances.len();
     self.instance_buffer_view = buffer_data.iter().cloned().collect();
   }
@@ -245,9 +253,9 @@ pub struct Builder<'a, W: AsWindow> {
 impl<'a, W: AsWindow> Builder<'a, W> {
   pub async fn build(self) -> Result<Context, Error> {
     #[cfg(not(target_os = "linux"))]
-      let backends = wgpu::BackendBit::all();
+    let backends = wgpu::BackendBit::all();
     #[cfg(target_os = "linux")]
-      let backends = wgpu::BackendBit::VULKAN;
+    let backends = wgpu::BackendBit::VULKAN;
 
     let instance = wgpu::Instance::new(backends);
     let surface = unsafe { instance.create_surface(self.window) };
@@ -341,7 +349,8 @@ impl<'a, W: AsWindow> Builder<'a, W> {
     let main_frag_shader =
       device.create_shader_module(&wgpu::include_spirv!("../shaders/main.frag.spv"));
 
-    let depth_stencil_texture = TextureResource::new_depth_stencil_texture(&device, &sc_desc, "depth_stencil_tex");
+    let depth_stencil_texture =
+      TextureResource::new_depth_stencil_texture(&device, &sc_desc, "depth_stencil_tex");
 
     // create render pipeline
     let render_pipeline = create_render_pipeline(
@@ -353,6 +362,8 @@ impl<'a, W: AsWindow> Builder<'a, W> {
     );
 
     // create default mesh to draw
+    let sample_model =
+      Model::load_sample_model().map_err(|e| crate::error::Error::from_error(e.into()))?;
 
     let mesh = {
       let geom = MeshGeometry::unit_plane();

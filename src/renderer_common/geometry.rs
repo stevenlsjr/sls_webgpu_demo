@@ -7,9 +7,9 @@ pub struct Vertex {
   pub position: [f32; 3],
   pub color: [f32; 4],
   pub uv: [f32; 2],
-  pub normal: [f32; 4],
-  pub tangent: [f32; 3],
-  pub bitangent: [f32; 3]
+  pub normal: [f32; 3],
+  pub tangent: [f32; 4],
+  pub bitangent: [f32; 4],
 }
 
 impl Default for Vertex {
@@ -18,9 +18,9 @@ impl Default for Vertex {
       position: [0.0; 3],
       color: [1.0; 4],
       uv: [0.0, 0.0],
-      normal: [0.0, 0.0, 1.0, 1.0],
-      tangent: [0.0; 3],
-      bitangent: [0.0; 3],
+      normal: [0.0, 0.0, 1.0],
+      tangent: [0.0; 4],
+      bitangent: [0.0; 4],
     }
   }
 }
@@ -43,7 +43,7 @@ mod wgpu_renderer {
     0=>Float32x3,
     1=>Float32x4,
     2=>Float32x2,
-    3=>Float32x4,
+    3=>Float32x3,
     4=>Float32x3,
     5=>Float32x3
   ];
@@ -112,13 +112,13 @@ impl MeshGeometry {
         let position = vec3(u - 0.5, v - 0.5, 0f32);
         vertices[i].position = position.into();
         vertices[i].uv = [u, v];
-        vertices[i].normal = vec4(0.0, 0.0, 1.0, 1.0).into();
+        vertices[i].normal = vec3(0.0, 0.0, 1.0).into();
         i += 1;
       }
     }
 
     let mut vi = 0;
-     for y in 0..n_divisions {
+    for y in 0..n_divisions {
       for x in 0..n_divisions {
         let mut quad = [0u16; 6];
         quad[0] = vi;
@@ -150,7 +150,7 @@ impl MeshGeometry {
         let v = 0.5 + (f32::asin(pos.y) / pi);
         Vertex {
           position: [pos.x, pos.y, pos.z],
-          normal: [normal.x, normal.y, normal.z, 1.0],
+          normal: [normal.x, normal.y, normal.z],
           uv: [u, v],
           color: [1.0; 4],
           ..Default::default()
@@ -169,25 +169,25 @@ impl MeshGeometry {
       Vertex {
         position: [-0.5, -0.5, 0.0],
         uv: [0.0, 1.0],
-        normal: [0.0, 1.0, 0.0, 1.0],
+        normal: [0.0, 1.0, 0.0],
         ..Default::default()
       },
       Vertex {
         position: [-0.5, 0.5, 0.0],
         uv: [0.0, 0.0],
-        normal: [0.0, 1.0, 0.0, 1.0],
+        normal: [0.0, 1.0, 0.0],
         ..Default::default()
       },
       Vertex {
         position: [0.5, 0.5, 0.0],
         uv: [1.0, 0.0],
-        normal: [0.0, 1.0, 0.0, 1.0],
+        normal: [0.0, 1.0, 0.0],
         ..Default::default()
       },
       Vertex {
         position: [0.5, -0.5, 0.0],
         uv: [1.0, 1.0],
-        normal: [0.0, 1.0, 0.0, 1.0],
+        normal: [0.0, 1.0, 0.0],
         ..Default::default()
       },
     ];
@@ -206,11 +206,10 @@ impl MeshGeometry {
         let v = 0.5 + (f32::asin(pos.y) / pi);
         Vertex {
           position: [pos.x, pos.y, pos.z],
-          normal: [normal.x, normal.y, normal.z, 1.0],
+          normal: [normal.x, normal.y, normal.z],
           uv: [u, v],
           color: [1.0; 4],
-                    ..Default::default()
-
+          ..Default::default()
         }
       })
       .triangulate()
@@ -228,5 +227,75 @@ impl MeshGeometry {
       vertices: verts,
       indices: (0u16..len).collect(),
     }
+  }
+
+  pub fn from_gltf_mesh(
+    mesh: &gltf::Mesh,
+    buffers: &[gltf::buffer::Data],
+  ) -> anyhow::Result<Vec<Self>> {
+    use anyhow::anyhow;
+
+    let mut meshes = Vec::new();
+    for prim in mesh.primitives() {
+      let mut verts: Vec<Vertex> = Vec::new();
+      let mut indices: Vec<u16> = Vec::new();
+      let reader = prim.reader(|buffer_data| Some(&buffers[buffer_data.index()]));
+      let read_positions = reader
+        .read_positions()
+        .ok_or(anyhow!("Primitives must have a POSITION attribute"))?;
+      let positions: Vec<_> = read_positions.into_iter().collect();
+      let mut normals = reader.read_normals();
+      let mut tangents = reader.read_tangents();
+
+      for (i, position) in positions.iter().enumerate() {
+        let normal = normals
+          .as_mut()
+          .and_then(|mut iter| iter.next())
+          .unwrap_or([0.0, 1.0, 0.0]);
+        let tangent = tangents
+          .as_mut()
+          .and_then(|mut iter| iter.next())
+          .unwrap_or([0.0, 1.0, 0.0, 1.0]);
+        verts.push(Vertex {
+          position: *position,
+          normal: normal,
+          tangent: tangent,
+          ..Default::default()
+        })
+      }
+      let mut tex_coord_set = 0;
+      while let Some(tex_coords) = reader.read_tex_coords(tex_coord_set) {
+        let current_set = tex_coord_set;
+        tex_coord_set += 1;
+        if current_set >= 1 {
+          log::warn!("This renderer only supports one tex coord set");
+          continue;
+        }
+        for (i, tex_coord) in tex_coords.into_f32().enumerate() {
+          match current_set {
+            0 => verts[i].uv = tex_coord.clone(),
+            _ => unreachable!(),
+          }
+        }
+      }
+
+      let mut color_set = 0;
+
+      while let Some(colors) = reader.read_colors(color_set) {
+        let current_set = color_set;
+        color_set += 1;
+        if current_set >= 1 {
+          log::warn!("This renderer only supports one tex coord set");
+          continue;
+        }
+        for (i, color) in colors.into_rgba_f32().enumerate() {
+          match current_set {
+            0 => verts[i].color = color.clone(),
+            _ => unreachable!(),
+          }
+        }
+      }
+    }
+    Ok(meshes)
   }
 }
