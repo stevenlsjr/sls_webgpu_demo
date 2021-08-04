@@ -236,66 +236,7 @@ impl MeshGeometry {
     use anyhow::anyhow;
 
     let mut meshes = Vec::new();
-    for prim in mesh.primitives() {
-      let mut verts: Vec<Vertex> = Vec::new();
-      let mut indices: Vec<u16> = Vec::new();
-      let reader = prim.reader(|buffer_data| Some(&buffers[buffer_data.index()]));
-      let read_positions = reader
-        .read_positions()
-        .ok_or(anyhow!("Primitives must have a POSITION attribute"))?;
-      let positions: Vec<_> = read_positions.into_iter().collect();
-      let mut normals = reader.read_normals();
-      let mut tangents = reader.read_tangents();
-
-      for (i, position) in positions.iter().enumerate() {
-        let normal = normals
-          .as_mut()
-          .and_then(|mut iter| iter.next())
-          .unwrap_or([0.0, 1.0, 0.0]);
-        let tangent = tangents
-          .as_mut()
-          .and_then(|mut iter| iter.next())
-          .unwrap_or([0.0, 1.0, 0.0, 1.0]);
-        verts.push(Vertex {
-          position: *position,
-          normal: normal,
-          tangent: tangent,
-          ..Default::default()
-        })
-      }
-      let mut tex_coord_set = 0;
-      while let Some(tex_coords) = reader.read_tex_coords(tex_coord_set) {
-        let current_set = tex_coord_set;
-        tex_coord_set += 1;
-        if current_set >= 1 {
-          log::warn!("This renderer only supports one tex coord set");
-          continue;
-        }
-        for (i, tex_coord) in tex_coords.into_f32().enumerate() {
-          match current_set {
-            0 => verts[i].uv = tex_coord.clone(),
-            _ => unreachable!(),
-          }
-        }
-      }
-
-      let mut color_set = 0;
-
-      while let Some(colors) = reader.read_colors(color_set) {
-        let current_set = color_set;
-        color_set += 1;
-        if current_set >= 1 {
-          log::warn!("This renderer only supports one tex coord set");
-          continue;
-        }
-        for (i, color) in colors.into_rgba_f32().enumerate() {
-          match current_set {
-            0 => verts[i].color = color.clone(),
-            _ => unreachable!(),
-          }
-        }
-      }
-    }
+    for prim in mesh.primitives() {}
     Ok(meshes)
   }
 }
