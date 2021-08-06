@@ -49,7 +49,7 @@ pub fn setup_scene(
   scene.main_camera = Some(main_camera_entity);
 
   // trigger load asset tasks
-  assets.spawn_load_gltf_model("assets/sheen-chair/SheenChair.glb", "chair");
+  // assets.spawn_load_gltf_model("assets/sheen-chair/SheenChair.glb", "chair");
 }
 
 #[system(for_each)]

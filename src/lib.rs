@@ -36,6 +36,6 @@ pub mod renderer_common;
 
 // crate re-imports
 pub use anyhow;
+pub use gltf;
 pub use image;
 pub use nalgebra_glm;
-pub use gltf;

@@ -23,7 +23,7 @@ pub trait LoadPrimitive: Sized {
     buffers: &[gltf::buffer::Data],
   ) -> Result<Self, GltfLoaderError>;
 }
-
+#[allow(unused_variables, unused_imports)]
 impl LoadPrimitive for MeshGeometry {
   fn load_primitive(
     primitive: &Primitive,
@@ -45,7 +45,7 @@ impl LoadPrimitive for MeshGeometry {
     for (i, position) in positions.iter().enumerate() {
       let normal = normals
         .as_mut()
-        .and_then(|mut iter| iter.next())
+        .and_then(|iter| iter.next())
         .unwrap_or([0.0, 1.0, 0.0]);
       let tangent = tangents
         .as_mut()

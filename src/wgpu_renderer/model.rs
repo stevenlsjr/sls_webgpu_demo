@@ -1,5 +1,5 @@
 use super::{material::Material, mesh::Mesh};
-use crate::{renderer_common::geometry::Vertex, wgpu_renderer::mesh::MeshGeometry};
+use crate::wgpu_renderer::mesh::MeshGeometry;
 use anyhow::anyhow;
 use gltf::Document;
 use std::iter::Zip;

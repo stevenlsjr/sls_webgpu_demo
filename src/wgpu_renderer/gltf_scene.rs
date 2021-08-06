@@ -32,7 +32,7 @@ impl GltfScene {
     if let Some(res) = &self.wgpu_resources {
       anyhow::bail!("wgpu buffers already loaded");
     }
-    let resources = Some(Default::default());
+    let resources = Some(WgpuResources::default());
     for (i, buffer_view) in self.document.views().enumerate() {
       match buffer_view.target() {
         None => {}

@@ -101,45 +101,6 @@ impl Default for MeshGeometry {
 }
 
 impl MeshGeometry {
-  pub fn subdivision_plane(n_divisions: usize) -> Self {
-    let mut vertices: Vec<Vertex> = vec![Vertex::default(); (n_divisions + 1).pow(2)];
-    let mut indices = Vec::with_capacity(n_divisions * n_divisions * 6);
-    let mut i = 0usize;
-    for y in 0..=n_divisions {
-      for x in 0..=n_divisions {
-        let u = (x as f32) / ((n_divisions) as f32);
-        let v = (y as f32) / ((n_divisions) as f32);
-        let position = vec3(u - 0.5, v - 0.5, 0f32);
-        vertices[i].position = position.into();
-        vertices[i].uv = [u, v];
-        vertices[i].normal = vec3(0.0, 0.0, 1.0).into();
-        i += 1;
-      }
-    }
-
-    let mut vi = 0;
-    for y in 0..n_divisions {
-      for x in 0..n_divisions {
-        let mut quad = [0u16; 6];
-        quad[0] = vi;
-        quad[2] = vi + (n_divisions as u16) + 1;
-        quad[1] = vi + 1;
-        quad[3] = quad[2];
-        quad[4] = quad[1];
-        quad[5] = vi + (n_divisions as u16) + 2;
-        indices.extend_from_slice(&quad);
-
-        vi += 1;
-      }
-    }
-
-    Self {
-      indices: indices,
-      vertices,
-      label: Some("subdivision plane".to_owned()),
-    }
-  }
-
   pub fn unit_sphere(u: usize, v: usize) -> Self {
     use genmesh::{generators::SphereUv, Vertex as GMVertex};
 
@@ -233,8 +194,6 @@ impl MeshGeometry {
     mesh: &gltf::Mesh,
     buffers: &[gltf::buffer::Data],
   ) -> anyhow::Result<Vec<Self>> {
-    use anyhow::anyhow;
-
     let mut meshes = Vec::new();
     for prim in mesh.primitives() {}
     Ok(meshes)

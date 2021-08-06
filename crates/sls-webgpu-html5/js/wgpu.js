@@ -21,8 +21,10 @@ export async function createWgpuContext({appRoot}){
         throw new Error("could not create webgpu adapter");
     }
     const device = await adapter.requestDevice();
-    const context = canvas.getContext('gpupresent');
-    const preferredFormat = context.getSwapChainPreferredFormat(adapter);
+    /** @type {any} */
+    const context = canvas.getContext('webgpu') || canvas.getContext('gpupresent');
+
+    const preferredFormat = context.getPreferredFormat(adapter);
     return {canvas, device, context, adapter, preferredFormat}
 
 

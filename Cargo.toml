@@ -43,14 +43,17 @@ glow = { version = "*", optional = true }
 smallvec = "1.6.1"
 genmesh = "0.6.2"
 memoffset = { version = "0.6", features = ["unstable_const"] }
-image = "^0.23"
-hibitset = "0.6.3"
 anyhow = "^1.0"
 thiserror = "^1.0"
 bitflags = "^1.2"
 
 
-[dependencies.gltf]
+[target.'cfg(target_arch = "wasm32")'.dependencies.gltf]
+version = "0.16"
+default-features = false
+features = ["extras", "names", "utils"]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.gltf]
 version = "0.16"
 features = ["extras", "names"]
 
@@ -58,6 +61,7 @@ features = ["extras", "names"]
 version = "=0.3.50"
 optional = true
 features = [
+    "DomStringMap",
     "Window",
     "KeyboardEvent",
     "MouseEvent",
@@ -187,8 +191,10 @@ features = [
 ]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+js-sys = "=0.3.50"
 getrandom = { version = "0.2.3", features = ["js"] }
 legion = { version = "0.4.0", default-features = false, features = ["wasm-bindgen", "codegen", "serialize"] }
+image = { version = "^0.23", default-features = false, features = ["gif", "jpeg", "png", "webp", "bmp", "hdr"] }
 
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
@@ -196,6 +202,8 @@ legion = { version = "0.4.0", default-features = false, features = ["wasm-bindge
 shaderc = "0.7"
 rayon = "1.5.1"
 crossbeam = "0.8.1"
+image = "^0.23"
+
 
 [dependencies.sdl2]
 version = "0.34.4"

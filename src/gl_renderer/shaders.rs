@@ -3,8 +3,6 @@ use crate::gl_renderer::resources::GlResourceError;
 use glow::{Context, HasContext};
 use std::{cell::RefCell, rc::Rc};
 
-struct CreateProgram {}
-
 pub fn compile_basic_program<GL: HasContext>(
   gl: &Rc<RefCell<GL>>,
   frag_src: &str,

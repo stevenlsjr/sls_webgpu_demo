@@ -1,7 +1,10 @@
 use image::{DynamicImage, GenericImageView, ImageError};
 use std::num::NonZeroU32;
 use thiserror::Error;
-use wgpu::{BindGroup, BindGroupDescriptor, BindGroupEntry, Device, Queue, Sampler, ShaderStage, Texture, TextureSampleType, TextureView, SwapChainDescriptor, Extent3d};
+use wgpu::{
+  BindGroup, BindGroupDescriptor, BindGroupEntry, Device, Extent3d, Queue, Sampler, ShaderStage,
+  SwapChainDescriptor, Texture, TextureSampleType, TextureView,
+};
 
 pub const DEFAULT_TEX_JPEG: &[u8] = include_bytes!("../../assets/uv_grid_opengl.jpg");
 
@@ -79,7 +82,11 @@ impl TextureResource {
     self.sampler = sampler;
   }
 
-  pub fn new_depth_stencil_texture(device: &Device, sc_descriptor: &SwapChainDescriptor, label: &str) -> Self {
+  pub fn new_depth_stencil_texture(
+    device: &Device,
+    sc_descriptor: &SwapChainDescriptor,
+    label: &str,
+  ) -> Self {
     let size = wgpu::Extent3d {
       width: sc_descriptor.width,
       height: sc_descriptor.height,
@@ -110,7 +117,11 @@ impl TextureResource {
       lod_max_clamp: 100.0,
       ..Default::default()
     });
-    Self { texture, view, sampler }
+    Self {
+      texture,
+      view,
+      sampler,
+    }
   }
 }
 
@@ -222,12 +233,11 @@ impl BindTexture for Context {
 
 use crate::{
   renderer_common::allocator::Handle,
-  wgpu::{BindGroupLayout, BindingResource, TextureViewDimension},
+  wgpu::{BindGroupLayout, BindingResource, FilterMode, TextureViewDimension},
   Context,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use native::*;
-use crate::wgpu::FilterMode;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod native {

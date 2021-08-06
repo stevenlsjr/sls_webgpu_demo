@@ -1,4 +1,5 @@
 use raw_window_handle::HasRawWindowHandle;
+
 pub trait AsWindow: HasRawWindowHandle {
   fn size(&self) -> (u32, u32);
   fn set_size(&mut self, size: (u32, u32));
@@ -34,5 +35,88 @@ mod sdl_impl {
     }
   }
 }
+
 #[cfg(feature = "sdl2")]
 pub use sdl_impl::*;
+
+#[cfg(feature = "html5_backend")]
+mod html5_backend {
+  use super::*;
+  use raw_window_handle::{RawWindowHandle, RawWindowHandle::Web};
+  use std::{
+    ops::Deref,
+    sync::atomic::{AtomicU32, Ordering},
+  };
+  use wasm_bindgen::JsValue;
+  use web_sys::HtmlCanvasElement;
+
+  static SLS_WGPU_ID_COUNTER: AtomicU32 = AtomicU32::new(0);
+
+  #[derive(Clone, Debug)]
+  pub struct HtmlWindowImpl {
+    canvas: web_sys::HtmlCanvasElement,
+  }
+
+  impl HtmlWindowImpl {
+    const SLS_WGPU_ID_KEY: &'static str = "sls-wgpu-id";
+    fn id_lazy(&self) -> Result<u32, JsValue> {
+      let dataset = self.canvas.dataset();
+      let value: Option<String> = dataset.get(Self::SLS_WGPU_ID_KEY);
+      match value {
+        Some(s) => s
+          .parse::<u32>()
+          .map_err(|e| js_sys::Error::new(&e.to_string()).into()),
+        None => {
+          let count = SLS_WGPU_ID_COUNTER.fetch_add(1, Ordering::Relaxed);
+          dataset.set(Self::SLS_WGPU_ID_KEY, &count.to_string())?;
+          Ok(count)
+        }
+      }
+    }
+  }
+  // Window trait implementations
+  unsafe impl HasRawWindowHandle for HtmlWindowImpl {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+      use raw_window_handle::{web::WebHandle, RawWindowHandle};
+      let id = self
+        .id_lazy()
+        .unwrap_or_else(|e| panic!("fatal error: cannot get window handle from canvas {:?}", e));
+      RawWindowHandle::Web(WebHandle {
+        id,
+        ..WebHandle::empty()
+      })
+    }
+  }
+
+  impl AsWindow for HtmlWindowImpl {
+    fn size(&self) -> (u32, u32) {
+      let width = self.canvas.width() as u32;
+      let height = self.canvas.height() as u32;
+      (width, height)
+    }
+
+    fn set_size(&mut self, size: (u32, u32)) {
+      self.canvas.set_width(size.0);
+      self.canvas.set_height(size.1);
+    }
+  }
+
+  // implementing type conversions from canvasElement
+  pub trait AsHtmlWindowWrapper {
+    fn as_wrapper(&self) -> HtmlWindowImpl;
+  }
+  impl AsHtmlWindowWrapper for HtmlCanvasElement {
+    fn as_wrapper(&self) -> HtmlWindowImpl {
+      HtmlWindowImpl::from(self.clone())
+    }
+  }
+
+  impl From<HtmlCanvasElement> for HtmlWindowImpl {
+    fn from(canvas: HtmlCanvasElement) -> Self {
+      Self { canvas }
+    }
+  }
+}
+
+#[cfg(feature = "html5_backend")]
+pub use html5_backend::*;

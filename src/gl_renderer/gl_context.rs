@@ -5,10 +5,11 @@ use super::{
   shaders,
 };
 use glow::{Context, HasContext};
-use nalgebra_glm::{Vec3, *};
+use nalgebra_glm::*;
 use std::rc::Rc;
 use wasm_bindgen::{prelude::*, JsCast};
 
+use crate::{game::GameState, wgpu_renderer::render_context::RenderContext, Error};
 #[cfg(feature = "html5_backend")]
 pub use html5::*;
 use std::cell::RefCell;
@@ -21,13 +22,15 @@ pub struct GlContext {
   #[cfg(feature = "html5_backend")]
   webgl_context: Option<web_sys::WebGl2RenderingContext>,
   gl: Rc<RefCell<Context>>,
+  #[allow(dead_code)]
   shader_version_header: String,
-
   clear_color: Vec4,
+  #[allow(dead_code)]
   main_program: resources::Program<Context>,
 }
-
+#[allow(unused)]
 const WEBGL_VERSION_HEADER: &str = "#version 300 es\n\n";
+#[allow(unused)]
 const GL410_VERSION_HEADER: &str = "#version 410\n\n";
 
 pub struct FrameContext<'a> {
@@ -37,9 +40,10 @@ pub struct FrameContext<'a> {
 impl<'a> FrameContext<'a> {
   /// This is the actual
   /// Opengl rendering logic
+  #[allow(unused_mut)]
   pub fn render(mut self) {
     let Self { ctx } = self;
-    let gl = &ctx.gl;
+    let _gl = &ctx.gl;
   }
 }
 
@@ -124,5 +128,17 @@ pub mod html5 {
         );
       }
     }
+  }
+}
+
+impl RenderContext for GlContext {
+  fn set_clear_color(&mut self, color: Vec4) {
+    GlContext::set_clear_color(self, color);
+  }
+
+  fn on_render(&mut self, _game: &mut GameState) -> Result<(), Error> {
+    let frame = self.prepare_frame();
+    frame.render();
+    Ok(())
   }
 }

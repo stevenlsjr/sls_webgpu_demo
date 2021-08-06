@@ -38,7 +38,7 @@ impl Transform3D {
 pub struct RenderModel {
   pub mesh: Option<Handle>,
   pub label: Option<String>,
-  pub is_shown: bool
+  pub is_shown: bool,
 }
 
 pub type CameraEntityRow = (Transform3D, Camera);

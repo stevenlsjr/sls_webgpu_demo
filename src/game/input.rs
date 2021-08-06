@@ -1,4 +1,4 @@
-use crate::platform::{keyboard::*};
+use crate::platform::keyboard::*;
 use downcast_rs::{impl_downcast, Downcast};
 use std::fmt::{Debug, Formatter};
 // use nalgebra_glm::*;
@@ -89,12 +89,7 @@ impl Debug for InputResource {
 #[cfg(feature = "sdl2")]
 mod sdl2_input {
   use super::*;
-  use crate::{
-    game::input::*,
-    platform::{
-      mouse::*,
-    },
-  };
+  use crate::{game::input::*, platform::mouse::*};
   use nalgebra_glm::TVec2;
   use sdl2::{event::Event, video::Window};
   use std::{collections::HashSet, time::Duration};
@@ -182,4 +177,3 @@ use crate::{
 };
 #[cfg(feature = "sdl2")]
 pub use sdl2_input::*;
-use std::time::Duration;

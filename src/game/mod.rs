@@ -7,11 +7,10 @@ pub use wgpu_imgui::*;
 
 use crate::game::{
   components::{DebugShowScene, GameLoopTimer},
-  input::{InputBackend, InputResource},
+  input::InputResource,
   resources::{Scene, UIDataIn, UIDataOut},
   systems::*,
 };
-use std::borrow::BorrowMut;
 
 pub mod components;
 pub mod input;
@@ -52,7 +51,7 @@ impl fmt::Debug for GameState {
 pub struct CreateGameParams {}
 
 impl GameState {
-  pub fn new(options: CreateGameParams) -> Self {
+  pub fn new(_options: CreateGameParams) -> Self {
     let world = World::default();
     let is_running = false;
     let fixed_schedule = Schedule::builder()
@@ -105,10 +104,20 @@ impl GameState {
   /// on_start, update, fixed_update, resize, etc
 
   pub fn on_start(&mut self) {
-    let mut scheduler = Schedule::builder()
-      .add_thread_local(setup_scene_system())
-      .add_thread_local(systems::model_systems::create_models_system())
-      .build();
+    let mut builder = Schedule::builder();
+
+    builder.add_thread_local(setup_scene_system());
+    #[cfg(feature = "wgpu_renderer")]
+    {
+      if self
+        .resources
+        .get::<Arc<RwLock<crate::wgpu_renderer::context::Context>>>()
+        .is_some()
+      {
+        builder.add_thread_local(systems::model_systems::create_models_wgpu_system());
+      }
+    }
+    let mut scheduler = builder.build();
     scheduler.execute(&mut self.world, &mut self.resources);
   }
 
@@ -252,6 +261,7 @@ mod wgpu_imgui {
 }
 
 use crate::game::{input::InputState, resources::MeshLookup};
+use std::sync::{Arc, RwLock};
 #[cfg(feature = "wgpu_renderer")]
 pub use wgpu_renderer::*;
 
@@ -268,6 +278,7 @@ mod wgpu_renderer {
     }
   }
 }
+
 #[cfg(test)]
 mod test {
   use crate::game::input::InputState;

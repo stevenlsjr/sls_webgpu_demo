@@ -1,5 +1,4 @@
 use super::util;
-use crate::Error;
 /// RAII-safe opengl resources
 use glow::HasContext;
 use smallvec::{smallvec, SmallVec};

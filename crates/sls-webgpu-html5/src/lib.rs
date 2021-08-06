@@ -1,9 +1,10 @@
 use wasm_bindgen::prelude::*;
-use std::sync::RwLock;
-use web_sys::console;
 use lazy_static::lazy_static;
 pub mod app;
 pub mod platform;
+pub mod wgpu_app;
+pub mod options;
+pub mod ffi;
 
 // When the `wee_alloc` feature is enabled, this uses `wee_alloc` as the global
 // allocator.

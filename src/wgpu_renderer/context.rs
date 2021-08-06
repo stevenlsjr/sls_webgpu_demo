@@ -22,8 +22,8 @@ use crate::{
     ModelInstance,
   },
 };
-use imgui::StyleColor::TableRowBgAlt;
 use legion::query::ChunkView;
+use raw_window_handle::HasRawWindowHandle;
 use std::{
   fmt,
   fmt::Formatter,
@@ -84,7 +84,11 @@ impl fmt::Debug for Context {
 
 impl Context {
   pub fn new<W: AsWindow>(window: &mut W) -> Builder<W> {
-    Builder { window, size: None }
+    Builder {
+      window,
+      size: None,
+      wgpu_init_context: None,
+    }
   }
 
   pub fn on_resize(&mut self, size: (u32, u32)) {
@@ -245,12 +249,13 @@ impl Context {
   }
 }
 
-pub struct Builder<'a, W: AsWindow> {
+pub struct Builder<'a, W: AsWindow + HasRawWindowHandle> {
   size: Option<(i32, i32)>,
   window: &'a mut W,
+  wgpu_init_context: Option<(wgpu::Device, wgpu::Adapter, wgpu::Instance)>,
 }
 
-impl<'a, W: AsWindow> Builder<'a, W> {
+impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
   pub async fn build(self) -> Result<Context, Error> {
     #[cfg(not(target_os = "linux"))]
     let backends = wgpu::BackendBit::all();
@@ -417,6 +422,16 @@ impl<'a, W: AsWindow> Builder<'a, W> {
 
   pub fn with_size(mut self, size: (i32, i32)) -> Self {
     self.size = Some(size);
+    self
+  }
+
+  pub fn with_init_context(
+    mut self,
+    instance: wgpu::Instance,
+    device: wgpu::Device,
+    adapter: wgpu::Adapter,
+  ) -> Self {
+    self.wgpu_init_context = Some((device, adapter, instance));
     self
   }
 }
