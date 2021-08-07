@@ -9,7 +9,6 @@ export function webGpuIsAvailable(){
 /**
  *
  * @param {HTMLElement} appRoot
- * @returns {Promise<void>}
  */
 export async function createWgpuContext({appRoot}){
     console.log("creating webgpu ", window.GPU)

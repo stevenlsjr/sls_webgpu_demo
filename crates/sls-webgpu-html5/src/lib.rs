@@ -1,10 +1,10 @@
-use wasm_bindgen::prelude::*;
 use lazy_static::lazy_static;
+use wasm_bindgen::prelude::*;
 pub mod app;
+pub mod ffi;
+pub mod options;
 pub mod platform;
 pub mod wgpu_app;
-pub mod options;
-pub mod ffi;
 
 // When the `wee_alloc` feature is enabled, this uses `wee_alloc` as the global
 // allocator.
@@ -38,15 +38,14 @@ const TS_APPEND_CONTENT: &str = r#"
 export type AppEventType = 'handle-input' | 'resize'
 "#;
 
-lazy_static!{
+lazy_static! {
   static ref FEATURES_LIST: Vec<&'static str> = {
     let mut features = vec![];
     features.push("opengl_renderer".into());
-    #[cfg(feature="wgpu_renderer")]
+    #[cfg(feature = "wgpu_renderer")]
     {
       features.push("wgpu_renderer".into())
     }
     features
   };
-  
 }

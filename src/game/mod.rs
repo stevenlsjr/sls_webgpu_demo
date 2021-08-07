@@ -21,6 +21,8 @@ pub mod asset_loading;
 
 #[cfg(feature = "html5_backend")]
 pub mod html5_backend;
+#[cfg(feature = "html5_backend")]
+pub mod wasm_bindings;
 
 pub struct GameState {
   world: World,

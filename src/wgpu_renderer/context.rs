@@ -10,7 +10,7 @@ use super::{
   mesh::{Mesh, MeshGeometry},
   uniforms::Uniforms,
 };
-use crate::renderer_common::geometry::Vertex;
+use crate::renderer_common::{geometry::Vertex, RenderContext};
 
 use crate::{
   game::components::{RenderModel, Transform3D},
@@ -83,11 +83,10 @@ impl fmt::Debug for Context {
 }
 
 impl Context {
-  pub fn new<W: AsWindow>(window: &mut W) -> Builder<W> {
+  pub fn new<W: AsWindow>(window: &W) -> Builder<W> {
     Builder {
       window,
-      size: None,
-      wgpu_init_context: None,
+      instance: None,
     }
   }
 
@@ -105,12 +104,9 @@ impl Context {
 
   pub fn update(&mut self) {}
 
-  #[cfg(feature = "wgpu_imgui")]
-  pub fn render_with_ui(
+  pub fn render(
     &mut self,
-    game: &GameState,
-    mut imgui_frame: imgui::Ui,
-    imgui_renderer: &mut imgui_wgpu::Renderer,
+    game: &mut GameState,
   ) -> Result<(), anyhow::Error> {
     self.update_instance_state(game);
     let camera = game
@@ -182,10 +178,7 @@ impl Context {
 
             render_pass.draw_indexed(0..n_indices, 0, 0..(self.n_instances as u32));
           };
-          // {
-          //   let draw_data = imgui_frame.render();
-          //   imgui_renderer.render(draw_data, &self.queue, &self.device, &mut render_pass)?;
-          // }
+
         }
         self.queue.submit(std::iter::once(encoder.finish()));
         Ok(())
@@ -250,9 +243,8 @@ impl Context {
 }
 
 pub struct Builder<'a, W: AsWindow + HasRawWindowHandle> {
-  size: Option<(i32, i32)>,
-  window: &'a mut W,
-  wgpu_init_context: Option<(wgpu::Device, wgpu::Adapter, wgpu::Instance)>,
+  window: &'a W,
+  instance: Option<wgpu::Instance>,
 }
 
 impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
@@ -262,9 +254,14 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
     #[cfg(target_os = "linux")]
     let backends = wgpu::BackendBit::VULKAN;
 
-    let instance = wgpu::Instance::new(backends);
+    let instance = self
+      .instance
+      .unwrap_or_else(|| wgpu::Instance::new(backends));
+
     let surface = unsafe { instance.create_surface(self.window) };
+
     let mut textures: ResourceManager<TextureResource> = Default::default();
+
     let adapter = instance
       .request_adapter(&wgpu::RequestAdapterOptions {
         power_preference: wgpu::PowerPreference::default(),
@@ -365,10 +362,9 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       &main_vert_shader,
       &main_frag_shader,
     );
+    log::info!("I'm alive {}", std::line!());
 
     // create default mesh to draw
-    let sample_model =
-      Model::load_sample_model().map_err(|e| crate::error::Error::from_error(e.into()))?;
 
     let mesh = {
       let geom = MeshGeometry::unit_plane();
@@ -420,18 +416,8 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
     Ok(result)
   }
 
-  pub fn with_size(mut self, size: (i32, i32)) -> Self {
-    self.size = Some(size);
-    self
-  }
-
-  pub fn with_init_context(
-    mut self,
-    instance: wgpu::Instance,
-    device: wgpu::Device,
-    adapter: wgpu::Adapter,
-  ) -> Self {
-    self.wgpu_init_context = Some((device, adapter, instance));
+  pub fn with_instance(mut self, instance: wgpu::Instance) -> Self {
+    self.instance = Some(instance);
     self
   }
 }
@@ -492,6 +478,12 @@ pub fn createe_bind_group(device: &Device) {
     label: Some(concat!(std::file!(), ":BindGroupLayout")),
     entries: &[],
   });
+}
+
+impl RenderContext for Context {
+  fn on_render(&mut self, game: &mut GameState) -> Result<(), Error> {
+    self.render(game).map_err(|e| crate::Error::Render(e))
+  }
 }
 
 #[cfg(target_arch = "wasm32")]

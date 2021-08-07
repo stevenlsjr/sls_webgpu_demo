@@ -1,5 +1,4 @@
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{prelude::*, JsCast};
 
 pub fn window() -> web_sys::Window {
   web_sys::window().expect("This environment must support the window API")
@@ -12,5 +11,7 @@ pub fn request_animation_frame(f: &Closure<dyn FnMut()>) -> i32 {
 }
 
 pub fn document() -> web_sys::Document {
-  window().document().expect("This environment must support the document API")
+  window()
+    .document()
+    .expect("This environment must support the document API")
 }

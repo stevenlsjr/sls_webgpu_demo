@@ -202,7 +202,11 @@ legion = { version = "0.4.0", default-features = false, features = ["wasm-bindge
 shaderc = "0.7"
 rayon = "1.5.1"
 crossbeam = "0.8.1"
-image = "^0.23"
+
+[dependencies.image]
+version = "^0.23"
+default-features = false
+features = ["gif", "jpeg", "ico", "png", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt", "dds", "farbfeld"]
 
 
 [dependencies.sdl2]

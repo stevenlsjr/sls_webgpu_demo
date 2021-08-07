@@ -1,26 +1,26 @@
-use std::cell::{RefCell};
-use std::rc::Rc;
-use std::time::{Duration};
+use std::{cell::RefCell, future::Future, rc::Rc, time::Duration};
 
 use js_sys;
-use wasm_bindgen::closure::Closure;
-use wasm_bindgen::JsCast;
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::{closure::Closure, prelude::*, JsCast};
 use web_sys::{EventTarget, HtmlCanvasElement, HtmlElement, WebGl2RenderingContext};
 
-use sls_webgpu::game::{CreateGameParams,
-                       GameState, };
-use sls_webgpu::game::input::InputState;
-use sls_webgpu::gl_renderer::GlContext;
-use sls_webgpu::nalgebra_glm::*;
-use sls_webgpu::platform::html5::FromCanvas;
-use sls_webgpu::window::{AsHtmlWindowWrapper, HtmlWindowImpl, AsWindow};
 use super::platform;
-use sls_webgpu::game::resources::ScreenResolution;
-use sls_webgpu::game::asset_loading::AssetLoaderResource;
-use sls_webgpu::wgpu_renderer::render_context::RenderContext;
-use crate::ffi::CreateAppOptionsJs;
-use crate::options::CreateAppOptions;
+use crate::{
+  ffi::CreateAppOptionsJs,
+  options::{self, CreateAppOptions, RendererBackend},
+};
+use sls_webgpu::{
+  game::{
+    asset_loading::AssetLoaderResource, input::InputState, resources::ScreenResolution,
+    CreateGameParams, GameState,
+  },
+  gl_renderer::GlContext,
+  nalgebra_glm::*,
+  platform::html5::FromCanvas,
+  renderer_common::RenderContext,
+  wgpu_renderer,
+  window::{AsHtmlWindowWrapper, AsWindow, HtmlWindowImpl},
+};
 
 #[wasm_bindgen]
 pub enum EventType {
@@ -61,22 +61,25 @@ pub struct SlsWgpuDemo {
 #[wasm_bindgen]
 impl SlsWgpuDemo {
   #[wasm_bindgen(constructor)]
-  pub fn new_js(app_root: Option<HtmlElement>, options: Option<CreateAppOptionsJs>) -> Result<SlsWgpuDemo, JsValue> {
-    let app_options = options.map(|options| CreateAppOptions::from_js(options))
+  pub fn new_js(
+    app_root: Option<HtmlElement>,
+    options: Option<CreateAppOptionsJs>,
+  ) -> Result<SlsWgpuDemo, JsValue> {
+    use super::options::RendererBackend;
+    let app_options = options
+      .map(|options| CreateAppOptions::from_js(options))
       .unwrap_or(Ok(CreateAppOptions::default()))?;
-    log::info!("renderer should be {:?}", app_options.renderer);
-    let app = SlsWgpuDemo::new(app_root)?;
-
-
-    Ok(app)
+    SlsWgpuDemo::new(app_root, app_options.renderer).map_err(|e| js_sys::Error::new(&e).into())
   }
-
 
   fn on_start(&self) {
     let app_ptr = self.app.clone();
     let mut app = app_ptr.borrow_mut();
-    let canvas = app.canvas.as_ref().expect("Canvas should have been attached already");
-    let window: HtmlWindowImpl = canvas.as_wrapper();
+    let canvas = app
+      .canvas
+      .as_ref()
+      .expect("Canvas should have been attached already");
+    let window: HtmlWindowImpl = canvas.as_gamewindow();
     let (width, height) = window.size();
     let resources = app.game_state.resources_mut();
     resources.insert(ScreenResolution {
@@ -86,40 +89,47 @@ impl SlsWgpuDemo {
     resources.insert(AssetLoaderResource::new());
   }
 
-
   #[wasm_bindgen]
-  pub fn run(&mut self) -> Result<(), JsValue> {
+  pub fn run(&self) -> js_sys::Promise {
+    use wasm_bindgen_futures::future_to_promise;
+    let sself = self.clone();
+    future_to_promise(sself.run_impl())
+  }
+
+  fn run_impl(mut self) -> impl Future<Output = Result<JsValue, JsValue>> {
     let cloned = self.clone();
 
-    self.setup_render_context()?;
+    async move {
+      self.setup_render_context().await?;
 
-    {
-      let renderer = self.app.borrow().renderer.as_ref().unwrap().clone();
-      let mut renderer = renderer.borrow_mut();
-      renderer.set_clear_color(vec4(1f32, 0.0, 1.0, 1.0));
-    }
-    self.on_start();
+      {
+        let renderer = self.app.borrow().renderer.as_ref().unwrap().clone();
+        let mut renderer = renderer.borrow_mut();
+        renderer.set_clear_color(vec4(1f32, 0.0, 1.0, 1.0));
+      }
+      self.on_start();
 
-    {
-      let mut app = self.app.borrow_mut();
-      app.is_running = true;
+      {
+        let mut app = self.app.borrow_mut();
+        app.is_running = true;
 
-      app.game_state.on_start();
-      app.last_frame_ms = js_sys::Date::now();
+        app.game_state.on_start();
+        app.last_frame_ms = js_sys::Date::now();
+      }
+      {
+        self.setup_callbacks();
+      }
+      let frame_cb = Rc::new(RefCell::new(None));
+      let g = frame_cb.clone();
+      *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
+        cloned.run_frame();
+        if cloned.is_running() {
+          platform::request_animation_frame(frame_cb.borrow().as_ref().unwrap());
+        };
+      }) as Box<dyn FnMut()>));
+      platform::request_animation_frame(g.borrow().as_ref().unwrap());
+      Ok(JsValue::undefined())
     }
-    {
-      self.setup_callbacks();
-    }
-    let frame_cb = Rc::new(RefCell::new(None));
-    let g = frame_cb.clone();
-    *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
-      cloned.run_frame();
-      if cloned.is_running() {
-        platform::request_animation_frame(frame_cb.borrow().as_ref().unwrap());
-      };
-    }) as Box<dyn FnMut()>));
-    platform::request_animation_frame(g.borrow().as_ref().unwrap());
-    Ok(())
   }
 
   #[wasm_bindgen(getter, js_name = "isRunning")]
@@ -141,9 +151,13 @@ impl SlsWgpuDemo {
   pub fn webgl_ctx(&self) -> Option<WebGl2RenderingContext> {
     let app = self.app.borrow();
     let renderer = app.renderer.as_ref();
-    renderer.map(|r|
-      r.borrow().downcast_ref::<GlContext>().and_then(|gl| gl.webgl_context())
-    ).flatten()
+    renderer
+      .map(|r| {
+        r.borrow()
+          .downcast_ref::<GlContext>()
+          .and_then(|gl| gl.webgl_context())
+      })
+      .flatten()
   }
 
   pub fn set_canvas(&mut self, canvas: Option<HtmlCanvasElement>) {
@@ -164,7 +178,10 @@ impl SlsWgpuDemo {
 }
 
 impl SlsWgpuDemo {
-  pub fn new(app_root: Option<HtmlElement>) -> Result<Self, String> {
+  pub fn new(
+    app_root: Option<HtmlElement>,
+    render_backend: RendererBackend,
+  ) -> Result<Self, String> {
     let game_state = GameState::new(CreateGameParams {});
     let mut app = AppInternal {
       game_state,
@@ -177,6 +194,7 @@ impl SlsWgpuDemo {
       on_resize: Default::default(),
       on_keyup: Default::default(),
       on_keydown: Default::default(),
+      render_backend,
     };
 
     if let Some(app_root) = app_root {
@@ -184,7 +202,9 @@ impl SlsWgpuDemo {
         log::error!("error creating canvas: {:?}", e);
         format!("{:?}", e)
       })?;
-      app_root.append_child(&canvas).map_err(|e| format!("could not append canvas to root {:?}", e))?;
+      app_root
+        .append_child(&canvas)
+        .map_err(|e| format!("could not append canvas to root {:?}", e))?;
       app.canvas = Some(canvas);
     }
     Ok(Self {
@@ -192,21 +212,33 @@ impl SlsWgpuDemo {
     })
   }
 
-  fn setup_render_context(&self) -> Result<(), JsValue> {
+  async fn setup_render_context(&self) -> Result<(), JsValue> {
     let mut app = self.app.borrow_mut();
     if app.renderer.is_some() {
       return Ok(());
     }
 
-    match &app.canvas {
-      Some(canvas) => {
-        let gl_context = <GlContext as FromCanvas>::from_canvas(canvas.clone()).map_err(|e|
-          js_sys::Error::new(&format!("error creating webGL context: {:?}", e)))?;
+    match (&app.canvas, app.render_backend) {
+      (Some(canvas), RendererBackend::WebGL) => {
+        let gl_context = <GlContext as FromCanvas>::from_canvas(canvas.clone())
+          .map_err(|e| js_sys::Error::new(&format!("error creating webGL context: {:?}", e)))?;
         app.renderer = Some(Rc::new(RefCell::new(gl_context)));
-        Ok(())
       }
-      None => Err(JsValue::from_str(&format!("Canvas is not defined! {:?}", self)))
-    }?;
+      (Some(canvas), RendererBackend::WebGPU) => {
+        let game_window = canvas.as_gamewindow();
+        let wgpu_context = wgpu_renderer::Context::new(&game_window)
+          .build()
+          .await
+          .map_err(|e| JsValue::from(js_sys::Error::new(&format!("{:?}", e))))?;
+        app.renderer = Some(Rc::new(RefCell::new(wgpu_context)));
+      }
+      (None, _) => {
+        return Err(JsValue::from_str(&format!(
+          "Canvas is not defined! {:?}",
+          self
+        )))
+      }
+    };
 
     Ok(())
   }
@@ -241,15 +273,18 @@ impl SlsWgpuDemo {
       let cloned = self.clone();
       let on_keydown = Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
         let mut app = cloned.app.borrow_mut();
-        app.game_state.map_input_backend_mut(|_backend| {}).expect(
-          "input backend is an incorrect type");
+        app
+          .game_state
+          .map_input_backend_mut(|_backend| {})
+          .expect("input backend is an incorrect type");
         if let Err(e) = call_event_cb(&app.on_keydown, event.clone()) {
           log::error!("app callback failed: '{:?}'", e);
         }
       }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);
 
       if let Err(e) = EventTarget::from(window)
-        .add_event_listener_with_callback("keydown", on_keydown.as_ref().unchecked_ref()) {
+        .add_event_listener_with_callback("keydown", on_keydown.as_ref().unchecked_ref())
+      {
         log::error!("could not bind keydown event target: {:?}", e);
       }
 
@@ -262,14 +297,17 @@ impl SlsWgpuDemo {
       let cloned = self.clone();
       let on_keyup = Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
         let mut app = cloned.app.borrow_mut();
-        app.game_state.map_input_backend_mut(|_backend: &mut InputState| {}).expect(
-          "input backend is an incorrect type");
+        app
+          .game_state
+          .map_input_backend_mut(|_backend: &mut InputState| {})
+          .expect("input backend is an incorrect type");
         if let Err(e) = call_event_cb(&app.on_keyup, event.clone()) {
           log::error!("app callback failed: '{:?}'", e);
         }
       }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);
       if let Err(e) = EventTarget::from(window)
-        .add_event_listener_with_callback("keyup", on_keyup.as_ref().unchecked_ref()) {
+        .add_event_listener_with_callback("keyup", on_keyup.as_ref().unchecked_ref())
+      {
         log::error!("could not bind keyup event: {:?}", e);
       }
 
@@ -280,6 +318,7 @@ impl SlsWgpuDemo {
 
 #[derive(Debug)]
 pub(crate) struct AppInternal {
+  render_backend: RendererBackend,
   game_state: GameState,
   is_running: bool,
 
@@ -296,19 +335,21 @@ pub(crate) struct AppInternal {
   on_resize: Option<js_sys::Function>,
 }
 
-fn call_event_cb<Event: Into<JsValue>>(cb: &Option<js_sys::Function>, event: Event) -> Result<JsValue, JsValue> {
+fn call_event_cb<Event: Into<JsValue>>(
+  cb: &Option<js_sys::Function>,
+  event: Event,
+) -> Result<JsValue, JsValue> {
   match cb {
-    Some(cb) => {
-      cb.call1(&JsValue::undefined(), &(Into::<JsValue>::into(event)))
-    }
-    None => Ok(JsValue::undefined())
+    Some(cb) => cb.call1(&JsValue::undefined(), &(Into::<JsValue>::into(event))),
+    None => Ok(JsValue::undefined()),
   }
 }
 
 fn create_canvas() -> Result<HtmlCanvasElement, JsValue> {
-  let elt = platform::document().create_element("canvas")?.unchecked_into::<HtmlCanvasElement>();
+  let elt = platform::document()
+    .create_element("canvas")?
+    .unchecked_into::<HtmlCanvasElement>();
   elt.set_id("app-canvas");
   elt.set_class_name("slswebgpu-canvas");
   Ok(elt)
 }
-

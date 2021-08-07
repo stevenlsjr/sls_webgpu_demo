@@ -30,6 +30,7 @@ wgpu_renderer = ["sls-webgpu/wgpu_renderer"]
 # The `wasm-bindgen` crate provides the bare minimum functionality needed
 # to interact with JavaScript.
 wasm-bindgen = { version = "0.2.45", features = ["serde-serialize"] }
+wasm-bindgen-futures = {version="~0.4"}
 
 # `wee_alloc` is a tiny allocator for wasm that is only ~1K in code size
 # compared to the default allocator's ~10K. However, it is slower than the default

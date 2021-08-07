@@ -1,34 +1,36 @@
-import {createWgpuContext, webGpuIsAvailable} from "./wgpu";
-import DemoUI from './ui'
-
+import { createWgpuContext, webGpuIsAvailable } from "./wgpu";
+import DemoUI from "./ui";
 
 const loadWasm = import("../pkg/index.js").catch(console.error);
 
 document.addEventListener("DOMContentLoaded", async () => {
-    let wasmAppRoot = document.querySelector('#wgpu-app-root');
-    let uiRoot = document.querySelector('#wgpu-ui-root');
-    try {
-        const module = await loadWasm
-        window.SLS_WASM_BINDGEN = module;
-        const {SlsWgpuDemo, features} = module;
+  let wasmAppRoot = document.querySelector("#wgpu-app-root");
+  let uiRoot = document.querySelector("#wgpu-ui-root");
+  try {
+    const module = await loadWasm;
+    window.SLS_WASM_BINDGEN = module;
+    const { SlsWgpuDemo, features } = module;
 
-        /** @type {Set<string>} */
-        const APP_FEATURES = new Set(features());
-        const ui = new DemoUI({appRoot: uiRoot, features: APP_FEATURES})
-        /** @type {null | import("../pkg").SlsWgpuApp} */
-        let app = null;
-        startApp({module, features: APP_FEATURES, wasmAppRoot, backend: ui.currentBackend}).catch((e) => {
-            console.error('app could not start: ', e);
-        })
+    /** @type {Set<string>} */
+    const APP_FEATURES = new Set(features());
+    const ui = new DemoUI({ appRoot: uiRoot, features: APP_FEATURES });
+    /** @type {null | import("../pkg").SlsWgpuApp} */
+    let app = null;
+    startApp({
+      module,
+      features: APP_FEATURES,
+      wasmAppRoot,
+      backend: ui.currentBackend,
+    }).catch((e) => {
+      console.error("app could not start: ", e);
+    });
 
-        ui.render();
-        //
-
-    } catch (e) {
-        console.error(e)
-
-    }
-})
+    ui.render();
+    //
+  } catch (e) {
+    console.error(e);
+  }
+});
 
 /**
  *
@@ -38,27 +40,28 @@ document.addEventListener("DOMContentLoaded", async () => {
  * @param backend
  * @returns {Promise<import('../pkg).SlsWgpuDemo>}
  */
-async function startApp({module, features, wasmAppRoot, backend}) {
-    const {SlsWgpuDemo} = module;
+async function startApp({ module, features, wasmAppRoot, backend }) {
+  const { SlsWgpuDemo } = module;
 
-    backend = backend || 'opengl_renderer'
-    wasmAppRoot.innerHTML = ''
+  backend = backend || "opengl_renderer";
+  wasmAppRoot.innerHTML = "";
 
-    const isBuiltWithWgpu = features.has("wgpu_renderer")
-    if (backend === 'wgpu_renderer') {
-        if (isBuiltWithWgpu && webGpuIsAvailable()) {
-
-            startWgpuApp(module, wasmAppRoot);
-        } else {
-            console.log(`app ${isBuiltWithWgpu ? "is" : "is not"} built with webgpu support`);
-            console.log(`browser ${webGpuIsAvailable() ? "does" : "does not"} support webgpu`)
-            startGlApp(module, wasmAppRoot);
-
-        }
+  const isBuiltWithWgpu = features.has("wgpu_renderer");
+  if (backend === "wgpu_renderer") {
+    if (isBuiltWithWgpu && webGpuIsAvailable()) {
+      startWgpuApp(module, wasmAppRoot);
     } else {
-        startGlApp(module, wasmAppRoot);
+      console.log(
+        `app ${isBuiltWithWgpu ? "is" : "is not"} built with webgpu support`
+      );
+      console.log(
+        `browser ${webGpuIsAvailable() ? "does" : "does not"} support webgpu`
+      );
+      startGlApp(module, wasmAppRoot);
     }
-
+  } else {
+    startGlApp(module, wasmAppRoot);
+  }
 }
 
 /**
@@ -68,20 +71,17 @@ async function startApp({module, features, wasmAppRoot, backend}) {
  * @returns {*}
  */
 function startGlApp(module, wasmAppRoot) {
-    let app = new module.SlsWgpuDemo(wasmAppRoot, {renderer: "GL"});
-    app.on('keyup', (event) => {
-        console.log("key up: ", event);
-    });
+  let app = new module.SlsWgpuDemo(wasmAppRoot, { renderer: "GL" });
+  app.on("keyup", (event) => {
+    console.log("key up: ", event);
+  });
 
-    app.on('keydown', (event) => {
-
-
-        console.log("key down: ", event);
-
-    });
-    window.$app = app;
-    app.run();
-    return app;
+  app.on("keydown", (event) => {
+    console.log("key down: ", event);
+  });
+  window.$app = app;
+  app.run().catch(e=>console.error(e));
+  return app;
 }
 
 /**
@@ -90,9 +90,10 @@ function startGlApp(module, wasmAppRoot) {
  * @param wasmAppRoot
  * @returns {Promise<void>}
  */
-async function startWgpuApp({SlsWgpuDemo}, wasmAppRoot) {
-    const gpuContext = await createWgpuContext({appRoot: wasmAppRoot});
-    window.GPU_CTX = gpuContext;
-    const app = new SlsWgpuDemo(wasmAppRoot, {renderer: "WebGPU"})
-    window.$app = app;
+async function startWgpuApp(module, wasmAppRoot) {
+  const { SlsWgpuDemo } = module;
+
+  const app = new SlsWgpuDemo(wasmAppRoot, { renderer: "WebGPU" });
+  window.$app = app;
+  await app.run();
 }

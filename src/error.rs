@@ -8,6 +8,8 @@ pub enum Error {
   Create { reason: String },
   #[error("caused by error {0:?}")]
   FromError(#[from] Box<dyn std::error::Error + Send + Sync>),
+  #[error("render failed: {0:?}")]
+  Render(#[from] anyhow::Error),
   #[error("creating resource object {reason}")]
   CreateObject { reason: String },
   #[error("miscellaneous: {reason}")]

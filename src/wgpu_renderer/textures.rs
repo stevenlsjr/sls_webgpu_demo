@@ -1,4 +1,5 @@
 use image::{DynamicImage, GenericImageView, ImageError};
+use wasm_bindgen;
 use std::num::NonZeroU32;
 use thiserror::Error;
 use wgpu::{
@@ -51,6 +52,8 @@ impl TextureResource {
       mag_filter: wgpu::FilterMode::Linear,
       min_filter: wgpu::FilterMode::Linear,
       mipmap_filter: wgpu::FilterMode::Linear,
+      lod_min_clamp: 0.1,
+      lod_max_clamp: f32::MAX,
       ..Default::default()
     });
     Ok(Self {
@@ -113,7 +116,7 @@ impl TextureResource {
       min_filter: FilterMode::Linear,
       mipmap_filter: FilterMode::Linear,
       compare: Some(wgpu::CompareFunction::LessEqual),
-      lod_min_clamp: -100.0,
+      lod_min_clamp: 0.0,
       lod_max_clamp: 100.0,
       ..Default::default()
     });

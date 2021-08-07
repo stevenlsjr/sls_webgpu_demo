@@ -9,7 +9,7 @@ use nalgebra_glm::*;
 use std::rc::Rc;
 use wasm_bindgen::{prelude::*, JsCast};
 
-use crate::{game::GameState, wgpu_renderer::render_context::RenderContext, Error};
+use crate::{game::GameState, renderer_common::RenderContext, Error};
 #[cfg(feature = "html5_backend")]
 pub use html5::*;
 use std::cell::RefCell;
