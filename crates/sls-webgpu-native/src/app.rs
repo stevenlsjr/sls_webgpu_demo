@@ -24,13 +24,19 @@ use sls_webgpu::{
 
 use rayon::{ThreadPool, ThreadPoolBuilder};
 use sls_webgpu::{
-  game::asset_loading::{asset_load_message::AssetLoadedMessagePayload, AssetLoaderResource},
+  game::asset_loading::{
+    asset_load_message::{AssetLoadedMessagePayload, AssetLoadedMessagePayload::GltfModel},
+    MultithreadedAssetLoaderQueue,
+  },
   gltf::{buffer::Data, Document, Error},
   platform::gui,
+  renderer_common::allocator::Handle,
+  wgpu_renderer::mesh::{Mesh, MeshGeometry},
 };
 use std::{
   ops::DerefMut,
   sync::{Arc, RwLock},
+  thread::spawn,
   time::*,
 };
 
@@ -187,7 +193,7 @@ impl App {
       .context
       .write()
       .expect("Deadlock on render context")
-      .render_with_ui(&self.game_state, ui, &mut gui_renderer_arc)
+      .render(&mut self.game_state)
       .map_err(|e| sls_webgpu::Error::FromError(e.into()))
   }
 
@@ -265,6 +271,22 @@ impl App {
       window_size: (window_size.0 as _, window_size.1 as _),
       drawable_size: (drawable_size.0 as _, drawable_size.1 as _),
     });
+    let sender = self.assets_loaded_sender.clone();
+    spawn(move || {
+      let result = gltf::import("assets/sheen-chair/SheenChair.glb")
+        .map(
+          |(documents, buffers, images)| AssetLoadedMessagePayload::GltfModel {
+            model_name: "chair".to_owned(),
+            documents,
+            buffers,
+            images,
+          },
+        )
+        .map_err(|e| anyhow::Error::from(e));
+      sender.send(result).unwrap_or_else(|e| {
+        log::error!("failed to send message! {:?}", e);
+      });
+    });
 
     Ok(())
   }
@@ -293,7 +315,9 @@ impl App {
         images,
       } => {
         if model_name == "chair" {
-          self.load_chair_model(documents, buffers, images);
+          if let Err(e) = self.load_chair_model(documents, buffers, images) {
+            log::error!("model load failed: {:?}", e);
+          };
         }
       }
     };
@@ -303,8 +327,35 @@ impl App {
     documents: Document,
     buffers: Vec<gltf::buffer::Data>,
     images: Vec<gltf::image::Data>,
-  ) {
-    todo!()
+  ) -> anyhow::Result<()> {
+    // GltfModel
+    let mesh = documents
+      .meshes()
+      .nth(0)
+      .ok_or(anyhow!("Document does not have a mesh"))?;
+
+    let geometry = MeshGeometry::from_gltf_mesh(&mesh, &buffers)?;
+    let mut meshes: Vec<Handle> = Vec::with_capacity(geometry.len());
+    let mut ctx = self.context.clone();
+    {
+      let ctx_lock = ctx
+        .read().map_err(|e| anyhow!("{:?}", e))?;
+      let mut mesh_loader = ctx_lock.meshes
+        .write().map_err(|e| anyhow!("{:?}", e))?;
+      for mesh_geom in geometry.into_iter() {
+        let mesh = Mesh::from_geometry(mesh_geom, &ctx_lock.device)?;
+        let handle = mesh_loader.insert(mesh);
+        meshes.push(handle);
+      }
+
+    }
+    {
+      let mut ctx_lock = ctx.write()
+        .map_err(|e| anyhow!("{:?}", e))?;
+      ctx_lock.meshes_to_draw = meshes;
+    }
+
+    Ok(())
   }
 }
 

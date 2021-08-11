@@ -7,6 +7,7 @@ pub struct Vertex {
   pub position: [f32; 3],
   pub color: [f32; 4],
   pub uv: [f32; 2],
+  pub uv_1: [f32; 2],
   pub normal: [f32; 3],
   pub tangent: [f32; 4],
   pub bitangent: [f32; 4],
@@ -18,6 +19,7 @@ impl Default for Vertex {
       position: [0.0; 3],
       color: [1.0; 4],
       uv: [0.0, 0.0],
+      uv_1: [0.0, 0.0],
       normal: [0.0, 0.0, 1.0],
       tangent: [0.0; 4],
       bitangent: [0.0; 4],
@@ -27,6 +29,7 @@ impl Default for Vertex {
 
 impl Vertex {}
 
+use crate::renderer_common::gltf_loader::LoadPrimitive;
 #[cfg(feature = "wgpu_renderer")]
 pub use wgpu_renderer::*;
 
@@ -43,9 +46,10 @@ mod wgpu_renderer {
     0=>Float32x3,
     1=>Float32x4,
     2=>Float32x2,
-    3=>Float32x3,
+    3=>Float32x2,
     4=>Float32x3,
-    5=>Float32x3
+    5=>Float32x3,
+    6=>Float32x3
   ];
 
   impl Vertex {
@@ -195,7 +199,12 @@ impl MeshGeometry {
     buffers: &[gltf::buffer::Data],
   ) -> anyhow::Result<Vec<Self>> {
     let mut meshes = Vec::new();
-    for prim in mesh.primitives() {}
+    for prim in mesh.primitives() {
+      match MeshGeometry::load_primitive(&prim, buffers) {
+        Ok(p) => meshes.push(p),
+        Err(e) => log::error!("could not load primitive {:?}", e),
+      }
+    }
     Ok(meshes)
   }
 }

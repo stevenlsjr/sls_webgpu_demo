@@ -1,7 +1,7 @@
 use image::{DynamicImage, GenericImageView, ImageError};
-use wasm_bindgen;
 use std::num::NonZeroU32;
 use thiserror::Error;
+use wasm_bindgen;
 use wgpu::{
   BindGroup, BindGroupDescriptor, BindGroupEntry, Device, Extent3d, Queue, Sampler, ShaderStage,
   SwapChainDescriptor, Texture, TextureSampleType, TextureView,

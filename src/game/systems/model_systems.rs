@@ -77,7 +77,6 @@ fn create_random_model(mesh_choices: &[Handle]) -> (RenderModel, Transform3D) {
   transform.position = vec3(rng.sample(rand_dist), 0.0, rng.sample(rand_dist));
   let model = RenderModel {
     mesh,
-    label: Some(format!("mesh_{:?}", mesh)),
     is_shown: true,
   };
   (model, transform)

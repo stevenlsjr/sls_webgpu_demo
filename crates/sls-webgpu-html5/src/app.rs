@@ -11,7 +11,7 @@ use crate::{
 };
 use sls_webgpu::{
   game::{
-    asset_loading::AssetLoaderResource, input::InputState, resources::ScreenResolution,
+    asset_loading::MultithreadedAssetLoaderQueue, input::InputState, resources::ScreenResolution,
     CreateGameParams, GameState,
   },
   gl_renderer::GlContext,
@@ -86,7 +86,7 @@ impl SlsWgpuDemo {
       window_size: (width as usize, height as usize),
       drawable_size: (width as usize, height as usize),
     });
-    resources.insert(AssetLoaderResource::new());
+    resources.insert(MultithreadedAssetLoaderQueue::new());
   }
 
   #[wasm_bindgen]

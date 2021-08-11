@@ -94,12 +94,16 @@ impl GameState {
 
     resources.insert(MeshLookup::default());
     #[cfg(not(target_arch = "wasm32"))]
-    {
-      use asset_loading::AssetLoaderResource;
-      resources.insert(AssetLoaderResource::new())
-    }
+      {
+        use asset_loading::MultithreadedAssetLoaderQueue;
+        resources.insert(MultithreadedAssetLoaderQueue::new())
+      }
 
     resources
+  }
+
+  pub fn add_wgpu_resources(&mut self, context: &Arc<RwLock<Context>>) {
+    self.resources.insert(context.clone());
   }
 
   /// Lifecycle functions
@@ -110,15 +114,15 @@ impl GameState {
 
     builder.add_thread_local(setup_scene_system());
     #[cfg(feature = "wgpu_renderer")]
-    {
-      if self
-        .resources
-        .get::<Arc<RwLock<crate::wgpu_renderer::context::Context>>>()
-        .is_some()
       {
-        builder.add_thread_local(systems::model_systems::create_models_wgpu_system());
+        if self
+          .resources
+          .get::<Arc<RwLock<crate::wgpu_renderer::context::Context>>>()
+          .is_some()
+        {
+          builder.add_thread_local(systems::model_systems::create_models_wgpu_system());
+        }
       }
-    }
     let mut scheduler = builder.build();
     scheduler.execute(&mut self.world, &mut self.resources);
   }
@@ -136,6 +140,8 @@ impl GameState {
       .execute(&mut self.world, &mut self.resources);
   }
   pub fn fixed_update(&mut self, dt: &Duration) {
+    self.poll_task_completions();
+
     {
       let mut loop_timer = self
         .resources
@@ -214,6 +220,19 @@ impl GameState {
     let backend = &mut resource.backend;
     Ok(callback(backend))
   }
+  fn poll_task_completions(&self) {
+    #[cfg(feature = "wgpu_renderer")]
+      {
+        let ctx = self.resources.get_mut::<crate::wgpu_renderer::Context>();
+        let loader = self.resources.get_mut::<MultithreadedAssetLoaderQueue>();
+        match (ctx, loader) {
+          (Some(ctx), Some(loader)) => {}
+          (ctx, loader) => {
+            log::warn!("missing resources needed to load assets: {:?}, {:?}", ctx.is_some(), loader.is_some())
+          }
+        }
+      }
+  }
 }
 
 #[cfg(feature = "wgpu_imgui")]
@@ -266,6 +285,9 @@ use crate::game::{input::InputState, resources::MeshLookup};
 use std::sync::{Arc, RwLock};
 #[cfg(feature = "wgpu_renderer")]
 pub use wgpu_renderer::*;
+use crate::game::asset_loading::MultithreadedAssetLoaderQueue;
+use crate::Context;
+use atomic_refcell::AtomicRefMut;
 
 #[cfg(feature = "wgpu_renderer")]
 mod wgpu_renderer {

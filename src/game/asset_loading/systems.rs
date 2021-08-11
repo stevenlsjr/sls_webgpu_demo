@@ -10,31 +10,10 @@ mod native {
     anyhow::Error,
     game::asset_loading::{
       asset_load_message::{AssetLoadedMessage, AssetLoadedMessagePayload},
-      AssetLoaderResource,
+      MultithreadedAssetLoaderQueue,
     },
   };
   use smallvec::SmallVec;
+  use crate::renderer_common::allocator::Handle;
 
-  #[system]
-  pub fn check_message_loaded(#[resource] asset_loader: &AssetLoaderResource) {
-    let messages: SmallVec<[anyhow::Result<AssetLoadedMessage>; 5]> =
-      asset_loader.receiver().try_iter().collect();
-    for message in messages {
-      match message {
-        Ok(msg) => match msg.payload {
-          AssetLoadedMessagePayload::GltfModel {
-            model_name,
-            documents,
-            buffers,
-            images,
-          } => {
-            println!("loaded model '{}'", model_name);
-          }
-        },
-        Err(e) => {
-          log::error!("could not load asset: {:?}", e)
-        }
-      }
-    }
-  }
 }

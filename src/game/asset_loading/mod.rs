@@ -11,7 +11,11 @@ pub mod asset_load_message;
 mod native;
 pub mod systems;
 
+pub mod components;
 #[cfg(target_arch = "wasm32")]
 pub mod html5;
+pub mod resources;
+
 #[cfg(target_arch = "wasm32")]
 pub use html5::*;
+

@@ -14,7 +14,10 @@ use crate::renderer_common::{geometry::Vertex, RenderContext};
 
 use crate::{
   game::components::{RenderModel, Transform3D},
-  renderer_common::allocator::{Handle, ResourceManager},
+  renderer_common::{
+    allocator::{Handle, ResourceManager},
+    render_context::DrawModel,
+  },
   wgpu::{BindGroupLayout, Device, PipelineLayout, TextureFormat},
   wgpu_renderer::{
     model::Model,
@@ -35,6 +38,7 @@ use wgpu::{
   BindGroup, BindGroupLayoutEntry, BufferDescriptor, BufferSize, BufferUsage, PrimitiveState,
   RenderPass, RenderPipeline, Texture,
 };
+use crate::wgpu_renderer::model::StreamingMesh;
 
 pub struct Context {
   pub instance: wgpu::Instance,
@@ -49,6 +53,7 @@ pub struct Context {
   render_pipeline: wgpu::RenderPipeline,
   // scene resources
   mesh: Mesh,
+  pub meshes_to_draw: Vec<Handle>,
   uniforms: Uniforms,
   uniform_buffer: wgpu::Buffer,
 
@@ -57,7 +62,7 @@ pub struct Context {
 
   pub main_tex_handle: Option<Handle>,
   fallback_texture: Handle,
-
+  pub streaming_models: Arc<RwLock<ResourceManager<StreamingMesh>>>,
   pub meshes: Arc<RwLock<ResourceManager<Mesh>>>,
   pub textures: Arc<RwLock<ResourceManager<TextureResource>>>,
   pub texture_bind_group_layout: BindGroupLayout,
@@ -104,10 +109,7 @@ impl Context {
 
   pub fn update(&mut self) {}
 
-  pub fn render(
-    &mut self,
-    game: &mut GameState,
-  ) -> Result<(), anyhow::Error> {
+  pub fn render(&mut self, game: &mut GameState) -> Result<(), anyhow::Error> {
     self.update_instance_state(game);
     let camera = game
       .resources()
@@ -139,6 +141,8 @@ impl Context {
           .create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Render Encoder"),
           });
+        let mesh_allocator = self.meshes.read().unwrap();
+
         {
           let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("render pass"),
@@ -165,20 +169,26 @@ impl Context {
             }),
           });
 
+          render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
+
           render_pass.set_pipeline(&self.render_pipeline);
           render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
           render_pass.set_bind_group(1, &self.diffuse_bind_group, &[]);
 
-          if let Some(mesh) = self.mesh.buffers() {
-            let n_indices = self.mesh.geometry().indices.len() as u32;
-            render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-            // instance matrix data
-            render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
-            render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+          render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
 
-            render_pass.draw_indexed(0..n_indices, 0, 0..(self.n_instances as u32));
-          };
+          if self.meshes_to_draw.len() > 0 {
+            for m in &self.meshes_to_draw {
+              let mesh = match mesh_allocator.get_ref(*m) {
+                Ok(e) => e,
+                Err(_) => continue,
+              };
 
+              render_pass.draw_model_instanced(mesh, 0..(self.n_instances as u32));
+            }
+          } else {
+            render_pass.draw_model_instanced(&self.mesh, 0..(self.n_instances as u32));
+          }
         }
         self.queue.submit(std::iter::once(encoder.finish()));
         Ok(())
@@ -391,12 +401,15 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       swapchain,
       render_pipeline,
       mesh,
+      meshes_to_draw: Vec::new(),
+
       uniforms,
       uniform_buffer,
       uniform_bind_group_layout: ubo_layout,
       uniform_bind_group,
       texture_bind_group_layout: model_texture_bind_group_layout,
       diffuse_bind_group,
+      streaming_models: Default::default(),
       meshes: Default::default(),
       textures: Arc::new(RwLock::new(textures)),
       main_tex_handle: None,

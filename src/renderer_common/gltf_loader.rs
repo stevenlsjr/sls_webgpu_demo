@@ -1,5 +1,6 @@
 use super::geometry::{MeshGeometry, Vertex};
 use gltf::Primitive;
+use std::convert::TryInto;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -23,14 +24,15 @@ pub trait LoadPrimitive: Sized {
     buffers: &[gltf::buffer::Data],
   ) -> Result<Self, GltfLoaderError>;
 }
+
 #[allow(unused_variables, unused_imports)]
 impl LoadPrimitive for MeshGeometry {
   fn load_primitive(
     primitive: &Primitive,
     buffers: &[gltf::buffer::Data],
   ) -> Result<Self, GltfLoaderError> {
+    // load vertex data
     let mut verts: Vec<Vertex> = Vec::new();
-    let mut indices: Vec<u16> = Vec::new();
     let reader = primitive.reader(|buffer_data| Some(&buffers[buffer_data.index()]));
     let read_positions = reader
       .read_positions()
@@ -62,13 +64,14 @@ impl LoadPrimitive for MeshGeometry {
     while let Some(tex_coords) = reader.read_tex_coords(tex_coord_set) {
       let current_set = tex_coord_set;
       tex_coord_set += 1;
-      if current_set >= 1 {
-        log::warn!("This renderer only supports one tex coord set");
+      if current_set >= 2 {
+        log::warn!("This renderer only supports 2 tex coord set");
         continue;
       }
       for (i, tex_coord) in tex_coords.into_f32().enumerate() {
         match current_set {
           0 => verts[i].uv = tex_coord.clone(),
+          1 => verts[i].uv_1 = tex_coord.clone(),
           _ => unreachable!(),
         }
       }
@@ -90,6 +93,19 @@ impl LoadPrimitive for MeshGeometry {
         }
       }
     }
-    todo!()
+    // load index data
+    let mut indices: Vec<u16> = match reader.read_indices().map(|i| i.into_u32()) {
+      Some(iter) => iter.map(|i| i.try_into().unwrap()).collect(),
+      None => {
+        let limit: u16 = verts.len().try_into().unwrap();
+        (0..limit).collect()
+      }
+    };
+
+    Ok(Self {
+      indices,
+      vertices: verts,
+      label: None,
+    })
   }
 }

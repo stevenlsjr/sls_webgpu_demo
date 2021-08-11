@@ -15,7 +15,7 @@ pub mod model_systems;
 
 use super::components::RenderModel;
 use crate::game::{
-  asset_loading::AssetLoaderResource, input::InputResource, resources::ScreenResolution,
+  asset_loading::MultithreadedAssetLoaderQueue, input::InputResource, resources::ScreenResolution,
 };
 pub use camera_systems::*;
 use legion::world::SubWorld;
@@ -36,7 +36,7 @@ pub fn per_frame_logging(#[resource] game_loop: &GameLoopTimer) {
 pub fn setup_scene(
   #[resource] scene: &mut Scene,
   #[resource] resolution: &ScreenResolution,
-  #[resource] assets: &AssetLoaderResource,
+  #[resource] assets: &MultithreadedAssetLoaderQueue,
   command_buffer: &mut CommandBuffer,
 ) {
   let mut main_camera: CameraEntityRow = (

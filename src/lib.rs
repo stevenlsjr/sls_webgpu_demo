@@ -35,7 +35,6 @@ pub mod gl_renderer;
 pub mod renderer_common;
 pub use renderer_common::images::RawImageRbga;
 
-
 // crate re-imports
 pub use anyhow;
 pub use gltf;

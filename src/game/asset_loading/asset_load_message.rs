@@ -1,4 +1,9 @@
+use crate::renderer_common::allocator::Handle;
 use std::fmt;
+
+pub enum AssetLoadRequest {
+  GltfModel { path: String, model_id: Handle },
+}
 
 #[derive(Clone)]
 pub enum AssetLoadedMessagePayload {
@@ -27,11 +32,12 @@ impl fmt::Debug for AssetLoadedMessagePayload {
 #[derive(Clone, Debug)]
 pub struct AssetLoadedMessage {
   pub payload: AssetLoadedMessagePayload,
-  pub id: usize,
+  pub id: Handle,
 }
 
 impl AssetLoadedMessage {
-  pub fn new(id: usize, payload: AssetLoadedMessagePayload) -> Self {
+  pub fn new(id: Handle, payload: AssetLoadedMessagePayload) -> Self {
     Self { id, payload }
   }
 }
+

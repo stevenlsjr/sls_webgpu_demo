@@ -10,10 +10,10 @@ pub struct ModelInstance {
 }
 
 const VERTEX_ATTR_ARRAY: [wgpu::VertexAttribute; 4] = wgpu::vertex_attr_array![
-6 => Float32x4,
-7 => Float32x4,
-8 => Float32x4,
-9 => Float32x4
+  7 => Float32x4,
+  8=> Float32x4,
+  9=> Float32x4,
+  10 => Float32x4
 ];
 
 impl ModelInstance {
