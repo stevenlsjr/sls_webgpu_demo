@@ -7,12 +7,13 @@ use genmesh::{
   Indexer, LruIndexer, MapToVertices, Triangulate, Vertices,
 };
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
+use crate::renderer_common::allocator::Handle;
 
 #[derive(Debug)]
 pub struct Mesh {
   geometry: MeshGeometry,
   buffers: Option<MeshBuffers>,
-  material_index: Option<usize>,
+  material: Option<Handle>,
 }
 
 impl Mesh {
@@ -20,7 +21,7 @@ impl Mesh {
     Self {
       geometry,
       buffers,
-      material_index: None,
+      material: None,
     }
   }
 
@@ -29,7 +30,7 @@ impl Mesh {
     Ok(Self {
       buffers,
       geometry,
-      material_index: None,
+      material: None,
     })
   }
 
@@ -45,6 +46,11 @@ impl Mesh {
   pub fn n_elements(&self) -> usize {
     self.geometry.indices.len()
   }
+
+  #[inline]
+  pub fn material(&self) -> Option<Handle> { self.material }
+  #[inline]
+  pub fn set_material(&mut self, handle: Option<Handle>) { self.material = handle }
 }
 
 #[derive(Debug)]
@@ -54,8 +60,8 @@ pub struct MeshBuffers {
 }
 
 impl<'a, 'b> DrawModel<'a, 'b> for wgpu::RenderPass<'a>
-where
-  'b: 'a,
+  where
+    'b: 'a,
 {
   type Model = Mesh;
 

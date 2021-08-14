@@ -39,6 +39,7 @@ use wgpu::{
   RenderPass, RenderPipeline, Texture,
 };
 use crate::wgpu_renderer::model::StreamingMesh;
+use crate::wgpu_renderer::material::Material;
 
 pub struct Context {
   pub instance: wgpu::Instance,
@@ -63,6 +64,7 @@ pub struct Context {
   pub main_tex_handle: Option<Handle>,
   fallback_texture: Handle,
   pub streaming_models: Arc<RwLock<ResourceManager<StreamingMesh>>>,
+  pub materials: Arc<RwLock<ResourceManager<Material>>>,
   pub meshes: Arc<RwLock<ResourceManager<Mesh>>>,
   pub textures: Arc<RwLock<ResourceManager<TextureResource>>>,
   pub texture_bind_group_layout: BindGroupLayout,
@@ -412,6 +414,7 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       streaming_models: Default::default(),
       meshes: Default::default(),
       textures: Arc::new(RwLock::new(textures)),
+      materials: Default::default(),
       main_tex_handle: None,
       fallback_texture,
       main_frag_shader,

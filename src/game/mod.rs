@@ -228,7 +228,7 @@ impl GameState {
         match (ctx, loader) {
           (Some(ctx), Some(loader)) => {}
           (ctx, loader) => {
-            log::warn!("missing resources needed to load assets: {:?}, {:?}", ctx.is_some(), loader.is_some())
+            // log::warn!("missing resources needed to load assets: {:?}, {:?}", ctx.is_some(), loader.is_some())
           }
         }
       }

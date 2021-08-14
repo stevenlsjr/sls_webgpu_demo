@@ -92,6 +92,7 @@ pub struct MeshGeometry {
   pub vertices: Vec<Vertex>,
   pub indices: Vec<u16>,
   pub label: Option<String>,
+  pub gltf_mat_index: Option<usize>
 }
 
 impl Default for MeshGeometry {
@@ -100,6 +101,7 @@ impl Default for MeshGeometry {
       vertices: vec![],
       indices: vec![],
       label: None,
+      gltf_mat_index: None
     }
   }
 }
@@ -160,6 +162,7 @@ impl MeshGeometry {
       label: Some("unit plane".to_owned()),
       vertices: verts.to_vec(),
       indices: vec![0, 2, 1, 2, 0, 3],
+      ..Default::default()
     }
   }
 
@@ -191,6 +194,7 @@ impl MeshGeometry {
       label: Some("unit sphere".to_owned()),
       vertices: verts,
       indices: (0u16..len).collect(),
+      ..Default::default()
     }
   }
 

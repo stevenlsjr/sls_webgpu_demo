@@ -39,6 +39,11 @@ use std::{
   thread::spawn,
   time::*,
 };
+use sls_webgpu::wgpu_renderer::material::Material;
+use std::collections::HashMap;
+use sls_webgpu::wgpu_renderer::model::{Model, StreamingMesh};
+use std::sync::Weak;
+use sls_webgpu::renderer_common::allocator::ResourceManager;
 
 pub struct App {
   pub(crate) context: Arc<RwLock<Context>>,
@@ -52,6 +57,8 @@ pub struct App {
   assets_loaded_receiver: Receiver<anyhow::Result<AssetLoadedMessagePayload>>,
   assets_loaded_sender: Sender<anyhow::Result<AssetLoadedMessagePayload>>,
   pub window: Window,
+  models: Weak<RwLock<ResourceManager<StreamingMesh>>>,
+  demo_model_handle: Option<Handle>,
 }
 
 impl App {
@@ -61,6 +68,8 @@ impl App {
     let mut window = create_window(&video_sys, (1600, 1200))?;
     let event_pump = sdl.event_pump().map_err(|s| anyhow!(s))?;
     let context = pollster::block_on(Context::new(&mut window).build())?;
+
+    let models = Arc::downgrade(&context.streaming_models);
 
     let mut imgui_context = gui::create_imgui(gui::Options {
       hidpi_factor: 2.0,
@@ -105,6 +114,8 @@ impl App {
       window,
       assets_loaded_receiver: r,
       assets_loaded_sender: s,
+      models,
+      demo_model_handle: None,
     };
     Ok(app)
   }
@@ -272,8 +283,20 @@ impl App {
       drawable_size: (drawable_size.0 as _, drawable_size.1 as _),
     });
     let sender = self.assets_loaded_sender.clone();
+
+    let mesh = {
+      let mesh = StreamingMesh::new("assets/Avocado.glb".to_owned());
+      let models_arc = self.models.upgrade().map(|ptr| ptr.clone())
+        .unwrap();
+      let mut meshes = models_arc.write().expect(
+        "cannot access meshes"
+      );
+      meshes.insert(mesh)
+    };
+    self.demo_model_handle = Some(mesh);
+
     spawn(move || {
-      let result = gltf::import("assets/sheen-chair/SheenChair.glb")
+      let result = gltf::import("assets/Avocado.glb")
         .map(
           |(documents, buffers, images)| AssetLoadedMessagePayload::GltfModel {
             model_name: "chair".to_owned(),
@@ -307,6 +330,8 @@ impl App {
   }
 
   fn on_model_loaded(&mut self, message: AssetLoadedMessagePayload) {
+    let model_handle = self.demo_model_handle.expect("model resource should have been created already");
+    let model_resources = self.models.upgrade().expect("resources have already been freed");
     match message {
       AssetLoadedMessagePayload::GltfModel {
         model_name,
@@ -315,9 +340,22 @@ impl App {
         images,
       } => {
         if model_name == "chair" {
-          if let Err(e) = self.load_chair_model(documents, buffers, images) {
-            log::error!("model load failed: {:?}", e);
+          let mut model_lock = model_resources.write().unwrap();
+
+          let mut model_resource = match model_lock.mut_ref(
+            model_handle
+          ) {
+            Ok(m) => m,
+            Err(e) => {
+              log::error!("{:?}", e);
+              return;
+            }
           };
+          let mut ctx = self.context.write().unwrap();
+
+          if let Err(e) = model_resource.load_from_gltf(&mut ctx, documents, buffers, images) {
+            log::error!("model load failed: {:?}", e);
+          }
         }
       }
     };
@@ -329,25 +367,38 @@ impl App {
     images: Vec<gltf::image::Data>,
   ) -> anyhow::Result<()> {
     // GltfModel
+
     let mesh = documents
       .meshes()
       .nth(0)
       .ok_or(anyhow!("Document does not have a mesh"))?;
 
     let geometry = MeshGeometry::from_gltf_mesh(&mesh, &buffers)?;
-    let mut meshes: Vec<Handle> = Vec::with_capacity(geometry.len());
+    let materials = Material::from_gltf(&documents, &images)?;
+    let mut material_handles: HashMap<usize, Handle> = HashMap::default();
+    let mut meshes = Vec::with_capacity(geometry.len());
     let mut ctx = self.context.clone();
     {
       let ctx_lock = ctx
         .read().map_err(|e| anyhow!("{:?}", e))?;
       let mut mesh_loader = ctx_lock.meshes
         .write().map_err(|e| anyhow!("{:?}", e))?;
+      let mut material_loader = ctx_lock.materials.write()
+        .map_err(|e| anyhow!("{:?}", e))?;
+      for mat in materials {
+        let index = mat.index;
+        let handle = material_loader.insert(mat);
+        material_handles.insert(index, handle);
+      }
       for mesh_geom in geometry.into_iter() {
-        let mesh = Mesh::from_geometry(mesh_geom, &ctx_lock.device)?;
+        let mut mesh = Mesh::from_geometry(mesh_geom, &ctx_lock.device)?;
+        if let Some(material_idx) = mesh.geometry().gltf_mat_index {
+          mesh.set_material(material_handles.get(&material_idx).cloned());
+          dbg!(mesh.material());
+        }
         let handle = mesh_loader.insert(mesh);
         meshes.push(handle);
       }
-
     }
     {
       let mut ctx_lock = ctx.write()

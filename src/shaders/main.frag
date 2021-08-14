@@ -15,5 +15,5 @@ layout(set=1, binding=1) uniform sampler diffuse;
 
 void main() {
 
-    output_color= texture(sampler2D(diffuse_tex, diffuse), varying_uv_1);
+    output_color= texture(sampler2D(diffuse_tex, diffuse), varying_uv_0);
 }

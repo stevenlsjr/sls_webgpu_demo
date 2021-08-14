@@ -110,6 +110,7 @@ impl MultithreadedAssetLoaderQueue {
                 documents: &gltf::Document,
                 buffers: &[gltf::buffer::Data]) -> anyhow::Result<()> {
     let mut model = models.mut_ref(handle)?;
-    model.load_gltf_geometry(documents, buffers)
+    // model.load_from_gltf()
+    Ok(())
   }
 }

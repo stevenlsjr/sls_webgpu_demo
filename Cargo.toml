@@ -12,6 +12,9 @@ wgpu_renderer = ["wgpu"]
 wgpu_imgui = ["imgui", "imgui-wgpu", "wgpu_renderer"]
 opengl_renderer = ["glow"]
 
+# optimize certain packages in dev mode
+[profile.dev.package."image"]
+opt-level = 2
 
 
 
@@ -203,10 +206,10 @@ shaderc = "0.7"
 rayon = "1.5.1"
 crossbeam = "0.8.1"
 
-[dependencies.image]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.image]
 version = "^0.23"
-default-features = false
-features = ["gif", "jpeg", "ico", "png", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt", "dds", "farbfeld"]
+default-features = true
+#features = ["gif", "jpeg", "ico", "png", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt", "dds", "farbfeld"]
 
 
 [dependencies.sdl2]
