@@ -1,45 +1,46 @@
-use crate::{
-  error::Error,
-  game::{resources::Scene, GameState},
-};
-use anyhow::anyhow;
-
-use crate::window::AsWindow;
-
-use super::{
-  mesh::{Mesh, MeshGeometry},
-  uniforms::Uniforms,
-};
-use crate::renderer_common::{geometry::Vertex, RenderContext};
-
-use crate::{
-  game::components::{RenderModel, Transform3D},
-  renderer_common::{
-    allocator::{Handle, ResourceManager},
-    render_context::DrawModel,
-  },
-  wgpu::{BindGroupLayout, Device, PipelineLayout, TextureFormat},
-  wgpu_renderer::{
-    model::Model,
-    textures::{BindTexture, TextureResource},
-    ModelInstance,
-  },
-};
-use legion::query::ChunkView;
-use raw_window_handle::HasRawWindowHandle;
 use std::{
   fmt,
   fmt::Formatter,
   num::NonZeroU64,
   sync::{Arc, RwLock},
 };
+
+use anyhow::anyhow;
+use legion::query::ChunkView;
+use raw_window_handle::HasRawWindowHandle;
 use wgpu::{
-  util::{BufferInitDescriptor, DeviceExt},
-  BindGroup, BindGroupLayoutEntry, BufferDescriptor, BufferSize, BufferUsage, PrimitiveState,
-  RenderPass, RenderPipeline, Texture,
+  BindGroup,
+  BindGroupLayoutEntry, BufferDescriptor, BufferSize, BufferUsage, PrimitiveState, RenderPass,
+  RenderPipeline, Texture, util::{BufferInitDescriptor, DeviceExt},
 };
-use crate::wgpu_renderer::model::StreamingMesh;
+
+use crate::{
+  error::Error,
+  game::{GameState, resources::Scene},
+};
+use crate::{
+  game::components::{RenderModel, Transform3D},
+  renderer_common::{
+    allocator::ResourceManager,
+    render_context::DrawModel,
+  },
+  wgpu::{BindGroupLayout, Device, PipelineLayout, TextureFormat},
+  wgpu_renderer::{
+    model::Model,
+    ModelInstance,
+    textures::{BindTexture, TextureResource},
+  },
+};
+use crate::renderer_common::{geometry::Vertex, RenderContext};
+use crate::renderer_common::handle::HandleIndex;
 use crate::wgpu_renderer::material::Material;
+use crate::wgpu_renderer::model::StreamingMesh;
+use crate::window::AsWindow;
+
+use super::{
+  mesh::{Mesh, MeshGeometry},
+  uniforms::Uniforms,
+};
 
 pub struct Context {
   pub instance: wgpu::Instance,
@@ -54,15 +55,15 @@ pub struct Context {
   render_pipeline: wgpu::RenderPipeline,
   // scene resources
   mesh: Mesh,
-  pub meshes_to_draw: Vec<Handle>,
+  pub meshes_to_draw: Vec<HandleIndex>,
   uniforms: Uniforms,
   uniform_buffer: wgpu::Buffer,
 
   main_vert_shader: wgpu::ShaderModule,
   main_frag_shader: wgpu::ShaderModule,
 
-  pub main_tex_handle: Option<Handle>,
-  fallback_texture: Handle,
+  pub main_tex_handle: Option<HandleIndex>,
+  fallback_texture: HandleIndex,
   pub streaming_models: Arc<RwLock<ResourceManager<StreamingMesh>>>,
   pub materials: Arc<RwLock<ResourceManager<Material>>>,
   pub meshes: Arc<RwLock<ResourceManager<Mesh>>>,
@@ -119,139 +120,143 @@ impl Context {
       .map(|s| s.main_camera_components(&game.world()))
       .unwrap_or(Ok(None))
       .map_err(|error| anyhow!("error accessing camera {:?}", error))?;
-    match camera {
+    let camera = match camera {
       None => {
         log::warn!("no main camera found");
-        Ok(())
+        return Ok(());
       }
       Some(camera) => {
-        self.uniforms.update_from_camera(camera);
-        self.queue.write_buffer(
-          &self.uniform_buffer,
-          0,
-          bytemuck::cast_slice(&[self.uniforms]),
-        );
-
-        let frame = self
-          .swapchain
-          .get_current_frame()
-          .map_err(|e| anyhow!("swapchain error {:?}", e))?
-          .output;
-
-        let mut encoder = self
-          .device
-          .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Render Encoder"),
-          });
-        let mesh_allocator = self.meshes.read().unwrap();
-
-        {
-          let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("render pass"),
-            color_attachments: &[wgpu::RenderPassColorAttachment {
-              view: &frame.view,
-              resolve_target: None,
-              ops: wgpu::Operations {
-                load: wgpu::LoadOp::Clear(wgpu::Color {
-                  r: 0.1,
-                  g: 0.2,
-                  b: 0.3,
-                  a: 1.0,
-                }),
-                store: true,
-              },
-            }],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-              view: self.depth_stencil_texture.view(),
-              depth_ops: Some(wgpu::Operations {
-                load: wgpu::LoadOp::Clear(1.0),
-                store: true,
-              }),
-              stencil_ops: None,
-            }),
-          });
-
-          render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
-
-          render_pass.set_pipeline(&self.render_pipeline);
-          render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-          render_pass.set_bind_group(1, &self.diffuse_bind_group, &[]);
-
-          render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
-
-          if self.meshes_to_draw.len() > 0 {
-            for m in &self.meshes_to_draw {
-              let mesh = match mesh_allocator.get_ref(*m) {
-                Ok(e) => e,
-                Err(_) => continue,
-              };
-
-              render_pass.draw_model_instanced(mesh, 0..(self.n_instances as u32));
-            }
-          } else {
-            render_pass.draw_model_instanced(&self.mesh, 0..(self.n_instances as u32));
-          }
-        }
-        self.queue.submit(std::iter::once(encoder.finish()));
-        Ok(())
+        camera
       }
-    }
-  }
-  pub fn rebuild_render_pipeline(&mut self) {
-    self.pipeline_layout = create_pipeline_layout(
-      &self.device,
-      &self.uniform_bind_group_layout,
-      &self.texture_bind_group_layout,
+    };
+    self.uniforms.update_from_camera(camera);
+    self.queue.write_buffer(
+      &self.uniform_buffer,
+      0,
+      bytemuck::cast_slice(&[self.uniforms]),
     );
-    self.render_pipeline = create_render_pipeline(
-      &self.device,
-      &self.sc_desc,
-      &self.pipeline_layout,
-      &self.main_vert_shader,
-      &self.main_frag_shader,
-    );
-  }
-  /// get instance data from game state
-  fn update_instance_state(&mut self, game: &GameState) {
-    use legion::*;
-    let mut query = <(&Transform3D, &RenderModel)>::query();
-    let mut instances: Vec<ModelInstance> = Vec::with_capacity(10);
-    for item in query.iter(game.world()) {
-      let (xform, model): (&Transform3D, &RenderModel) = item;
-      if model.is_shown {
-        instances.push(xform.into());
-      }
-    }
-    let binding = self.instance_buffer.as_entire_buffer_binding();
-    let buffer_data: &[u8] = bytemuck::cast_slice(&instances);
-    if self.instance_buffer_view == buffer_data {
-      // if instances haven't changed, don't update buffers
-      return;
-    }
 
-    let old_buffer_size: usize = binding
-      .size
-      .unwrap_or(unsafe { NonZeroU64::new_unchecked(1) })
-      .get() as _;
-    if old_buffer_size < buffer_data.len() {
-      let new_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
-        label: Some("Instance Buffer"),
-        contents: buffer_data,
-        usage: BufferUsage::VERTEX | BufferUsage::COPY_DST,
+    let frame = self
+      .swapchain
+      .get_current_frame()
+      .map_err(|e| anyhow!("swapchain error {:?}", e))?
+      .output;
+
+    let mut encoder = self
+      .device
+      .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("Render Encoder"),
       });
-      self.instance_buffer = new_buffer;
-    } else {
-      self
-        .queue
-        .write_buffer(&self.instance_buffer, 0 as _, buffer_data);
-    }
+    let mesh_allocator = self.meshes.read().unwrap();
 
+    {
+      let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("render pass"),
+        color_attachments: &[wgpu::RenderPassColorAttachment {
+          view: &frame.view,
+          resolve_target: None,
+          ops: wgpu::Operations {
+            load: wgpu::LoadOp::Clear(wgpu::Color {
+              r: 0.1,
+              g: 0.2,
+              b: 0.3,
+              a: 1.0,
+            }),
+            store: true,
+          },
+        }],
+        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+          view: self.depth_stencil_texture.view(),
+          depth_ops: Some(wgpu::Operations {
+            load: wgpu::LoadOp::Clear(1.0),
+            store: true,
+          }),
+          stencil_ops: None,
+        }),
+      });
+
+      render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
+
+      render_pass.set_pipeline(&self.render_pipeline);
+      render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+      render_pass.set_bind_group(1, &self.diffuse_bind_group, &[]);
+
+      render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
+
+      if self.meshes_to_draw.len() > 0 {
+        for m in &self.meshes_to_draw {
+          let mesh = match mesh_allocator.get_ref(*m) {
+            Ok(e) => e,
+            Err(_) => continue,
+          };
+
+          render_pass.draw_model_instanced(mesh, 0..(self.n_instances as u32));
+        }
+      } else {
+        render_pass.draw_model_instanced(&self.mesh, 0..(self.n_instances as u32));
+      }
+    }
+    self.queue.submit(std::iter::once(encoder.finish()));
+    Ok(())
+  }
+}
+
+pub fn rebuild_render_pipeline(&mut self) {
+  self.pipeline_layout = create_pipeline_layout(
+    &self.device,
+    &self.uniform_bind_group_layout,
+    &self.texture_bind_group_layout,
+  );
+  self.render_pipeline = create_render_pipeline(
+    &self.device,
+    &self.sc_desc,
+    &self.pipeline_layout,
+    &self.main_vert_shader,
+    &self.main_frag_shader,
+  );
+}
+
+/// get instance data from game state
+fn update_instance_state(&mut self, game: &GameState) {
+  use legion::*;
+  let mut query = <(&Transform3D, &RenderModel)>::query();
+  let mut instances: Vec<ModelInstance> = Vec::with_capacity(10);
+  for item in query.iter(game.world()) {
+    let (xform, model): (&Transform3D, &RenderModel) = item;
+    if model.is_shown {
+      instances.push(xform.into());
+    }
+  }
+  let binding = self.instance_buffer.as_entire_buffer_binding();
+  let buffer_data: &[u8] = bytemuck::cast_slice(&instances);
+  if self.instance_buffer_view == buffer_data {
+    // if instances haven't changed, don't update buffers
+    return;
+  }
+
+  let old_buffer_size: usize = binding
+    .size
+    .unwrap_or(unsafe { NonZeroU64::new_unchecked(1) })
+    .get() as _;
+  if old_buffer_size < buffer_data.len() {
+    let new_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
+      label: Some("Instance Buffer"),
+      contents: buffer_data,
+      usage: BufferUsage::VERTEX | BufferUsage::COPY_DST,
+    });
+    self.instance_buffer = new_buffer;
+  } else {
     self
       .queue
-      .write_buffer(&self.instance_buffer, 0, &bytemuck::cast_slice(&instances));
-    self.n_instances = instances.len();
-    self.instance_buffer_view = buffer_data.iter().cloned().collect();
+      .write_buffer(&self.instance_buffer, 0 as _, buffer_data);
   }
+
+  self
+    .queue
+    .write_buffer(&self.instance_buffer, 0, &bytemuck::cast_slice(&instances));
+  self.n_instances = instances.len();
+  self.instance_buffer_view = buffer_data.iter().cloned().collect();
+}
 }
 
 pub struct Builder<'a, W: AsWindow + HasRawWindowHandle> {
@@ -262,9 +267,9 @@ pub struct Builder<'a, W: AsWindow + HasRawWindowHandle> {
 impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
   pub async fn build(self) -> Result<Context, Error> {
     #[cfg(not(target_os = "linux"))]
-    let backends = wgpu::BackendBit::all();
+      let backends = wgpu::BackendBit::all();
     #[cfg(target_os = "linux")]
-    let backends = wgpu::BackendBit::VULKAN;
+      let backends = wgpu::BackendBit::VULKAN;
 
     let instance = self
       .instance
@@ -504,7 +509,9 @@ impl RenderContext for Context {
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {
-  use super::*;
-  use crate::platform::html5::FromCanvas;
   use web_sys::HtmlCanvasElement;
+
+  use crate::platform::html5::FromCanvas;
+
+  use super::*;
 }

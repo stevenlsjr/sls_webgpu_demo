@@ -1,28 +1,30 @@
+use std::{
+  ops::DerefMut,
+  sync::{Arc, RwLock},
+  thread::spawn,
+  time::*,
+};
+use std::collections::HashMap;
+use std::sync::Weak;
+
+use crossbeam::channel::{Receiver, Sender, unbounded};
 use log::error;
+use rayon::{ThreadPool, ThreadPoolBuilder};
 use sdl2::{
   event::{Event, WindowEvent},
+  EventPump,
   keyboard::Keycode,
   video::Window,
-  EventPump,
 };
-
-use sls_webgpu::game::input::InputResource;
-
-use sls_webgpu::game::{CreateGameParams, GameState};
-
-use crossbeam::channel::{unbounded, Receiver, Sender};
-use sls_webgpu::platform::gui::DrawUi;
 
 use sls_webgpu::{
   anyhow::{self, anyhow},
-  game::resources::ScreenResolution,
-  gltf, image, imgui, imgui_wgpu,
+  Context,
+  game::resources::ScreenResolution, gltf, image, imgui,
+  imgui_wgpu,
   platform::sdl2_backend::ImguiSdlPlatform,
   wgpu_renderer::textures::{BindTexture, TextureResource},
-  Context,
 };
-
-use rayon::{ThreadPool, ThreadPoolBuilder};
 use sls_webgpu::{
   game::asset_loading::{
     asset_load_message::{AssetLoadedMessagePayload, AssetLoadedMessagePayload::GltfModel},
@@ -30,20 +32,15 @@ use sls_webgpu::{
   },
   gltf::{buffer::Data, Document, Error},
   platform::gui,
-  renderer_common::allocator::Handle,
   wgpu_renderer::mesh::{Mesh, MeshGeometry},
 };
-use std::{
-  ops::DerefMut,
-  sync::{Arc, RwLock},
-  thread::spawn,
-  time::*,
-};
-use sls_webgpu::wgpu_renderer::material::Material;
-use std::collections::HashMap;
-use sls_webgpu::wgpu_renderer::model::{Model, StreamingMesh};
-use std::sync::Weak;
+use sls_webgpu::game::{CreateGameParams, GameState};
+use sls_webgpu::game::input::InputResource;
+use sls_webgpu::platform::gui::DrawUi;
 use sls_webgpu::renderer_common::allocator::ResourceManager;
+use sls_webgpu::renderer_common::handle::HandleIndex;
+use sls_webgpu::wgpu_renderer::material::Material;
+use sls_webgpu::wgpu_renderer::model::{Model, StreamingMesh};
 
 pub struct App {
   pub(crate) context: Arc<RwLock<Context>>,
@@ -58,7 +55,7 @@ pub struct App {
   assets_loaded_sender: Sender<anyhow::Result<AssetLoadedMessagePayload>>,
   pub window: Window,
   models: Weak<RwLock<ResourceManager<StreamingMesh>>>,
-  demo_model_handle: Option<Handle>,
+  demo_model_handle: Option<HandleIndex>,
 }
 
 impl App {
@@ -375,7 +372,7 @@ impl App {
 
     let geometry = MeshGeometry::from_gltf_mesh(&mesh, &buffers)?;
     let materials = Material::from_gltf(&documents, &images)?;
-    let mut material_handles: HashMap<usize, Handle> = HashMap::default();
+    let mut material_handles: HashMap<usize, HandleIndex> = HashMap::default();
     let mut meshes = Vec::with_capacity(geometry.len());
     let mut ctx = self.context.clone();
     {

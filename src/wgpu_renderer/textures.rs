@@ -1,11 +1,21 @@
-use image::{DynamicImage, GenericImageView, ImageError};
 use std::num::NonZeroU32;
+
+use image::{DynamicImage, GenericImageView, ImageError};
 use thiserror::Error;
 use wasm_bindgen;
 use wgpu::{
   BindGroup, BindGroupDescriptor, BindGroupEntry, Device, Extent3d, Queue, Sampler, ShaderStage,
   SwapChainDescriptor, Texture, TextureSampleType, TextureView,
 };
+
+#[cfg(not(target_arch = "wasm32"))]
+pub use native::*;
+
+use crate::{
+  Context,
+  wgpu::{BindGroupLayout, BindingResource, FilterMode, TextureViewDimension},
+};
+use crate::renderer_common::handle::HandleIndex;
 
 pub const DEFAULT_TEX_JPEG: &[u8] = include_bytes!("../../assets/uv_grid_opengl.jpg");
 
@@ -197,7 +207,7 @@ pub fn create_texture_bind_group_layout(device: &Device) -> BindGroupLayout {
 }
 
 pub trait BindTexture {
-  fn bind_texture(&mut self, tex: Handle) -> Result<(), anyhow::Error>;
+  fn bind_texture(&mut self, tex: HandleIndex) -> Result<(), anyhow::Error>;
 }
 
 pub fn basic_texture_bind_group(
@@ -222,7 +232,7 @@ pub fn basic_texture_bind_group(
 }
 
 impl BindTexture for Context {
-  fn bind_texture(&mut self, tex_handle: Handle) -> Result<(), anyhow::Error> {
+  fn bind_texture(&mut self, tex_handle: HandleIndex) -> Result<(), anyhow::Error> {
     self.main_tex_handle = Some(tex_handle);
     let textures_arc = self.textures.clone();
     let textures = textures_arc
@@ -234,18 +244,11 @@ impl BindTexture for Context {
   }
 }
 
-use crate::{
-  renderer_common::allocator::Handle,
-  wgpu::{BindGroupLayout, BindingResource, FilterMode, TextureViewDimension},
-  Context,
-};
-#[cfg(not(target_arch = "wasm32"))]
-pub use native::*;
-
 #[cfg(not(target_arch = "wasm32"))]
 mod native {
-  use super::*;
   use std::path::Path;
+
+  use super::*;
 
   pub fn load_image_from_file<P: AsRef<Path>>(
     path: P,

@@ -1,7 +1,3 @@
-use crate::{
-  game::components::{RenderModel, Transform3D},
-  renderer_common::allocator::Handle,
-};
 use anyhow::anyhow;
 use legion::*;
 use rand::distributions::Uniform;
@@ -9,19 +5,25 @@ use rand::distributions::Uniform;
 #[cfg(feature = "wgpu_renderer")]
 pub use wgpu_renderer::*;
 
+use crate::game::components::{RenderModel, Transform3D};
+use crate::renderer_common::handle::HandleIndex;
+
 #[cfg(feature = "wgpu_renderer")]
 mod wgpu_renderer {
-  use super::*;
-  use crate::{
-    game::resources::MeshLookup,
-    wgpu_renderer::mesh::{Mesh, MeshGeometry},
-    Context,
-  };
-  use legion::systems::CommandBuffer;
   use std::{
     borrow::BorrowMut,
     sync::{Arc, RwLock},
   };
+
+  use legion::systems::CommandBuffer;
+
+  use crate::{
+    Context,
+    game::resources::MeshLookup,
+    wgpu_renderer::mesh::{Mesh, MeshGeometry},
+  };
+
+  use super::*;
 
   fn load_mesh_lookup<C: BorrowMut<Context>>(
     context: C,
@@ -66,7 +68,7 @@ mod wgpu_renderer {
   }
 }
 
-fn create_random_model(mesh_choices: &[Handle]) -> (RenderModel, Transform3D) {
+fn create_random_model(mesh_choices: &[HandleIndex]) -> (RenderModel, Transform3D) {
   use nalgebra_glm::*;
   use rand::{prelude::*, thread_rng};
   let mut rng = thread_rng();

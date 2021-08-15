@@ -1,10 +1,10 @@
-use crate::renderer_common::allocator::Handle;
+use crate::renderer_common::handle::HandleIndex;
 use std::{borrow::Cow, sync::Arc};
 
 /// Loads a single gltf
 pub struct RenderGltfMesh {
   path: String,
-  task_handle: Handle,
-  meshes: Option<Vec<Handle>>,
+  task_handle: HandleIndex,
+  meshes: Option<Vec<HandleIndex>>,
   mesh_index: usize,
 }

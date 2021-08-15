@@ -14,6 +14,6 @@ mod native {
     },
   };
   use smallvec::SmallVec;
-  use crate::renderer_common::allocator::Handle;
+  use crate::renderer_common::handle::HandleIndex;
 
 }

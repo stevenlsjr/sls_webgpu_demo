@@ -5,13 +5,13 @@ use gltf::Document;
 use std::iter::Zip;
 use crate::anyhow::Error;
 use std::collections::HashMap;
-use crate::renderer_common::allocator::Handle;
+use crate::renderer_common::handle::HandleIndex;
 use crate::wgpu_renderer::Context;
 
 #[derive(Debug)]
 pub struct Model {
-  pub meshes: Vec<Handle>,
-  pub materials: HashMap<usize, Handle>,
+  pub meshes: Vec<HandleIndex>,
+  pub materials: HashMap<usize, HandleIndex>,
   pub load_state: ModelLoadState,
 }
 
@@ -45,8 +45,8 @@ pub struct StreamingMesh {
   pub(crate) path: String,
   pub(crate) mesh_index: usize,
   pub(crate) state: ModelLoadState,
-  pub(crate) primitives: Vec<Handle>,
-  pub(crate) material_handles: HashMap<usize, Handle>,
+  pub(crate) primitives: Vec<HandleIndex>,
+  pub(crate) material_handles: HashMap<usize, HandleIndex>,
 }
 
 impl StreamingMesh {}
@@ -66,11 +66,11 @@ impl StreamingMesh {
     &self.state
   }
   #[inline]
-  pub fn primitives(&self) -> &Vec<Handle> {
+  pub fn primitives(&self) -> &Vec<HandleIndex> {
     &self.primitives
   }
   #[inline]
-  pub fn material_handles(&self) -> &HashMap<usize, Handle> {
+  pub fn material_handles(&self) -> &HashMap<usize, HandleIndex> {
     &self.material_handles
   }
   #[inline]
@@ -86,11 +86,11 @@ impl StreamingMesh {
     self.state = state;
   }
   #[inline]
-  pub fn primitives_mut(&mut self) -> &mut Vec<Handle> {
+  pub fn primitives_mut(&mut self) -> &mut Vec<HandleIndex> {
     &mut self.primitives
   }
   #[inline]
-  pub fn material_handles_mut(&mut self) -> &mut HashMap<usize, Handle> {
+  pub fn material_handles_mut(&mut self) -> &mut HashMap<usize, HandleIndex> {
     &mut self.material_handles
   }
 }
@@ -119,8 +119,8 @@ impl StreamingMesh {
 
     let geometry = MeshGeometry::from_gltf_mesh(&mesh, &buffers)?;
     let materials = Material::from_gltf(&document, &images)?;
-    let mut material_handles: HashMap<usize, Handle> = HashMap::default();
-    let mut meshes: Vec<Handle> = Vec::with_capacity(geometry.len());
+    let mut material_handles: HashMap<usize, HandleIndex> = HashMap::default();
+    let mut meshes: Vec<HandleIndex> = Vec::with_capacity(geometry.len());
     {
 
       let mut mesh_loader = context.meshes

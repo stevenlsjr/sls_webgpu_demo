@@ -1,8 +1,11 @@
-use crate::{camera::Camera, renderer_common::allocator::Handle};
-use nalgebra_glm::*;
+use std::sync::{Arc, RwLock, Weak};
 use std::time::Duration;
-use std::sync::{Weak, RwLock, Arc};
+
+use nalgebra_glm::*;
+
+use crate::camera::Camera;
 use crate::renderer_common::allocator::ResourceManager;
+use crate::renderer_common::handle::HandleIndex;
 use crate::wgpu_renderer::model::StreamingMesh;
 
 #[derive(Clone, Default, Debug)]
@@ -39,12 +42,12 @@ impl Transform3D {
 
 #[derive(Debug, Default, Clone)]
 pub struct RenderModel {
-  pub mesh: Option<Handle>,
+  pub mesh: Option<HandleIndex>,
   pub is_shown: bool,
 }
 
 impl RenderModel {
-  pub fn new(handle: Option<Handle>,
+  pub fn new(handle: Option<HandleIndex>,
              is_shown: bool) -> Self {
     Self {
       is_shown,

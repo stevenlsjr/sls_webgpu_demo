@@ -1,32 +1,36 @@
-use super::asset_load_message::AssetLoadedMessage;
-#[cfg(feature = "wgpu_renderer")]
-use crate::wgpu_renderer::Context;
-use crate::{
-  anyhow::Error,
-  game::{
-    asset_loading::{
-      asset_load_message::{AssetLoadRequest, AssetLoadedMessagePayload},
-      resources::AssetLoaderQueue,
-    },
-    GameState,
-  },
-  renderer_common::allocator::{Handle, ResourceManager, SparseArrayAllocator},
-};
-use anyhow::anyhow;
-use crossbeam::channel::{unbounded, Receiver, Sender, TryIter};
 use std::{
   path::Path,
   sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc, RwLock,
+    Arc,
+    atomic::{AtomicUsize, Ordering}, RwLock,
   },
   thread::spawn,
 };
 use std::borrow::BorrowMut;
-use crate::wgpu_renderer::model::{StreamingMesh, ModelLoadState};
 use std::sync::RwLockWriteGuard;
 
-type ChannelType = (Handle, anyhow::Result<AssetLoadedMessage>);
+use anyhow::anyhow;
+use crossbeam::channel::{Receiver, Sender, TryIter, unbounded};
+
+use crate::{
+  anyhow::Error,
+  game::{
+    asset_loading::{
+      asset_load_message::{AssetLoadedMessagePayload, AssetLoadRequest},
+      resources::AssetLoaderQueue,
+    },
+    GameState,
+  },
+  renderer_common::allocator::{ResourceManager, SparseArrayAllocator},
+};
+use crate::renderer_common::handle::HandleIndex;
+#[cfg(feature = "wgpu_renderer")]
+use crate::wgpu_renderer::Context;
+use crate::wgpu_renderer::model::{ModelLoadState, StreamingMesh};
+
+use super::asset_load_message::AssetLoadedMessage;
+
+type ChannelType = (HandleIndex, anyhow::Result<AssetLoadedMessage>);
 
 pub struct MultithreadedAssetLoaderQueue {
   sender: Sender<ChannelType>,
@@ -106,7 +110,7 @@ impl MultithreadedAssetLoaderQueue {
     Ok(())
   }
 
-  fn load_model(&self, models: &mut ResourceManager<StreamingMesh>, handle: Handle,
+  fn load_model(&self, models: &mut ResourceManager<StreamingMesh>, handle: HandleIndex,
                 documents: &gltf::Document,
                 buffers: &[gltf::buffer::Data]) -> anyhow::Result<()> {
     let mut model = models.mut_ref(handle)?;

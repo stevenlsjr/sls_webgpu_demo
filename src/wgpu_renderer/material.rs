@@ -3,7 +3,7 @@ use crate::image::RgbImage;
 use crate::nalgebra_glm::{Vec4, vec4, vec3, Vec3};
 use crate::gltf::Image;
 use crate::gltf::image::{Source, Format};
-use crate::renderer_common::allocator::Handle;
+use crate::renderer_common::handle::HandleIndex;
 
 
 #[derive(Debug, Copy, Clone)]
@@ -40,7 +40,7 @@ pub struct TextureInfoData {
   pub sampler: Sampler,
   pub index: usize,
   pub scale_or_strength: f32,
-  pub texture_resource_handle: Option<Handle>
+  pub texture_resource_handle: Option<HandleIndex>
 }
 
 #[derive(Debug)]

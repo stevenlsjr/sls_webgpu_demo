@@ -1,6 +1,6 @@
 mod gltf_loader;
 
-use sls_webgpu::renderer_common::allocator::Handle;
+use sls_webgpu::renderer_common::handle::HandleIndex;
 
 struct Suite {}
 fn setup() -> Suite {
@@ -8,17 +8,17 @@ fn setup() -> Suite {
 }
 
 struct FakeTexture {
-  handle: Handle,
+  handle: HandleIndex,
   name: String,
 }
 
 #[test]
 fn test_handle() {
   let cases = &[
-    (1, 4, Handle::new(1, 4)),
-    (100, 2222, Handle::new(100, 2222)),
-    (36277, 3143, Handle::new(36277, 3143)),
-    (4917, 381, Handle::new(4917, 381)),
+    (1, 4, HandleIndex::new(1, 4)),
+    (100, 2222, HandleIndex::new(100, 2222)),
+    (36277, 3143, HandleIndex::new(36277, 3143)),
+    (4917, 381, HandleIndex::new(4917, 381)),
   ];
   for (i, &(index, generation, handle)) in cases.iter().enumerate() {
     assert_eq!(index, handle.index(), "index() failed on case {}", i);

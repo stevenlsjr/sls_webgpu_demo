@@ -1,11 +1,13 @@
+use std::collections::HashMap;
+
+use legion::*;
+
 use crate::{
   camera::Camera,
   game::components::{RenderModel, Transform3D},
-  nalgebra_glm::{vec3, TVec2, Vec3},
-  renderer_common::allocator::Handle,
+  nalgebra_glm::{TVec2, vec3, Vec3},
 };
-use legion::*;
-use std::collections::HashMap;
+use crate::renderer_common::handle::HandleIndex;
 
 #[derive(Clone, Debug, Default)]
 pub struct Scene {
@@ -97,4 +99,4 @@ impl ScreenResolution {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct MeshLookup(pub HashMap<String, Handle>);
+pub struct MeshLookup(pub HashMap<String, HandleIndex>);

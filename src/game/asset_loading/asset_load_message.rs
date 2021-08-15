@@ -1,8 +1,8 @@
-use crate::renderer_common::allocator::Handle;
+use crate::renderer_common::handle::HandleIndex;
 use std::fmt;
 
 pub enum AssetLoadRequest {
-  GltfModel { path: String, model_id: Handle },
+  GltfModel { path: String, model_id: HandleIndex },
 }
 
 #[derive(Clone)]
@@ -32,11 +32,11 @@ impl fmt::Debug for AssetLoadedMessagePayload {
 #[derive(Clone, Debug)]
 pub struct AssetLoadedMessage {
   pub payload: AssetLoadedMessagePayload,
-  pub id: Handle,
+  pub id: HandleIndex,
 }
 
 impl AssetLoadedMessage {
-  pub fn new(id: Handle, payload: AssetLoadedMessagePayload) -> Self {
+  pub fn new(id: HandleIndex, payload: AssetLoadedMessagePayload) -> Self {
     Self { id, payload }
   }
 }
