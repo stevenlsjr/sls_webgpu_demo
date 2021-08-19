@@ -7,13 +7,14 @@ use genmesh::{
   Indexer, LruIndexer, MapToVertices, Triangulate, Vertices,
 };
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
-use crate::renderer_common::handle::HandleIndex;
+use crate::renderer_common::handle::{HandleIndex, Handle};
+use crate::wgpu_renderer::material::Material;
 
 #[derive(Debug)]
 pub struct Mesh {
   geometry: MeshGeometry,
   buffers: Option<MeshBuffers>,
-  material: Option<HandleIndex>,
+  material: Option<Handle<Material>>,
 }
 
 impl Mesh {
@@ -48,9 +49,9 @@ impl Mesh {
   }
 
   #[inline]
-  pub fn material(&self) -> Option<HandleIndex> { self.material }
+  pub fn material(&self) -> Option<Handle<Material>> { self.material }
   #[inline]
-  pub fn set_material(&mut self, handle: Option<HandleIndex>) { self.material = handle }
+  pub fn set_material(&mut self, handle: Option<Handle<Material>>) { self.material = handle }
 }
 
 #[derive(Debug)]

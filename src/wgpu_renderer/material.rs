@@ -3,7 +3,13 @@ use crate::image::RgbImage;
 use crate::nalgebra_glm::{Vec4, vec4, vec3, Vec3};
 use crate::gltf::Image;
 use crate::gltf::image::{Source, Format};
-use crate::renderer_common::handle::HandleIndex;
+use crate::renderer_common::handle::{HandleIndex, Handle};
+use crate::Context;
+use crate::wgpu_renderer::textures::TextureResource;
+use crate::wgpu::{Queue, Device, BindingResource, BindGroup};
+use crate::wgpu_renderer::resource_view::ReadWriteResources;
+use crate::renderer_common::allocator::ResourceManager;
+use wgpu::{BindGroupLayout, BindGroupDescriptor, BindGroupEntry};
 
 
 #[derive(Debug, Copy, Clone)]
@@ -34,14 +40,34 @@ impl Sampler {
 
 #[derive(Debug)]
 pub struct TextureInfoData {
-  pub rgba: RgbaImage,
+  pub rgba: Option<DynamicImage>,
   pub tex_coord_index: u32,
   pub name: Option<String>,
   pub sampler: Sampler,
   pub index: usize,
   pub scale_or_strength: f32,
-  pub texture_resource_handle: Option<HandleIndex>
+  pub texture_resource_handle: Option<Handle<TextureResource>>,
 }
+
+impl TextureInfoData {
+  pub fn load_texture(&mut self,
+                      textures: &mut ResourceManager<TextureResource>,
+                      queue: &Queue,
+                      device: &Device) -> anyhow::Result<()> {
+    match (self.texture_resource_handle, self.rgba.as_ref()) {
+      (Some(handle), _) => Ok(()),
+      (None, Some(rbga)) => {
+        let texture = TextureResource::from_image(&rbga,
+                                                  queue, device)?;
+        let texture_handle = textures.insert(texture);
+        self.texture_resource_handle = Some(texture_handle);
+        Ok(())
+      }
+      (None, None) => anyhow::bail!("rgba data is missing!")
+    }
+  }
+}
+
 
 #[derive(Debug)]
 pub struct Material {
@@ -132,6 +158,7 @@ impl Material {
       transmission_tex: None,
       emissive_factor: material.emissive_factor().into(),
       emissive_tex: None,
+      ..Default::default()
     };
     // if let Some(tx) = material.transmission() {
     //   new_mat.transmission_factor = tx.transmission_factor();
@@ -144,13 +171,13 @@ impl Material {
     if let Some(occlusion) = material.occlusion_texture() {
       let tex = occlusion.texture();
       new_mat.occlusion_tex = Some(TextureInfoData {
-        rgba: rgba_from_texture(&tex, images)?,
+        rgba: Some(rgba_from_texture(&tex, images)?),
         tex_coord_index: occlusion.tex_coord(),
         name: tex.name().map(&str::to_owned),
         sampler: Sampler::from_gltf(&tex.sampler()),
         index: tex.index(),
         scale_or_strength: occlusion.strength(),
-        texture_resource_handle: None
+        texture_resource_handle: None,
       });
     }
 
@@ -158,19 +185,20 @@ impl Material {
     if let Some(normal) = material.normal_texture() {
       let tex = normal.texture();
       new_mat.occlusion_tex = Some(TextureInfoData {
-        rgba: rgba_from_texture(&tex, images)?,
+        rgba: Some(rgba_from_texture(&tex, images)?),
         tex_coord_index: normal.tex_coord(),
         name: tex.name().map(&str::to_owned),
         sampler: Sampler::from_gltf(&tex.sampler()),
         index: tex.index(),
         scale_or_strength: normal.scale(),
-        texture_resource_handle: None
+        texture_resource_handle: None,
       });
     }
 
     Ok(new_mat)
   }
 }
+
 
 fn texture_from_info(info: Option<&gltf::texture::Info>,
                      images: &[gltf::image::Data]) -> anyhow::Result<Option<TextureInfoData>> {
@@ -186,20 +214,20 @@ fn texture_from_info(info: Option<&gltf::texture::Info>,
 
       let sampler = Sampler {};
       Ok(Some(TextureInfoData {
-        rgba,
+        rgba: Some(rgba),
         index,
         tex_coord_index,
         name,
         sampler: Sampler::from_gltf(&tex.sampler()),
         scale_or_strength: 0.0,
-        texture_resource_handle: None
+        texture_resource_handle: None,
       }))
     }
   }
 }
 
 fn rgba_from_texture(tex: &gltf::Texture, images: &[gltf::image::Data])
-                     -> anyhow::Result<RgbaImage> {
+                     -> anyhow::Result<DynamicImage> {
   let img_index = tex.source().index();
   if img_index > images.len() {
     anyhow::bail!("image index {} exceded images loaded {}", img_index, images.len());
@@ -237,5 +265,69 @@ fn rgba_from_texture(tex: &gltf::Texture, images: &[gltf::image::Data])
     // Format::R16G16B16 => {None}
     // Format::R16G16B16A16 => {None}
   }.ok_or_else(|| anyhow::anyhow!("could not create image buffer for image"))?;
-  Ok(dyn_image.into_rgba8())
+  Ok(dyn_image)
+}
+
+
+#[derive(Debug)]
+pub struct WgpuMaterial {
+  pub double_sided: bool,
+  pub index: usize,
+  pub name: Option<String>,
+  ///
+  ///
+  pub alpha_cutoff: Option<f32>,
+  pub alpha_mode: AlphaMode,
+  pub albedo_factor: Vec4,
+  pub albedo_tex: Option<Handle<TextureResource>>,
+
+  pub normal_tex: Option<Handle<TextureResource>>,
+  pub metallic_factor: f32,
+  pub roughness_factor: f32,
+  pub metallic_roughness_tex: Option<Handle<TextureResource>>,
+
+  pub occlusion_tex: Option<Handle<TextureResource>>,
+
+  /// index of reflection
+  pub ior: Option<f32>,
+  pub transmission_factor: Option<f32>,
+  pub transmission_tex: Option<Handle<TextureResource>>,
+
+  pub emissive_factor: Vec3,
+  pub emissive_tex: Option<Handle<TextureResource>>,
+
+  pub bind_group: Handle<TextureResource>,
+}
+
+impl WgpuMaterial {
+  pub fn from_material(material: &Material,
+                       queue: &Queue,
+                       device: &Device,
+                       bind_group_layout: &BindGroupLayout,
+                       textures: &mut ResourceManager<TextureResource>,
+  ) -> anyhow::Result<Self> {
+    let texture_infos = &[
+      &material.albedo_tex,
+      // &material.metallic_roughness_tex,
+      // &material.transmission_tex,
+      // &material.emissive_tex,
+      // &material.occlusion_tex,
+      // &material.normal_tex
+    ];
+    let mut texture_handles: [Option<Handle<TextureResource>>; 1] = [None; 1];
+    for (i, &info_opt) in texture_infos.iter().enumerate() {
+      let get_tex = info_opt
+        .as_ref()
+        .map(|info| (info, &info.rgba));
+      match get_tex {
+        Some((info, Some(rgba))) => {
+          let resource = TextureResource::from_image(rgba, queue, device)?;
+          let handle = textures.insert(resource);
+          texture_handles[i] = Some(handle);
+        }
+        _ => ()
+      }
+    }
+    todo!()
+  }
 }

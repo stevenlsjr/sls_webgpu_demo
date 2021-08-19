@@ -15,7 +15,7 @@ use crate::{
   Context,
   wgpu::{BindGroupLayout, BindingResource, FilterMode, TextureViewDimension},
 };
-use crate::renderer_common::handle::HandleIndex;
+use crate::renderer_common::handle::{HandleIndex, Handle};
 
 pub const DEFAULT_TEX_JPEG: &[u8] = include_bytes!("../../assets/uv_grid_opengl.jpg");
 
@@ -40,7 +40,7 @@ impl TextureResource {
   pub const DEPTH_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
   pub fn from_image(
-    img: DynamicImage,
+    img: &DynamicImage,
     queue: &Queue,
     device: &Device,
   ) -> Result<Self, TextureError> {
@@ -139,7 +139,7 @@ impl TextureResource {
 }
 
 pub fn load_texture_from_image(
-  img: image::DynamicImage,
+  img: &image::DynamicImage,
   queue: &Queue,
   device: &Device,
 ) -> Result<Texture, TextureError> {
@@ -233,6 +233,7 @@ pub fn basic_texture_bind_group(
 
 impl BindTexture for Context {
   fn bind_texture(&mut self, tex_handle: HandleIndex) -> Result<(), anyhow::Error> {
+    let tex_handle: Handle<TextureResource> = tex_handle.into_typed();
     self.main_tex_handle = Some(tex_handle);
     let textures_arc = self.textures.clone();
     let textures = textures_arc
@@ -256,7 +257,7 @@ mod native {
     device: &Device,
   ) -> Result<Texture, TextureError> {
     let img = image::open(path)?;
-    let texture = load_texture_from_image(img, queue, device)?;
+    let texture = load_texture_from_image(&img, queue, device)?;
     Ok(texture)
   }
 }

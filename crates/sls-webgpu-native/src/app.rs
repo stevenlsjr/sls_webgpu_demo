@@ -38,7 +38,7 @@ use sls_webgpu::game::{CreateGameParams, GameState};
 use sls_webgpu::game::input::InputResource;
 use sls_webgpu::platform::gui::DrawUi;
 use sls_webgpu::renderer_common::allocator::ResourceManager;
-use sls_webgpu::renderer_common::handle::HandleIndex;
+use sls_webgpu::renderer_common::handle::{HandleIndex, Handle};
 use sls_webgpu::wgpu_renderer::material::Material;
 use sls_webgpu::wgpu_renderer::model::{Model, StreamingMesh};
 
@@ -290,7 +290,7 @@ impl App {
       );
       meshes.insert(mesh)
     };
-    self.demo_model_handle = Some(mesh);
+    self.demo_model_handle = Some(*mesh);
 
     spawn(move || {
       let result = gltf::import("assets/Avocado.glb")
@@ -340,7 +340,7 @@ impl App {
           let mut model_lock = model_resources.write().unwrap();
 
           let mut model_resource = match model_lock.mut_ref(
-            model_handle
+            model_handle.into_typed()
           ) {
             Ok(m) => m,
             Err(e) => {
@@ -353,57 +353,10 @@ impl App {
           if let Err(e) = model_resource.load_from_gltf(&mut ctx, documents, buffers, images) {
             log::error!("model load failed: {:?}", e);
           }
+          ctx.models_to_draw = vec![model_handle.into_typed()];
         }
       }
     };
-  }
-  fn load_chair_model(
-    &self,
-    documents: Document,
-    buffers: Vec<gltf::buffer::Data>,
-    images: Vec<gltf::image::Data>,
-  ) -> anyhow::Result<()> {
-    // GltfModel
-
-    let mesh = documents
-      .meshes()
-      .nth(0)
-      .ok_or(anyhow!("Document does not have a mesh"))?;
-
-    let geometry = MeshGeometry::from_gltf_mesh(&mesh, &buffers)?;
-    let materials = Material::from_gltf(&documents, &images)?;
-    let mut material_handles: HashMap<usize, HandleIndex> = HashMap::default();
-    let mut meshes = Vec::with_capacity(geometry.len());
-    let mut ctx = self.context.clone();
-    {
-      let ctx_lock = ctx
-        .read().map_err(|e| anyhow!("{:?}", e))?;
-      let mut mesh_loader = ctx_lock.meshes
-        .write().map_err(|e| anyhow!("{:?}", e))?;
-      let mut material_loader = ctx_lock.materials.write()
-        .map_err(|e| anyhow!("{:?}", e))?;
-      for mat in materials {
-        let index = mat.index;
-        let handle = material_loader.insert(mat);
-        material_handles.insert(index, handle);
-      }
-      for mesh_geom in geometry.into_iter() {
-        let mut mesh = Mesh::from_geometry(mesh_geom, &ctx_lock.device)?;
-        if let Some(material_idx) = mesh.geometry().gltf_mat_index {
-          mesh.set_material(material_handles.get(&material_idx).cloned());
-          dbg!(mesh.material());
-        }
-        let handle = mesh_loader.insert(mesh);
-        meshes.push(handle);
-      }
-    }
-    {
-      let mut ctx_lock = ctx.write()
-        .map_err(|e| anyhow!("{:?}", e))?;
-      ctx_lock.meshes_to_draw = meshes;
-    }
-
-    Ok(())
   }
 }
 

@@ -1,10 +1,8 @@
-use std::sync::{Arc, RwLock, Weak};
 use std::time::Duration;
 
 use nalgebra_glm::*;
 
 use crate::camera::Camera;
-use crate::renderer_common::allocator::ResourceManager;
 use crate::renderer_common::handle::HandleIndex;
 use crate::wgpu_renderer::model::StreamingMesh;
 

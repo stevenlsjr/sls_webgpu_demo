@@ -6,6 +6,7 @@ use super::handle::{GENERATION_MAX_SIZE, HandleIndex, HANDLE_INDEX_MASK};
 use crate::renderer_common::sparse_array_allocator::AlreadyFreedError;
 
 pub use super::sparse_array_allocator::SparseArrayAllocator;
+use crate::renderer_common::handle::Handle;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum AllocatorError {
@@ -66,7 +67,7 @@ impl<T: Sized> ResourceManager<T> {
   /// ```
   ///
   /// ```
-  pub fn insert(&mut self, value: T) -> HandleIndex {
+  pub fn insert(&mut self, value: T) -> Handle<T> {
     self.incr_generation();
     let value_index = self.resources.allocate(value);
     assert_handle_index_size(value_index);
@@ -74,10 +75,10 @@ impl<T: Sized> ResourceManager<T> {
     let value_handle = HandleIndex::new(value_index as u32, self.generation_count as _);
     let resource_index_index = self.resource_index.allocate(value_handle);
     assert_handle_index_size(resource_index_index);
-    HandleIndex::new(resource_index_index as _, self.generation_count as _)
+    HandleIndex::new(resource_index_index as _, self.generation_count as _).into_typed()
   }
 
-  pub fn get_ref(&self, handle: HandleIndex) -> Result<&T, AllocatorError> {
+  pub fn get_ref(&self, handle: Handle<T>) -> Result<&T, AllocatorError> {
     match self.resource_index.get_ref(handle.index() as _) {
       None => Err(AllocatorError::NotFound),
       Some(handle_to_resource) => {
@@ -112,7 +113,7 @@ impl<T: Sized> ResourceManager<T> {
   /// }
   /// assert_eq!(mgr.get_ref(handle), Ok(&1));
   /// ```
-  pub fn mut_ref(&mut self, handle: HandleIndex) -> Result<&mut T, AllocatorError> {
+  pub fn mut_ref(&mut self, handle: Handle<T>) -> Result<&mut T, AllocatorError> {
     match self.resource_index.get_ref(handle.index() as _) {
       None => Err(AllocatorError::NotFound),
       Some(handle_to_resource) => {
@@ -200,7 +201,7 @@ impl<T: Sized> ResourceManager<T> {
   /// assert_eq!(al.remove(handle_a), Err(AlreadyFreedError));
   ///
   /// ```
-  pub fn remove(&mut self, handle: HandleIndex) -> Result<T, AlreadyFreedError> {
+  pub fn remove(&mut self, handle: Handle<T>) -> Result<T, AlreadyFreedError> {
     let resource_handle = self.get_resource_handle(handle)?;
     let val = self.resources.free(resource_handle.index() as _)?;
     self.resource_index.free(handle.index() as _)?;
@@ -218,7 +219,7 @@ impl<T: Sized> ResourceManager<T> {
   /// Given the public index handle, returns the internal handle to the
   /// actual resource. If the handle's generation does not match, return
   /// an AlreadyFreedError
-  fn get_resource_handle(&self, index_handle: HandleIndex) -> Result<HandleIndex, AlreadyFreedError> {
+  fn get_resource_handle(&self, index_handle: Handle<T>) -> Result<HandleIndex, AlreadyFreedError> {
     let resource_handle = self
       .resource_index
       .get_ref(index_handle.index() as _)

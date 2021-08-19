@@ -51,13 +51,13 @@ mod wgpu_renderer {
         let sphere = Mesh::from_geometry(MeshGeometry::unit_sphere(30, 30), &context.device)?;
         let sphere = meshes.insert(sphere);
 
-        mesh_lookup.0.insert("sphere".to_owned(), sphere);
-        mesh_lookup.0.insert("cube".to_owned(), cube);
+        mesh_lookup.0.insert("sphere".to_owned(), *sphere);
+        mesh_lookup.0.insert("cube".to_owned(), *cube);
 
-        let mesh_choices = [cube, sphere];
+        let mesh_choices = &[cube.to_index(), sphere.to_index()];
         let n_models = 10usize;
         for i in 0..n_models {
-          let components = create_random_model(&mesh_choices);
+          let components = create_random_model(mesh_choices);
           cmd.push(components);
         }
         Ok(())

@@ -32,7 +32,7 @@ use crate::{
   },
 };
 use crate::renderer_common::{geometry::Vertex, RenderContext};
-use crate::renderer_common::handle::HandleIndex;
+use crate::renderer_common::handle::{HandleIndex, Handle};
 use crate::wgpu_renderer::material::Material;
 use crate::wgpu_renderer::model::StreamingMesh;
 use crate::window::AsWindow;
@@ -55,15 +55,15 @@ pub struct Context {
   render_pipeline: wgpu::RenderPipeline,
   // scene resources
   mesh: Mesh,
-  pub meshes_to_draw: Vec<HandleIndex>,
+  pub models_to_draw: Vec<Handle<StreamingMesh>>,
   uniforms: Uniforms,
   uniform_buffer: wgpu::Buffer,
 
   main_vert_shader: wgpu::ShaderModule,
   main_frag_shader: wgpu::ShaderModule,
 
-  pub main_tex_handle: Option<HandleIndex>,
-  fallback_texture: HandleIndex,
+  pub main_tex_handle: Option<Handle<TextureResource>>,
+  fallback_texture: Handle<TextureResource>,
   pub streaming_models: Arc<RwLock<ResourceManager<StreamingMesh>>>,
   pub materials: Arc<RwLock<ResourceManager<Material>>>,
   pub meshes: Arc<RwLock<ResourceManager<Mesh>>>,
@@ -148,6 +148,7 @@ impl Context {
         label: Some("Render Encoder"),
       });
     let mesh_allocator = self.meshes.read().unwrap();
+    let model_allocator = self.streaming_models.read().unwrap();
 
     {
       let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -183,14 +184,17 @@ impl Context {
 
       render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
 
-      if self.meshes_to_draw.len() > 0 {
-        for m in &self.meshes_to_draw {
-          let mesh = match mesh_allocator.get_ref(*m) {
+      if self.models_to_draw.len() > 0 {
+        for m in &self.models_to_draw {
+          let model = match model_allocator.get_ref(m.into_typed()) {
             Ok(e) => e,
             Err(_) => continue,
           };
-
-          render_pass.draw_model_instanced(mesh, 0..(self.n_instances as u32));
+          for mesh in model.mesh_refs(&*mesh_allocator) {
+            if let Some(mesh) = mesh {
+              render_pass.draw_model_instanced(mesh, 0..(self.n_instances as u32));
+            }
+          }
         }
       } else {
         render_pass.draw_model_instanced(&self.mesh, 0..(self.n_instances as u32));
@@ -199,64 +203,63 @@ impl Context {
     self.queue.submit(std::iter::once(encoder.finish()));
     Ok(())
   }
-}
 
-pub fn rebuild_render_pipeline(&mut self) {
-  self.pipeline_layout = create_pipeline_layout(
-    &self.device,
-    &self.uniform_bind_group_layout,
-    &self.texture_bind_group_layout,
-  );
-  self.render_pipeline = create_render_pipeline(
-    &self.device,
-    &self.sc_desc,
-    &self.pipeline_layout,
-    &self.main_vert_shader,
-    &self.main_frag_shader,
-  );
-}
+  pub fn rebuild_render_pipeline(&mut self) {
+    self.pipeline_layout = create_pipeline_layout(
+      &self.device,
+      &self.uniform_bind_group_layout,
+      &self.texture_bind_group_layout,
+    );
+    self.render_pipeline = create_render_pipeline(
+      &self.device,
+      &self.sc_desc,
+      &self.pipeline_layout,
+      &self.main_vert_shader,
+      &self.main_frag_shader,
+    );
+  }
 
-/// get instance data from game state
-fn update_instance_state(&mut self, game: &GameState) {
-  use legion::*;
-  let mut query = <(&Transform3D, &RenderModel)>::query();
-  let mut instances: Vec<ModelInstance> = Vec::with_capacity(10);
-  for item in query.iter(game.world()) {
-    let (xform, model): (&Transform3D, &RenderModel) = item;
-    if model.is_shown {
-      instances.push(xform.into());
+  /// get instance data from game state
+  fn update_instance_state(&mut self, game: &GameState) {
+    use legion::*;
+    let mut query = <(&Transform3D, &RenderModel)>::query();
+    let mut instances: Vec<ModelInstance> = Vec::with_capacity(10);
+    for item in query.iter(game.world()) {
+      let (xform, model): (&Transform3D, &RenderModel) = item;
+      if model.is_shown {
+        instances.push(xform.into());
+      }
     }
-  }
-  let binding = self.instance_buffer.as_entire_buffer_binding();
-  let buffer_data: &[u8] = bytemuck::cast_slice(&instances);
-  if self.instance_buffer_view == buffer_data {
-    // if instances haven't changed, don't update buffers
-    return;
-  }
+    let binding = self.instance_buffer.as_entire_buffer_binding();
+    let buffer_data: &[u8] = bytemuck::cast_slice(&instances);
+    if self.instance_buffer_view == buffer_data {
+      // if instances haven't changed, don't update buffers
+      return;
+    }
 
-  let old_buffer_size: usize = binding
-    .size
-    .unwrap_or(unsafe { NonZeroU64::new_unchecked(1) })
-    .get() as _;
-  if old_buffer_size < buffer_data.len() {
-    let new_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
-      label: Some("Instance Buffer"),
-      contents: buffer_data,
-      usage: BufferUsage::VERTEX | BufferUsage::COPY_DST,
-    });
-    self.instance_buffer = new_buffer;
-  } else {
+    let old_buffer_size: usize = binding
+      .size
+      .unwrap_or(unsafe { NonZeroU64::new_unchecked(1) })
+      .get() as _;
+    if old_buffer_size < buffer_data.len() {
+      let new_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
+        label: Some("Instance Buffer"),
+        contents: buffer_data,
+        usage: BufferUsage::VERTEX | BufferUsage::COPY_DST,
+      });
+      self.instance_buffer = new_buffer;
+    } else {
+      self
+        .queue
+        .write_buffer(&self.instance_buffer, 0 as _, buffer_data);
+    }
+
     self
       .queue
-      .write_buffer(&self.instance_buffer, 0 as _, buffer_data);
+      .write_buffer(&self.instance_buffer, 0, &bytemuck::cast_slice(&instances));
+    self.n_instances = instances.len();
+    self.instance_buffer_view = buffer_data.iter().cloned().collect();
   }
-
-  self
-    .queue
-    .write_buffer(&self.instance_buffer, 0, &bytemuck::cast_slice(&instances));
-  self.n_instances = instances.len();
-  self.instance_buffer_view = buffer_data.iter().cloned().collect();
-}
 }
 
 pub struct Builder<'a, W: AsWindow + HasRawWindowHandle> {
@@ -340,7 +343,7 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       use super::textures::*;
       let img = image::load_from_memory(super::textures::DEFAULT_TEX_JPEG)
         .map_err(|e| Error::from_other(format!("{:?}", e)))?;
-      let tex_resource = TextureResource::from_image(img, &queue, &device)
+      let tex_resource = TextureResource::from_image(&img, &queue, &device)
         .map_err(|e| Error::from_other(format!("{:?}", e)))?;
       let bg = super::textures::basic_texture_bind_group(
         &tex_resource,
@@ -408,7 +411,7 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       swapchain,
       render_pipeline,
       mesh,
-      meshes_to_draw: Vec::new(),
+      models_to_draw: Vec::new(),
 
       uniforms,
       uniform_buffer,
@@ -432,7 +435,7 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       depth_stencil_texture,
     };
     result
-      .bind_texture(fallback_texture)
+      .bind_texture(*fallback_texture)
       .map_err(|e| Error::from_other(format!("{:?}", e)))?;
     Ok(result)
   }

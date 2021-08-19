@@ -5,8 +5,10 @@ use gltf::Document;
 use std::iter::Zip;
 use crate::anyhow::Error;
 use std::collections::HashMap;
-use crate::renderer_common::handle::HandleIndex;
+use crate::renderer_common::handle::{HandleIndex, Handle};
 use crate::wgpu_renderer::Context;
+use std::collections::hash_map::RandomState;
+use crate::renderer_common::allocator::ResourceManager;
 
 #[derive(Debug)]
 pub struct Model {
@@ -45,8 +47,8 @@ pub struct StreamingMesh {
   pub(crate) path: String,
   pub(crate) mesh_index: usize,
   pub(crate) state: ModelLoadState,
-  pub(crate) primitives: Vec<HandleIndex>,
-  pub(crate) material_handles: HashMap<usize, HandleIndex>,
+  pub(crate) primitives: Vec<Handle<Mesh>>,
+  pub(crate) material_handles: HashMap<usize, Handle<Material>>,
 }
 
 impl StreamingMesh {}
@@ -66,11 +68,11 @@ impl StreamingMesh {
     &self.state
   }
   #[inline]
-  pub fn primitives(&self) -> &Vec<HandleIndex> {
+  pub fn primitives(&self) -> &Vec<Handle<Mesh>> {
     &self.primitives
   }
   #[inline]
-  pub fn material_handles(&self) -> &HashMap<usize, HandleIndex> {
+  pub fn material_handles(&self) -> &HashMap<usize, Handle<Material>> {
     &self.material_handles
   }
   #[inline]
@@ -86,11 +88,11 @@ impl StreamingMesh {
     self.state = state;
   }
   #[inline]
-  pub fn primitives_mut(&mut self) -> &mut Vec<HandleIndex> {
+  pub fn primitives_mut(&mut self) -> &mut Vec<Handle<Mesh>> {
     &mut self.primitives
   }
   #[inline]
-  pub fn material_handles_mut(&mut self) -> &mut HashMap<usize, HandleIndex> {
+  pub fn material_handles_mut(&mut self) -> &mut HashMap<usize, Handle<Material>> {
     &mut self.material_handles
   }
 }
@@ -118,16 +120,15 @@ impl StreamingMesh {
 
 
     let geometry = MeshGeometry::from_gltf_mesh(&mesh, &buffers)?;
-    let materials = Material::from_gltf(&document, &images)?;
-    let mut material_handles: HashMap<usize, HandleIndex> = HashMap::default();
-    let mut meshes: Vec<HandleIndex> = Vec::with_capacity(geometry.len());
+    let mut materials = Material::from_gltf(&document, &images)?;
+    let mut material_handles: HashMap<usize, Handle<Material>> = HashMap::default();
+    let mut meshes: Vec<Handle<Mesh>> = Vec::with_capacity(geometry.len());
     {
-
       let mut mesh_loader = context.meshes
         .write().map_err(|e| anyhow!("{:?}", e))?;
       let mut material_loader = context.materials.write()
         .map_err(|e| anyhow!("{:?}", e))?;
-      for mat in materials {
+      for mut mat in materials {
         let index = mat.index;
         let handle = material_loader.insert(mat);
         material_handles.insert(index, handle);
@@ -148,6 +149,8 @@ impl StreamingMesh {
     Ok(())
   }
 
+
+
   pub fn load_from_gltf(&mut self, context: &mut Context, document: Document, buffers: Vec<gltf::buffer::Data>, images: Vec<gltf::image::Data>) -> anyhow::Result<()> {
     match self.load_from_gltf_impl(context, document, buffers, images) {
       Err(e) => {
@@ -157,4 +160,12 @@ impl StreamingMesh {
       ok => ok
     }
   }
+
+  pub fn mesh_refs<'a>(&'a self, mesh_resources: &'a ResourceManager<Mesh>)
+    -> impl Iterator<Item=Option<&'a Mesh>> {
+    self.primitives.iter().map(move |handle|
+      mesh_resources.get_ref(*handle).ok()
+    )
+  }
+
 }

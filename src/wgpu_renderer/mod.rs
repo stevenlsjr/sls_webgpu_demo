@@ -11,5 +11,6 @@ pub mod pipeline_state;
 pub mod render_hooks;
 pub mod textures;
 pub mod uniforms;
+pub mod resource_view;
 
 pub use context::Context;

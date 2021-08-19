@@ -23,7 +23,7 @@ use crate::{
   },
   renderer_common::allocator::{ResourceManager, SparseArrayAllocator},
 };
-use crate::renderer_common::handle::HandleIndex;
+use crate::renderer_common::handle::{HandleIndex, Handle};
 #[cfg(feature = "wgpu_renderer")]
 use crate::wgpu_renderer::Context;
 use crate::wgpu_renderer::model::{ModelLoadState, StreamingMesh};
@@ -64,7 +64,7 @@ impl MultithreadedAssetLoaderQueue {
     context: &mut Context,
   ) -> anyhow::Result<()> {
     for (handle, message) in self.receiver.try_iter() {
-      let request = match self.task_ids.get_ref(handle) {
+      let request = match self.task_ids.get_ref(handle.into_typed()) {
         Ok(r) => r,
         Err(_) => continue,
       };
@@ -83,7 +83,7 @@ impl MultithreadedAssetLoaderQueue {
           context.streaming_models
             .write().map_err(|e| anyhow!( e.to_string()))
             .and_then(|mut models| {
-              self.load_model(&mut *models, handle, &documents, &buffers)
+              self.load_model(&mut *models, handle.into_typed(), &documents, &buffers)
             })
         }
       });
@@ -92,7 +92,7 @@ impl MultithreadedAssetLoaderQueue {
         match request {
           AssetLoadRequest::GltfModel { path, model_id } => {
             let mut models: RwLockWriteGuard<ResourceManager<StreamingMesh>> = context.streaming_models.write().unwrap();
-            match models.mut_ref(*model_id) {
+            match models.mut_ref(model_id.into_typed()) {
               Ok(mut m) => {
                 m.state = ModelLoadState::Failed(e.to_string());
               }
@@ -103,14 +103,14 @@ impl MultithreadedAssetLoaderQueue {
       }
       // remove task id from allocator
 
-      if let Err(e) = self.task_ids.remove(handle) {
+      if let Err(e) = self.task_ids.remove(handle.into_typed()) {
         log::debug!("{:?}", e);
       }
     }
     Ok(())
   }
 
-  fn load_model(&self, models: &mut ResourceManager<StreamingMesh>, handle: HandleIndex,
+  fn load_model(&self, models: &mut ResourceManager<StreamingMesh>, handle: Handle<StreamingMesh>,
                 documents: &gltf::Document,
                 buffers: &[gltf::buffer::Data]) -> anyhow::Result<()> {
     let mut model = models.mut_ref(handle)?;

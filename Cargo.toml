@@ -14,7 +14,9 @@ opengl_renderer = ["glow"]
 
 # optimize certain packages in dev mode
 [profile.dev.package."image"]
-opt-level = 2
+opt-level = 3
+[profile.dev.package."gltf"]
+opt-level = 3
 
 
 
