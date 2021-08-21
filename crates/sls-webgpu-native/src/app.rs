@@ -41,6 +41,7 @@ use sls_webgpu::renderer_common::allocator::ResourceManager;
 use sls_webgpu::renderer_common::handle::{HandleIndex, Handle};
 use sls_webgpu::wgpu_renderer::material::Material;
 use sls_webgpu::wgpu_renderer::model::{Model, StreamingMesh};
+use sls_webgpu::game::asset_loading::components::LoadGltfMesh;
 
 pub struct App {
   pub(crate) context: Arc<RwLock<Context>>,
@@ -275,10 +276,23 @@ impl App {
     // load screen resolution and render information into game state
     let window_size = self.window.size();
     let drawable_size = self.window.drawable_size();
-    self.game_state.resources_mut().insert(ScreenResolution {
-      window_size: (window_size.0 as _, window_size.1 as _),
-      drawable_size: (drawable_size.0 as _, drawable_size.1 as _),
-    });
+    {
+      use sls_webgpu::game::asset_loading::{MultithreadedAssetLoaderQueue, resources::AssetLoaderQueue};
+      let mut resources = self.game_state.resources_mut();
+      resources.insert(ScreenResolution {
+        window_size: (window_size.0 as _, window_size.1 as _),
+        drawable_size: (drawable_size.0 as _, drawable_size.1 as _),
+      });
+      let asset_loader_queue = sls_webgpu::game::asset_loading::MultithreadedAssetLoaderQueue::new();
+      resources.insert(Box::new(asset_loader_queue ) as Box<dyn AssetLoaderQueue>);
+
+    }
+    {
+      let world = self.game_state.world_mut();
+      let load_model_entity = (LoadGltfMesh::new("./assets/Avocado.glb", 0),);
+      world.push(load_model_entity);
+
+    }
     let sender = self.assets_loaded_sender.clone();
 
     let mesh = {
@@ -296,6 +310,7 @@ impl App {
       let result = gltf::import("assets/Avocado.glb")
         .map(
           |(documents, buffers, images)| AssetLoadedMessagePayload::GltfModel {
+            uuid: Default::default(),
             model_name: "chair".to_owned(),
             documents,
             buffers,
@@ -334,7 +349,7 @@ impl App {
         model_name,
         documents,
         buffers,
-        images,
+        images, ..
       } => {
         if model_name == "chair" {
           let mut model_lock = model_resources.write().unwrap();

@@ -12,10 +12,10 @@ use wgpu::{
 pub use native::*;
 
 use crate::{
-  Context,
+  renderer_common::handle::{Handle, HandleIndex},
   wgpu::{BindGroupLayout, BindingResource, FilterMode, TextureViewDimension},
+  Context,
 };
-use crate::renderer_common::handle::{HandleIndex, Handle};
 
 pub const DEFAULT_TEX_JPEG: &[u8] = include_bytes!("../../assets/uv_grid_opengl.jpg");
 

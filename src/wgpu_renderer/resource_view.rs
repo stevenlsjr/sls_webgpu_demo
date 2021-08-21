@@ -1,12 +1,15 @@
-use std::sync::{RwLockWriteGuard, RwLockReadGuard, PoisonError};
-use crate::renderer_common::allocator::ResourceManager;
-use std::borrow::{Borrow, BorrowMut};
-use crate::wgpu_renderer::model::StreamingMesh;
-use crate::wgpu_renderer::material::Material;
-use crate::wgpu::Texture;
-use crate::wgpu_renderer::textures::TextureResource;
 use super::context::Context;
-use crate::wgpu_renderer::mesh::Mesh;
+use crate::{
+  renderer_common::allocator::ResourceManager,
+  wgpu::Texture,
+  wgpu_renderer::{
+    material::Material, mesh::Mesh, model::StreamingMesh, textures::TextureResource,
+  },
+};
+use std::{
+  borrow::{Borrow, BorrowMut},
+  sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard},
+};
 
 #[derive(Debug)]
 pub struct ResourceView<'a> {
@@ -38,25 +41,20 @@ impl ReadWriteResources for Context {
     let materials = self.materials.read();
     let textures = self.textures.read();
     match (models, meshes, materials, textures) {
-      (Ok(models),
-        Ok(meshes),
-        Ok(materials),
-        Ok(textures), ) => {
-        Ok(ResourceView {
-          models,
-          meshes,
-          materials,
-          textures,
-        })
-      }
-
-      (models,
+      (Ok(models), Ok(meshes), Ok(materials), Ok(textures)) => Ok(ResourceView {
+        models,
         meshes,
         materials,
-        textures, ) => {
-        Err(anyhow::anyhow!("a read lock is poisoned! models: {:?} meshes: {:?} materials: {:?} textures: {:?}", models,
-        meshes, materials, textures))
-      }
+        textures,
+      }),
+
+      (models, meshes, materials, textures) => Err(anyhow::anyhow!(
+        "a read lock is poisoned! models: {:?} meshes: {:?} materials: {:?} textures: {:?}",
+        models,
+        meshes,
+        materials,
+        textures
+      )),
     }
   }
 
@@ -66,25 +64,20 @@ impl ReadWriteResources for Context {
     let materials = self.materials.write();
     let textures = self.textures.write();
     match (models, meshes, materials, textures) {
-      (Ok(models),
-        Ok(meshes),
-        Ok(materials),
-        Ok(textures), ) => {
-        Ok(MutResourceView {
-          models,
-          meshes,
-          materials,
-          textures,
-        })
-      }
-
-      (models,
+      (Ok(models), Ok(meshes), Ok(materials), Ok(textures)) => Ok(MutResourceView {
+        models,
         meshes,
         materials,
-        textures, ) => {
-        Err(anyhow::anyhow!("a write lock is poisoned! models: {:?} meshes: {:?} materials: {:?} textures: {:?}", models,
-        meshes, materials, textures))
-      }
+        textures,
+      }),
+
+      (models, meshes, materials, textures) => Err(anyhow::anyhow!(
+        "a write lock is poisoned! models: {:?} meshes: {:?} materials: {:?} textures: {:?}",
+        models,
+        meshes,
+        materials,
+        textures
+      )),
     }
   }
 }

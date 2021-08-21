@@ -1,16 +1,11 @@
-use image::{RgbaImage, DynamicImage, ImageBuffer, Bgr};
-use crate::image::RgbImage;
-use crate::nalgebra_glm::{Vec4, vec4, vec3, Vec3};
-use crate::gltf::Image;
-use crate::gltf::image::{Source, Format};
-use crate::renderer_common::handle::{HandleIndex, Handle};
-use crate::Context;
-use crate::wgpu_renderer::textures::TextureResource;
-use crate::wgpu::{Queue, Device, BindingResource, BindGroup};
-use crate::wgpu_renderer::resource_view::ReadWriteResources;
-use crate::renderer_common::allocator::ResourceManager;
-use wgpu::{BindGroupLayout, BindGroupDescriptor, BindGroupEntry};
-
+use crate::{
+  renderer_common::{allocator::ResourceManager, handle::Handle},
+  wgpu_renderer::textures::TextureResource,
+};
+use gltf::image::Format;
+use image::{Bgr, DynamicImage, ImageBuffer, RgbaImage};
+use nalgebra_glm::{vec3, vec4, Vec3, Vec4};
+use wgpu::{BindGroupLayout, Device, Queue};
 
 #[derive(Debug, Copy, Clone)]
 pub enum AlphaMode {
@@ -50,24 +45,24 @@ pub struct TextureInfoData {
 }
 
 impl TextureInfoData {
-  pub fn load_texture(&mut self,
-                      textures: &mut ResourceManager<TextureResource>,
-                      queue: &Queue,
-                      device: &Device) -> anyhow::Result<()> {
+  pub fn load_texture(
+    &mut self,
+    textures: &mut ResourceManager<TextureResource>,
+    queue: &Queue,
+    device: &Device,
+  ) -> anyhow::Result<()> {
     match (self.texture_resource_handle, self.rgba.as_ref()) {
       (Some(handle), _) => Ok(()),
       (None, Some(rbga)) => {
-        let texture = TextureResource::from_image(&rbga,
-                                                  queue, device)?;
+        let texture = TextureResource::from_image(&rbga, queue, device)?;
         let texture_handle = textures.insert(texture);
         self.texture_resource_handle = Some(texture_handle);
         Ok(())
       }
-      (None, None) => anyhow::bail!("rgba data is missing!")
+      (None, None) => anyhow::bail!("rgba data is missing!"),
     }
   }
 }
-
 
 #[derive(Debug)]
 pub struct Material {
@@ -95,7 +90,6 @@ pub struct Material {
 
   pub emissive_factor: Vec3,
   pub emissive_tex: Option<TextureInfoData>,
-
 }
 
 impl Default for Material {
@@ -166,7 +160,8 @@ impl Material {
     // }
 
     new_mat.albedo_tex = texture_from_info(pbr.base_color_texture().as_ref(), images)?;
-    new_mat.metallic_roughness_tex = texture_from_info(pbr.metallic_roughness_texture().as_ref(), images)?;
+    new_mat.metallic_roughness_tex =
+      texture_from_info(pbr.metallic_roughness_texture().as_ref(), images)?;
     new_mat.emissive_tex = texture_from_info(material.emissive_texture().as_ref(), images)?;
     if let Some(occlusion) = material.occlusion_texture() {
       let tex = occlusion.texture();
@@ -180,7 +175,6 @@ impl Material {
         texture_resource_handle: None,
       });
     }
-
 
     if let Some(normal) = material.normal_texture() {
       let tex = normal.texture();
@@ -199,9 +193,10 @@ impl Material {
   }
 }
 
-
-fn texture_from_info(info: Option<&gltf::texture::Info>,
-                     images: &[gltf::image::Data]) -> anyhow::Result<Option<TextureInfoData>> {
+fn texture_from_info(
+  info: Option<&gltf::texture::Info>,
+  images: &[gltf::image::Data],
+) -> anyhow::Result<Option<TextureInfoData>> {
   match info {
     None => Ok(None),
     Some(info) => {
@@ -226,30 +221,28 @@ fn texture_from_info(info: Option<&gltf::texture::Info>,
   }
 }
 
-fn rgba_from_texture(tex: &gltf::Texture, images: &[gltf::image::Data])
-                     -> anyhow::Result<DynamicImage> {
+fn rgba_from_texture(
+  tex: &gltf::Texture,
+  images: &[gltf::image::Data],
+) -> anyhow::Result<DynamicImage> {
   let img_index = tex.source().index();
   if img_index > images.len() {
-    anyhow::bail!("image index {} exceded images loaded {}", img_index, images.len());
+    anyhow::bail!(
+      "image index {} exceded images loaded {}",
+      img_index,
+      images.len()
+    );
   }
   let img = &images[img_index];
   let dyn_image = match img.format {
-    Format::R8 => {
-      image::GrayImage::from_raw(img.width, img.height, img.pixels.clone())
-        .map(|buff| DynamicImage::ImageLuma8(buff))
-    }
-    Format::R8G8 => {
-      image::GrayAlphaImage::from_raw(img.width, img.height, img.pixels.clone())
-        .map(|buff| DynamicImage::ImageLumaA8(buff))
-    }
-    Format::R8G8B8 => {
-      image::RgbImage::from_raw(img.width, img.height, img.pixels.clone())
-        .map(|buff| DynamicImage::ImageRgb8(buff))
-    }
-    Format::R8G8B8A8 => {
-      image::RgbaImage::from_raw(img.width, img.height, img.pixels.clone())
-        .map(|buff| DynamicImage::ImageRgba8(buff))
-    }
+    Format::R8 => image::GrayImage::from_raw(img.width, img.height, img.pixels.clone())
+      .map(|buff| DynamicImage::ImageLuma8(buff)),
+    Format::R8G8 => image::GrayAlphaImage::from_raw(img.width, img.height, img.pixels.clone())
+      .map(|buff| DynamicImage::ImageLumaA8(buff)),
+    Format::R8G8B8 => image::RgbImage::from_raw(img.width, img.height, img.pixels.clone())
+      .map(|buff| DynamicImage::ImageRgb8(buff)),
+    Format::R8G8B8A8 => image::RgbaImage::from_raw(img.width, img.height, img.pixels.clone())
+      .map(|buff| DynamicImage::ImageRgba8(buff)),
     Format::B8G8R8 => {
       ImageBuffer::<Bgr<u8>, Vec<u8>>::from_raw(img.width, img.height, img.pixels.clone())
         .map(|buff| DynamicImage::ImageBgr8(buff))
@@ -258,19 +251,21 @@ fn rgba_from_texture(tex: &gltf::Texture, images: &[gltf::image::Data])
       ImageBuffer::<image::Bgra<u8>, Vec<u8>>::from_raw(img.width, img.height, img.pixels.clone())
         .map(|buff| DynamicImage::ImageBgra8(buff))
     }
-    fmt => anyhow::bail!("format {:?} not supported. Only supports 8 bit images right now", fmt)
-    // Format::R16 => {
-    // }
-    // Format::R16G16 => {None}
-    // Format::R16G16B16 => {None}
-    // Format::R16G16B16A16 => {None}
-  }.ok_or_else(|| anyhow::anyhow!("could not create image buffer for image"))?;
+    fmt => anyhow::bail!(
+      "format {:?} not supported. Only supports 8 bit images right now",
+      fmt
+    ), // Format::R16 => {
+       // }
+       // Format::R16G16 => {None}
+       // Format::R16G16B16 => {None}
+       // Format::R16G16B16A16 => {None}
+  }
+  .ok_or_else(|| anyhow::anyhow!("could not create image buffer for image"))?;
   Ok(dyn_image)
 }
 
-
-#[derive(Debug)]
-pub struct WgpuMaterial {
+#[derive(Debug, Clone)]
+pub struct RenderMaterial<TextureT> {
   pub double_sided: bool,
   pub index: usize,
   pub name: Option<String>,
@@ -279,32 +274,33 @@ pub struct WgpuMaterial {
   pub alpha_cutoff: Option<f32>,
   pub alpha_mode: AlphaMode,
   pub albedo_factor: Vec4,
-  pub albedo_tex: Option<Handle<TextureResource>>,
+  pub albedo_tex: Option<Handle<TextureT>>,
 
-  pub normal_tex: Option<Handle<TextureResource>>,
+  pub normal_tex: Option<Handle<TextureT>>,
   pub metallic_factor: f32,
   pub roughness_factor: f32,
-  pub metallic_roughness_tex: Option<Handle<TextureResource>>,
+  pub metallic_roughness_tex: Option<Handle<TextureT>>,
 
-  pub occlusion_tex: Option<Handle<TextureResource>>,
+  pub occlusion_tex: Option<Handle<TextureT>>,
 
   /// index of reflection
   pub ior: Option<f32>,
   pub transmission_factor: Option<f32>,
-  pub transmission_tex: Option<Handle<TextureResource>>,
+  pub transmission_tex: Option<Handle<TextureT>>,
 
   pub emissive_factor: Vec3,
-  pub emissive_tex: Option<Handle<TextureResource>>,
+  pub emissive_tex: Option<Handle<TextureT>>,
 
-  pub bind_group: Handle<TextureResource>,
+  pub bind_group: Handle<TextureT>,
 }
 
-impl WgpuMaterial {
-  pub fn from_material(material: &Material,
-                       queue: &Queue,
-                       device: &Device,
-                       bind_group_layout: &BindGroupLayout,
-                       textures: &mut ResourceManager<TextureResource>,
+impl RenderMaterial<TextureResource> {
+  pub fn from_material(
+    material: &Material,
+    queue: &Queue,
+    device: &Device,
+    bind_group_layout: &BindGroupLayout,
+    textures: &mut ResourceManager<TextureResource>,
   ) -> anyhow::Result<Self> {
     let texture_infos = &[
       &material.albedo_tex,
@@ -316,16 +312,14 @@ impl WgpuMaterial {
     ];
     let mut texture_handles: [Option<Handle<TextureResource>>; 1] = [None; 1];
     for (i, &info_opt) in texture_infos.iter().enumerate() {
-      let get_tex = info_opt
-        .as_ref()
-        .map(|info| (info, &info.rgba));
+      let get_tex = info_opt.as_ref().map(|info| (info, &info.rgba));
       match get_tex {
         Some((info, Some(rgba))) => {
           let resource = TextureResource::from_image(rgba, queue, device)?;
           let handle = textures.insert(resource);
           texture_handles[i] = Some(handle);
         }
-        _ => ()
+        _ => (),
       }
     }
     todo!()

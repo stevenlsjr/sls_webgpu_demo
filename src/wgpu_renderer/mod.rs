@@ -9,8 +9,8 @@ pub mod model;
 pub mod model_instance;
 pub mod pipeline_state;
 pub mod render_hooks;
+pub mod resource_view;
 pub mod textures;
 pub mod uniforms;
-pub mod resource_view;
 
 pub use context::Context;

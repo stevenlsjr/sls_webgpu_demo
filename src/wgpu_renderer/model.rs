@@ -1,14 +1,18 @@
 use super::{material::Material, mesh::Mesh};
-use crate::wgpu_renderer::mesh::MeshGeometry;
+use crate::{
+  anyhow::Error,
+  renderer_common::{
+    allocator::ResourceManager,
+    handle::{Handle, HandleIndex},
+  },
+  wgpu_renderer::{mesh::MeshGeometry, Context},
+};
 use anyhow::anyhow;
 use gltf::Document;
-use std::iter::Zip;
-use crate::anyhow::Error;
-use std::collections::HashMap;
-use crate::renderer_common::handle::{HandleIndex, Handle};
-use crate::wgpu_renderer::Context;
-use std::collections::hash_map::RandomState;
-use crate::renderer_common::allocator::ResourceManager;
+use std::{
+  collections::{hash_map::RandomState, HashMap},
+  iter::Zip,
+};
 
 #[derive(Debug)]
 pub struct Model {
@@ -27,8 +31,9 @@ impl Model {
   }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ModelLoadState {
+  NotLoaded,
   Loaded,
   Loading,
   Failed(String),
@@ -36,7 +41,7 @@ pub enum ModelLoadState {
 
 impl Default for ModelLoadState {
   fn default() -> Self {
-    Self::Loaded
+    Self::NotLoaded
   }
 }
 
@@ -111,23 +116,25 @@ impl StreamingMesh {
     }
   }
 
-
-  pub fn load_from_gltf_impl(&mut self, context: &mut Context, document: Document, buffers: Vec<gltf::buffer::Data>, images: Vec<gltf::image::Data>) -> anyhow::Result<()> {
+  pub fn load_from_gltf_impl(
+    &mut self,
+    context: &mut Context,
+    document: Document,
+    buffers: Vec<gltf::buffer::Data>,
+    images: Vec<gltf::image::Data>,
+  ) -> anyhow::Result<()> {
     let mesh = document
       .meshes()
       .nth(self.mesh_index)
       .ok_or(anyhow!("Document does not have a mesh"))?;
-
 
     let geometry = MeshGeometry::from_gltf_mesh(&mesh, &buffers)?;
     let mut materials = Material::from_gltf(&document, &images)?;
     let mut material_handles: HashMap<usize, Handle<Material>> = HashMap::default();
     let mut meshes: Vec<Handle<Mesh>> = Vec::with_capacity(geometry.len());
     {
-      let mut mesh_loader = context.meshes
-        .write().map_err(|e| anyhow!("{:?}", e))?;
-      let mut material_loader = context.materials.write()
-        .map_err(|e| anyhow!("{:?}", e))?;
+      let mut mesh_loader = context.meshes.write().map_err(|e| anyhow!("{:?}", e))?;
+      let mut material_loader = context.materials.write().map_err(|e| anyhow!("{:?}", e))?;
       for mut mat in materials {
         let index = mat.index;
         let handle = material_loader.insert(mat);
@@ -149,23 +156,29 @@ impl StreamingMesh {
     Ok(())
   }
 
-
-
-  pub fn load_from_gltf(&mut self, context: &mut Context, document: Document, buffers: Vec<gltf::buffer::Data>, images: Vec<gltf::image::Data>) -> anyhow::Result<()> {
+  pub fn load_from_gltf(
+    &mut self,
+    context: &mut Context,
+    document: Document,
+    buffers: Vec<gltf::buffer::Data>,
+    images: Vec<gltf::image::Data>,
+  ) -> anyhow::Result<()> {
     match self.load_from_gltf_impl(context, document, buffers, images) {
       Err(e) => {
         self.state = ModelLoadState::Failed(format!("{:?}", e));
         Err(e)
       }
-      ok => ok
+      ok => ok,
     }
   }
 
-  pub fn mesh_refs<'a>(&'a self, mesh_resources: &'a ResourceManager<Mesh>)
-    -> impl Iterator<Item=Option<&'a Mesh>> {
-    self.primitives.iter().map(move |handle|
-      mesh_resources.get_ref(*handle).ok()
-    )
+  pub fn mesh_refs<'a>(
+    &'a self,
+    mesh_resources: &'a ResourceManager<Mesh>,
+  ) -> impl Iterator<Item = Option<&'a Mesh>> {
+    self
+      .primitives
+      .iter()
+      .map(move |handle| mesh_resources.get_ref(*handle).ok())
   }
-
 }

@@ -15,7 +15,7 @@ pub mod model_systems;
 
 use super::components::RenderModel;
 use crate::game::{
-  asset_loading::MultithreadedAssetLoaderQueue, input::InputResource, resources::ScreenResolution,
+  asset_loading::resources::AssetLoaderQueue, input::InputResource, resources::ScreenResolution,
 };
 pub use camera_systems::*;
 use legion::world::SubWorld;
@@ -36,7 +36,7 @@ pub fn per_frame_logging(#[resource] game_loop: &GameLoopTimer) {
 pub fn setup_scene(
   #[resource] scene: &mut Scene,
   #[resource] resolution: &ScreenResolution,
-  #[resource] assets: &MultithreadedAssetLoaderQueue,
+  #[resource] assets: &Box<dyn AssetLoaderQueue>,
   command_buffer: &mut CommandBuffer,
 ) {
   let mut main_camera: CameraEntityRow = (
@@ -49,6 +49,7 @@ pub fn setup_scene(
   scene.main_camera = Some(main_camera_entity);
 
   // trigger load asset tasks
+
   // assets.spawn_load_gltf_model("assets/sheen-chair/SheenChair.glb", "chair");
 }
 

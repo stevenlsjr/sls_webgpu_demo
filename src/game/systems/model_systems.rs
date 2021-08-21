@@ -5,8 +5,10 @@ use rand::distributions::Uniform;
 #[cfg(feature = "wgpu_renderer")]
 pub use wgpu_renderer::*;
 
-use crate::game::components::{RenderModel, Transform3D};
-use crate::renderer_common::handle::HandleIndex;
+use crate::{
+  game::components::{RenderModel, Transform3D},
+  renderer_common::handle::HandleIndex,
+};
 
 #[cfg(feature = "wgpu_renderer")]
 mod wgpu_renderer {
@@ -18,9 +20,9 @@ mod wgpu_renderer {
   use legion::systems::CommandBuffer;
 
   use crate::{
-    Context,
     game::resources::MeshLookup,
     wgpu_renderer::mesh::{Mesh, MeshGeometry},
+    Context,
   };
 
   use super::*;

@@ -9,33 +9,34 @@ use anyhow::anyhow;
 use legion::query::ChunkView;
 use raw_window_handle::HasRawWindowHandle;
 use wgpu::{
-  BindGroup,
-  BindGroupLayoutEntry, BufferDescriptor, BufferSize, BufferUsage, PrimitiveState, RenderPass,
-  RenderPipeline, Texture, util::{BufferInitDescriptor, DeviceExt},
+  util::{BufferInitDescriptor, DeviceExt},
+  BindGroup, BindGroupLayoutEntry, BufferDescriptor, BufferSize, BufferUsage, PrimitiveState,
+  RenderPass, RenderPipeline, Texture,
 };
 
 use crate::{
   error::Error,
-  game::{GameState, resources::Scene},
-};
-use crate::{
-  game::components::{RenderModel, Transform3D},
+  game::{
+    components::{RenderModel, Transform3D},
+    resources::Scene,
+    GameState,
+  },
   renderer_common::{
     allocator::ResourceManager,
+    geometry::Vertex,
+    handle::{Handle, HandleIndex},
     render_context::DrawModel,
+    RenderContext,
   },
   wgpu::{BindGroupLayout, Device, PipelineLayout, TextureFormat},
   wgpu_renderer::{
-    model::Model,
-    ModelInstance,
+    material::Material,
+    model::{Model, StreamingMesh},
     textures::{BindTexture, TextureResource},
+    ModelInstance,
   },
+  window::AsWindow,
 };
-use crate::renderer_common::{geometry::Vertex, RenderContext};
-use crate::renderer_common::handle::{HandleIndex, Handle};
-use crate::wgpu_renderer::material::Material;
-use crate::wgpu_renderer::model::StreamingMesh;
-use crate::window::AsWindow;
 
 use super::{
   mesh::{Mesh, MeshGeometry},
@@ -125,9 +126,7 @@ impl Context {
         log::warn!("no main camera found");
         return Ok(());
       }
-      Some(camera) => {
-        camera
-      }
+      Some(camera) => camera,
     };
     self.uniforms.update_from_camera(camera);
     self.queue.write_buffer(
@@ -270,9 +269,9 @@ pub struct Builder<'a, W: AsWindow + HasRawWindowHandle> {
 impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
   pub async fn build(self) -> Result<Context, Error> {
     #[cfg(not(target_os = "linux"))]
-      let backends = wgpu::BackendBit::all();
+    let backends = wgpu::BackendBit::all();
     #[cfg(target_os = "linux")]
-      let backends = wgpu::BackendBit::VULKAN;
+    let backends = wgpu::BackendBit::VULKAN;
 
     let instance = self
       .instance

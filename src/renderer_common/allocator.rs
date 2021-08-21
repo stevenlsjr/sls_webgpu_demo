@@ -2,7 +2,7 @@
 
 use std::fmt::{Debug, Display, Formatter};
 
-use super::handle::{GENERATION_MAX_SIZE, HandleIndex, HANDLE_INDEX_MASK};
+use super::handle::{HandleIndex, GENERATION_MAX_SIZE, HANDLE_INDEX_MASK};
 use crate::renderer_common::sparse_array_allocator::AlreadyFreedError;
 
 pub use super::sparse_array_allocator::SparseArrayAllocator;

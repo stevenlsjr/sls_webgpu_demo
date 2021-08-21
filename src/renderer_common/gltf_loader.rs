@@ -106,7 +106,7 @@ impl LoadPrimitive for MeshGeometry {
       indices,
       vertices: verts,
       label: None,
-      gltf_mat_index: primitive.material().index()
+      gltf_mat_index: primitive.material().index(),
     })
   }
 }

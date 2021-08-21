@@ -92,7 +92,7 @@ pub struct MeshGeometry {
   pub vertices: Vec<Vertex>,
   pub indices: Vec<u16>,
   pub label: Option<String>,
-  pub gltf_mat_index: Option<usize>
+  pub gltf_mat_index: Option<usize>,
 }
 
 impl Default for MeshGeometry {
@@ -101,7 +101,7 @@ impl Default for MeshGeometry {
       vertices: vec![],
       indices: vec![],
       label: None,
-      gltf_mat_index: None
+      gltf_mat_index: None,
     }
   }
 }

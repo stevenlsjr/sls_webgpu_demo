@@ -1,5 +1,4 @@
-use std::marker::PhantomData;
-use std::ops::Deref;
+use std::{marker::PhantomData, ops::Deref};
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct HandleIndex(u32);
@@ -25,7 +24,6 @@ impl HandleIndex {
   }
 }
 
-
 /// Typed wrapper for HandleIndex
 #[derive(Default, Debug, PartialEq)]
 pub struct Handle<T: Sized> {
@@ -33,10 +31,12 @@ pub struct Handle<T: Sized> {
   _phantom: PhantomData<*const T>,
 }
 
-
 impl<T: Sized> Clone for Handle<T> {
   fn clone(&self) -> Self {
-    Self { index: self.index, _phantom: PhantomData }
+    Self {
+      index: self.index,
+      _phantom: PhantomData,
+    }
   }
 }
 
@@ -52,14 +52,20 @@ impl<T> Deref for Handle<T> {
 
 impl<T> Handle<T> {
   pub fn from_index(index: HandleIndex) -> Self {
-    Self { index, _phantom: PhantomData }
+    Self {
+      index,
+      _phantom: PhantomData,
+    }
   }
-  pub fn to_index(self) -> HandleIndex { self.index }
+  pub fn to_index(self) -> HandleIndex {
+    self.index
+  }
 }
 
-
 pub trait ResourceStore<T>
-  where T: Sized {
+where
+  T: Sized,
+{
   fn get_ref(&self, handle: Handle<T>) -> Option<&T>;
   fn get_mut(&mut self, handle: Handle<T>) -> Option<&mut T>;
 

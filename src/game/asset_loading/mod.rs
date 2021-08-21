@@ -18,4 +18,3 @@ pub mod resources;
 
 #[cfg(target_arch = "wasm32")]
 pub use html5::*;
-

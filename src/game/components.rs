@@ -2,9 +2,7 @@ use std::time::Duration;
 
 use nalgebra_glm::*;
 
-use crate::camera::Camera;
-use crate::renderer_common::handle::HandleIndex;
-use crate::wgpu_renderer::model::StreamingMesh;
+use crate::{camera::Camera, renderer_common::handle::HandleIndex};
 
 #[derive(Clone, Default, Debug)]
 pub struct GameLoopTimer {
@@ -45,15 +43,13 @@ pub struct RenderModel {
 }
 
 impl RenderModel {
-  pub fn new(handle: Option<HandleIndex>,
-             is_shown: bool) -> Self {
+  pub fn new(handle: Option<HandleIndex>, is_shown: bool) -> Self {
     Self {
       is_shown,
       mesh: handle,
     }
   }
 }
-
 
 pub type CameraEntityRow = (Transform3D, Camera);
 

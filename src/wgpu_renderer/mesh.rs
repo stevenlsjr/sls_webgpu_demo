@@ -1,14 +1,20 @@
 pub use crate::renderer_common::geometry::MeshGeometry;
 use crate::renderer_common::geometry::{self, Vertex};
 
-use crate::{error::Error, imgui::__core::ops::Range, renderer_common::render_context::DrawModel};
+use crate::{
+  error::Error,
+  imgui::__core::ops::Range,
+  renderer_common::{
+    handle::{Handle, HandleIndex},
+    render_context::DrawModel,
+  },
+  wgpu_renderer::material::Material,
+};
 use genmesh::{
   generators::{IcoSphere, SharedVertex},
   Indexer, LruIndexer, MapToVertices, Triangulate, Vertices,
 };
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
-use crate::renderer_common::handle::{HandleIndex, Handle};
-use crate::wgpu_renderer::material::Material;
 
 #[derive(Debug)]
 pub struct Mesh {
@@ -49,9 +55,13 @@ impl Mesh {
   }
 
   #[inline]
-  pub fn material(&self) -> Option<Handle<Material>> { self.material }
+  pub fn material(&self) -> Option<Handle<Material>> {
+    self.material
+  }
   #[inline]
-  pub fn set_material(&mut self, handle: Option<Handle<Material>>) { self.material = handle }
+  pub fn set_material(&mut self, handle: Option<Handle<Material>>) {
+    self.material = handle
+  }
 }
 
 #[derive(Debug)]
@@ -61,8 +71,8 @@ pub struct MeshBuffers {
 }
 
 impl<'a, 'b> DrawModel<'a, 'b> for wgpu::RenderPass<'a>
-  where
-    'b: 'a,
+where
+  'b: 'a,
 {
   type Model = Mesh;
 
