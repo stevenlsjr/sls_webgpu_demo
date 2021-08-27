@@ -12,8 +12,7 @@ mod native {
       asset_load_message::{AssetLoadedMessage, AssetLoadedMessagePayload},
       MultithreadedAssetLoaderQueue,
     },
+    renderer_common::allocator::Handle,
   };
   use smallvec::SmallVec;
-  use crate::renderer_common::allocator::Handle;
-
 }

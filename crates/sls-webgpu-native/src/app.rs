@@ -1,4 +1,13 @@
+use std::{
+  ops::DerefMut,
+  sync::{Arc, RwLock},
+  thread::spawn,
+  time::*,
+};
+
+use crossbeam::channel::{unbounded, Receiver, Sender};
 use log::error;
+use rayon::{ThreadPool, ThreadPoolBuilder};
 use sdl2::{
   event::{Event, WindowEvent},
   keyboard::Keycode,
@@ -6,38 +15,27 @@ use sdl2::{
   EventPump,
 };
 
-use sls_webgpu::game::input::InputResource;
-
-use sls_webgpu::game::{CreateGameParams, GameState};
-
-use crossbeam::channel::{unbounded, Receiver, Sender};
-use sls_webgpu::platform::gui::DrawUi;
-
 use sls_webgpu::{
   anyhow::{self, anyhow},
-  game::resources::ScreenResolution,
-  gltf, image, imgui, imgui_wgpu,
-  platform::sdl2_backend::ImguiSdlPlatform,
-  wgpu_renderer::textures::{BindTexture, TextureResource},
-  Context,
-};
-
-use rayon::{ThreadPool, ThreadPoolBuilder};
-use sls_webgpu::{
-  game::asset_loading::{
-    asset_load_message::{AssetLoadedMessagePayload, AssetLoadedMessagePayload::GltfModel},
-    MultithreadedAssetLoaderQueue,
+  game::{
+    asset_loading::{
+      asset_load_message::{AssetLoadedMessagePayload, AssetLoadedMessagePayload::GltfModel},
+      MultithreadedAssetLoaderQueue,
+    },
+    input::InputResource,
+    resources::ScreenResolution,
+    CreateGameParams, GameState,
   },
+  gltf,
   gltf::{buffer::Data, Document, Error},
-  platform::gui,
+  image, imgui, imgui_wgpu,
+  platform::{gui, gui::DrawUi, sdl2_backend::ImguiSdlPlatform},
   renderer_common::allocator::Handle,
-  wgpu_renderer::mesh::{Mesh, MeshGeometry},
-};
-use std::{
-  ops::DerefMut,
-  sync::{Arc, RwLock},
-  thread::spawn,
-  time::*,
+  wgpu_renderer::{
+    mesh::{Mesh, MeshGeometry},
+    textures::{BindTexture, TextureResource},
+  },
+  Context,
 };
 
 pub struct App {
@@ -338,20 +336,16 @@ impl App {
     let mut meshes: Vec<Handle> = Vec::with_capacity(geometry.len());
     let mut ctx = self.context.clone();
     {
-      let ctx_lock = ctx
-        .read().map_err(|e| anyhow!("{:?}", e))?;
-      let mut mesh_loader = ctx_lock.meshes
-        .write().map_err(|e| anyhow!("{:?}", e))?;
+      let ctx_lock = ctx.read().map_err(|e| anyhow!("{:?}", e))?;
+      let mut mesh_loader = ctx_lock.meshes.write().map_err(|e| anyhow!("{:?}", e))?;
       for mesh_geom in geometry.into_iter() {
         let mesh = Mesh::from_geometry(mesh_geom, &ctx_lock.device)?;
         let handle = mesh_loader.insert(mesh);
         meshes.push(handle);
       }
-
     }
     {
-      let mut ctx_lock = ctx.write()
-        .map_err(|e| anyhow!("{:?}", e))?;
+      let mut ctx_lock = ctx.write().map_err(|e| anyhow!("{:?}", e))?;
       ctx_lock.meshes_to_draw = meshes;
     }
 

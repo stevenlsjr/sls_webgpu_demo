@@ -1,7 +1,3 @@
-use crate::{
-  game::components::{RenderModel, Transform3D},
-  renderer_common::allocator::Handle,
-};
 use anyhow::anyhow;
 use legion::*;
 use rand::distributions::Uniform;
@@ -9,19 +5,27 @@ use rand::distributions::Uniform;
 #[cfg(feature = "wgpu_renderer")]
 pub use wgpu_renderer::*;
 
+use crate::{
+  game::components::{RenderModel, Transform3D},
+  renderer_common::allocator::Handle,
+};
+
 #[cfg(feature = "wgpu_renderer")]
 mod wgpu_renderer {
-  use super::*;
+  use std::{
+    borrow::BorrowMut,
+    sync::{Arc, RwLock},
+  };
+
+  use legion::systems::CommandBuffer;
+
   use crate::{
     game::resources::MeshLookup,
     wgpu_renderer::mesh::{Mesh, MeshGeometry},
     Context,
   };
-  use legion::systems::CommandBuffer;
-  use std::{
-    borrow::BorrowMut,
-    sync::{Arc, RwLock},
-  };
+
+  use super::*;
 
   fn load_mesh_lookup<C: BorrowMut<Context>>(
     context: C,

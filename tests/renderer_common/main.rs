@@ -1,6 +1,6 @@
 mod gltf_loader;
 
-use sls_webgpu::renderer_common::allocator::Handle;
+use sls_webgpu::renderer_common::handle::Handle;
 
 struct Suite {}
 fn setup() -> Suite {

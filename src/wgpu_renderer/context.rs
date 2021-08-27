@@ -1,44 +1,45 @@
-use crate::{
-  error::Error,
-  game::{resources::Scene, GameState},
-};
-use anyhow::anyhow;
-
-use crate::window::AsWindow;
-
-use super::{
-  mesh::{Mesh, MeshGeometry},
-  uniforms::Uniforms,
-};
-use crate::renderer_common::{geometry::Vertex, RenderContext};
-
-use crate::{
-  game::components::{RenderModel, Transform3D},
-  renderer_common::{
-    allocator::{Handle, ResourceManager},
-    render_context::DrawModel,
-  },
-  wgpu::{BindGroupLayout, Device, PipelineLayout, TextureFormat},
-  wgpu_renderer::{
-    model::Model,
-    textures::{BindTexture, TextureResource},
-    ModelInstance,
-  },
-};
-use legion::query::ChunkView;
-use raw_window_handle::HasRawWindowHandle;
 use std::{
   fmt,
   fmt::Formatter,
   num::NonZeroU64,
   sync::{Arc, RwLock},
 };
+
+use anyhow::anyhow;
+use legion::query::ChunkView;
+use raw_window_handle::HasRawWindowHandle;
 use wgpu::{
   util::{BufferInitDescriptor, DeviceExt},
   BindGroup, BindGroupLayoutEntry, BufferDescriptor, BufferSize, BufferUsage, PrimitiveState,
   RenderPass, RenderPipeline, Texture,
 };
-use crate::wgpu_renderer::model::StreamingMesh;
+
+use crate::{
+  error::Error,
+  game::{
+    components::{RenderModel, Transform3D},
+    resources::Scene,
+    GameState,
+  },
+  renderer_common::{
+    allocator::{Handle, ResourceManager},
+    geometry::Vertex,
+    render_context::DrawModel,
+    RenderContext,
+  },
+  wgpu::{BindGroupLayout, Device, PipelineLayout, TextureFormat},
+  wgpu_renderer::{
+    model::{Model, StreamingMesh},
+    textures::{BindTexture, TextureResource},
+    ModelInstance,
+  },
+  window::AsWindow,
+};
+
+use super::{
+  mesh::{Mesh, MeshGeometry},
+  uniforms::Uniforms,
+};
 
 pub struct Context {
   pub instance: wgpu::Instance,
@@ -60,8 +61,8 @@ pub struct Context {
   main_vert_shader: wgpu::ShaderModule,
   main_frag_shader: wgpu::ShaderModule,
 
-  pub main_tex_handle: Option<Handle>,
-  fallback_texture: Handle,
+  pub main_tex_handle: Option<Handle<TextureResource>>,
+  fallback_texture: Handle<TextureResource>,
   pub streaming_models: Arc<RwLock<ResourceManager<StreamingMesh>>>,
   pub meshes: Arc<RwLock<ResourceManager<Mesh>>>,
   pub textures: Arc<RwLock<ResourceManager<TextureResource>>>,
@@ -501,7 +502,9 @@ impl RenderContext for Context {
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {
-  use super::*;
-  use crate::platform::html5::FromCanvas;
   use web_sys::HtmlCanvasElement;
+
+  use crate::platform::html5::FromCanvas;
+
+  use super::*;
 }

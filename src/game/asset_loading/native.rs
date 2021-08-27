@@ -1,4 +1,16 @@
-use super::asset_load_message::AssetLoadedMessage;
+use std::{
+  borrow::BorrowMut,
+  path::Path,
+  sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc, RwLock, RwLockWriteGuard,
+  },
+  thread::spawn,
+};
+
+use anyhow::anyhow;
+use crossbeam::channel::{unbounded, Receiver, Sender, TryIter};
+
 #[cfg(feature = "wgpu_renderer")]
 use crate::wgpu_renderer::Context;
 use crate::{
@@ -11,30 +23,24 @@ use crate::{
     GameState,
   },
   renderer_common::allocator::{Handle, ResourceManager, SparseArrayAllocator},
+  wgpu_renderer::model::{ModelLoadState, StreamingMesh},
 };
-use anyhow::anyhow;
-use crossbeam::channel::{unbounded, Receiver, Sender, TryIter};
-use std::{
-  path::Path,
-  sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc, RwLock,
-  },
-  thread::spawn,
-};
-use std::borrow::BorrowMut;
-use crate::wgpu_renderer::model::{StreamingMesh, ModelLoadState};
-use std::sync::RwLockWriteGuard;
 
-type ChannelType = (Handle, anyhow::Result<AssetLoadedMessage>);
+use super::asset_load_message::AssetLoadedMessage;
+use crate::renderer_common::model::Model;
 
-pub struct MultithreadedAssetLoaderQueue {
-  sender: Sender<ChannelType>,
-  receiver: Receiver<ChannelType>,
-  task_ids: ResourceManager<AssetLoadRequest>,
+type ChannelType<M: Model> = (
+  Handle<AssetLoadRequest<M>>,
+  anyhow::Result<AssetLoadedMessage<M>>,
+);
+
+pub struct MultithreadedAssetLoaderQueue<M: Model> {
+  sender: Sender<ChannelType<M>>,
+  receiver: Receiver<ChannelType<M>>,
+  task_ids: ResourceManager<AssetLoadRequest<M>>,
 }
 
-impl MultithreadedAssetLoaderQueue {
+impl<M: Model> MultithreadedAssetLoaderQueue<M> {
   pub fn new() -> Self {
     let (sender, receiver) = unbounded();
     Self {
@@ -44,21 +50,18 @@ impl MultithreadedAssetLoaderQueue {
     }
   }
 
-  pub fn sender(&self) -> &Sender<ChannelType> {
+  pub fn sender(&self) -> &Sender<ChannelType<M>> {
     &self.sender
   }
-  pub fn receiver(&self) -> &Receiver<ChannelType> {
+  pub fn receiver(&self) -> &Receiver<ChannelType<M>> {
     &self.receiver
   }
-  pub fn receiver_mut(&mut self) -> &mut Receiver<ChannelType> {
+  pub fn receiver_mut(&mut self) -> &mut Receiver<ChannelType<M>> {
     &mut self.receiver
   }
 
   #[cfg(feature = "wgpu_renderer")]
-  pub fn wgpu_poll_completed(
-    &mut self,
-    context: &mut Context,
-  ) -> anyhow::Result<()> {
+  pub fn wgpu_poll_completed(&mut self, context: &mut Context) -> anyhow::Result<()> {
     for (handle, message) in self.receiver.try_iter() {
       let request = match self.task_ids.get_ref(handle) {
         Ok(r) => r,
@@ -68,31 +71,34 @@ impl MultithreadedAssetLoaderQueue {
       let message = message.and_then(|msg| match msg {
         AssetLoadedMessage {
           payload:
-          AssetLoadedMessagePayload::GltfModel {
-            model_name,
-            documents,
-            buffers,
-            images,
-          },
+            AssetLoadedMessagePayload::GltfModel {
+              model_name,
+              documents,
+              buffers,
+              images,
+            },
           ..
-        } => {
-          context.streaming_models
-            .write().map_err(|e| anyhow!( e.to_string()))
-            .and_then(|mut models| {
-              self.load_model(&mut *models, handle, &documents, &buffers)
-            })
-        }
+        } => context
+          .streaming_models
+          .write()
+          .map_err(|e| anyhow!(e.to_string()))
+          .and_then(|mut models| self.load_model(&mut *models, handle, &documents, &buffers)),
       });
       // handle errors where asset failed to load
       if let Err(e) = message {
         match request {
           AssetLoadRequest::GltfModel { path, model_id } => {
-            let mut models: RwLockWriteGuard<ResourceManager<StreamingMesh>> = context.streaming_models.write().unwrap();
+            let mut models: RwLockWriteGuard<ResourceManager<StreamingMesh>> =
+              context.streaming_models.write().unwrap();
             match models.mut_ref(*model_id) {
               Ok(mut m) => {
                 m.state = ModelLoadState::Failed(e.to_string());
               }
-              Err(ae) => log::error!("could not update model which failed to load: {:?}, {:?}", e, ae)
+              Err(ae) => log::error!(
+                "could not update model which failed to load: {:?}, {:?}",
+                e,
+                ae
+              ),
             }
           }
         }
@@ -106,9 +112,13 @@ impl MultithreadedAssetLoaderQueue {
     Ok(())
   }
 
-  fn load_model(&self, models: &mut ResourceManager<StreamingMesh>, handle: Handle,
-                documents: &gltf::Document,
-                buffers: &[gltf::buffer::Data]) -> anyhow::Result<()> {
+  fn load_model(
+    &self,
+    models: &mut ResourceManager<StreamingMesh>,
+    handle: Handle,
+    documents: &gltf::Document,
+    buffers: &[gltf::buffer::Data],
+  ) -> anyhow::Result<()> {
     let mut model = models.mut_ref(handle)?;
     model.load_gltf_geometry(documents, buffers)
   }

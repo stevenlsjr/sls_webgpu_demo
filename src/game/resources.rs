@@ -1,11 +1,13 @@
+use std::collections::HashMap;
+
+use legion::*;
+
 use crate::{
   camera::Camera,
   game::components::{RenderModel, Transform3D},
   nalgebra_glm::{vec3, TVec2, Vec3},
   renderer_common::allocator::Handle,
 };
-use legion::*;
-use std::collections::HashMap;
 
 #[derive(Clone, Debug, Default)]
 pub struct Scene {

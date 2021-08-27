@@ -1,8 +1,9 @@
-use super::asset_load_message::AssetLoadRequest;
 use crate::{
   game::asset_loading::asset_load_message::{AssetLoadedMessage, AssetLoadedMessagePayload},
   renderer_common::allocator::Handle,
 };
+
+use super::asset_load_message::AssetLoadRequest;
 
 ///
 ///
@@ -15,4 +16,3 @@ pub trait AssetLoaderQueue {
   /// Returns an iterator of completed load requests
   fn poll_completed(&mut self) -> Self::PollComplete;
 }
-
