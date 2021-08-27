@@ -8,7 +8,10 @@ use crate::{
     handle::{Handle, HandleIndex},
     render_context::DrawModel,
   },
-  wgpu_renderer::material::Material,
+  wgpu_renderer::{
+    material::{Material, RenderMaterial},
+    textures::TextureResource,
+  },
 };
 use genmesh::{
   generators::{IcoSphere, SharedVertex},
@@ -75,19 +78,33 @@ where
   'b: 'a,
 {
   type Model = Mesh;
+  type Material = wgpu::BindGroup;
+  type Uniforms = wgpu::BindGroup;
 
-  fn draw_model(&mut self, model: &'b Self::Model) {
-    self.draw_model_instanced(model, 0..1);
+  fn draw_model(
+    &mut self,
+    model: &'b Self::Model,
+    material: &'a Self::Material,
+    uniforms: &'a Self::Uniforms,
+  ) {
+    self.draw_model_instanced(model, material, uniforms, 0..1);
   }
 
-  fn draw_model_instanced(&mut self, model: &'b Self::Model, instances: Range<u32>) {
+  fn draw_model_instanced(
+    &mut self,
+    model: &'b Self::Model,
+    material: &'a Self::Material,
+    uniforms: &'a Self::Uniforms,
+    instances: Range<u32>,
+  ) {
     match model.buffers.as_ref() {
       Some(mesh) => {
         let n_indices = model.geometry().indices.len() as u32;
         self.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
         // instance matrix data
         self.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-
+        self.set_bind_group(0, material, &[]);
+        self.set_bind_group(1, uniforms, &[]);
         self.draw_indexed(0..n_indices, 0, instances);
       }
       None => {

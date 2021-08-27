@@ -110,3 +110,25 @@ impl LoadPrimitive for MeshGeometry {
     })
   }
 }
+
+/// Stores gltf import data
+#[derive(Debug)]
+pub struct GltfImportOutput {
+  pub document: gltf::Document,
+  pub buffers: Vec<gltf::buffer::Data>,
+  pub images: Vec<gltf::image::Data>,
+}
+
+impl GltfImportOutput {
+  pub fn new(
+    document: gltf::Document,
+    buffers: Vec<gltf::buffer::Data>,
+    images: Vec<gltf::image::Data>,
+  ) -> Self {
+    Self {
+      document,
+      buffers,
+      images,
+    }
+  }
+}

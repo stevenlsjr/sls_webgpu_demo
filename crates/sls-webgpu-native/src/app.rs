@@ -1,47 +1,50 @@
 use std::{
+  collections::HashMap,
   ops::DerefMut,
-  sync::{Arc, RwLock},
+  sync::{Arc, RwLock, Weak},
   thread::spawn,
   time::*,
 };
-use std::collections::HashMap;
-use std::sync::Weak;
 
-use crossbeam::channel::{Receiver, Sender, unbounded};
+use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
 use log::error;
 use rayon::{ThreadPool, ThreadPoolBuilder};
 use sdl2::{
   event::{Event, WindowEvent},
-  EventPump,
   keyboard::Keycode,
   video::Window,
+  EventPump,
 };
 
 use sls_webgpu::{
   anyhow::{self, anyhow},
-  Context,
-  game::resources::ScreenResolution, gltf, image, imgui,
-  imgui_wgpu,
-  platform::sdl2_backend::ImguiSdlPlatform,
-  wgpu_renderer::textures::{BindTexture, TextureResource},
-};
-use sls_webgpu::{
-  game::asset_loading::{
-    asset_load_message::{AssetLoadedMessagePayload, AssetLoadedMessagePayload::GltfModel},
-    MultithreadedAssetLoaderQueue,
+  game::{
+    asset_loading::{
+      asset_load_message::{AssetLoadedMessagePayload, AssetLoadedMessagePayload::GltfModel},
+      resources::MainSceneAssets,
+      MultithreadedAssetLoaderQueue,
+    },
+    input::InputResource,
+    resources::ScreenResolution,
+    CreateGameParams, GameState,
   },
+  gltf,
   gltf::{buffer::Data, Document, Error},
-  platform::gui,
-  wgpu_renderer::mesh::{Mesh, MeshGeometry},
+  image, imgui, imgui_wgpu,
+  platform::{gui, gui::DrawUi, sdl2_backend::ImguiSdlPlatform},
+  renderer_common::{
+    allocator::ResourceManager,
+    gltf_loader::GltfImportOutput,
+    handle::{Handle, HandleIndex},
+  },
+  wgpu_renderer::{
+    material::Material,
+    mesh::{Mesh, MeshGeometry},
+    model::{Model, StreamingMesh},
+    textures::{BindTexture, TextureResource},
+  },
+  Context,
 };
-use sls_webgpu::game::{CreateGameParams, GameState};
-use sls_webgpu::game::input::InputResource;
-use sls_webgpu::platform::gui::DrawUi;
-use sls_webgpu::renderer_common::allocator::ResourceManager;
-use sls_webgpu::renderer_common::handle::{HandleIndex, Handle};
-use sls_webgpu::wgpu_renderer::material::Material;
-use sls_webgpu::wgpu_renderer::model::{Model, StreamingMesh};
-use sls_webgpu::game::asset_loading::components::LoadGltfMesh;
 
 pub struct App {
   pub(crate) context: Arc<RwLock<Context>>,
@@ -55,12 +58,23 @@ pub struct App {
   assets_loaded_receiver: Receiver<anyhow::Result<AssetLoadedMessagePayload>>,
   assets_loaded_sender: Sender<anyhow::Result<AssetLoadedMessagePayload>>,
   pub window: Window,
+  pub avocado_model_data: Option<GltfImportOutput>,
   models: Weak<RwLock<ResourceManager<StreamingMesh>>>,
-  demo_model_handle: Option<HandleIndex>,
 }
 
 impl App {
   pub fn new() -> anyhow::Result<Self> {
+    let (tx, avo_model_rx) = bounded::<anyhow::Result<GltfImportOutput>>(1);
+    // load model in a separate thread
+    rayon::spawn(move || {
+      let avocato_model = gltf::import("./assets/Avocado.glb")
+        .map_err(|e| anyhow::Error::from(e))
+        .map(|model| GltfImportOutput::new(model.0, model.1, model.2));
+      if let Err(e) = tx.send(avocato_model) {
+        panic!("could not send model data to main thread! {:?}", e)
+      }
+    });
+
     let sdl = sdl2::init().map_err(|s| anyhow!(s))?;
     let video_sys = sdl.video().map_err(|s| anyhow!(s))?;
     let mut window = create_window(&video_sys, (1600, 1200))?;
@@ -94,12 +108,29 @@ impl App {
     let imgui_platform = Arc::new(RwLock::new(imgui_platform));
     let context = Arc::new(RwLock::new(context));
 
-    let mut game_state = GameState::new(CreateGameParams {});
+    let mut game_state = GameState::new(CreateGameParams {
+      asset_loader_queue: Some(Box::new(
+        sls_webgpu::game::asset_loading::MultithreadedAssetLoaderQueue::new(),
+      )),
+    });
     {
       game_state.wgpu_setup(context.clone());
     }
     let worker_pool = rayon::ThreadPoolBuilder::new().build()?;
     let (s, r) = unbounded();
+    let avocado_model_data = match avo_model_rx
+      .recv()
+      .expect("could not receive data from channel")
+    {
+      Ok(m) => {
+        let model = Some(m);
+        model
+      }
+      Err(e) => {
+        log::error!("could not load avocado model: {:?}", e);
+        None
+      }
+    };
     let app = Self {
       imgui_context: Arc::new(RwLock::new(imgui_context)),
       context,
@@ -113,7 +144,7 @@ impl App {
       assets_loaded_receiver: r,
       assets_loaded_sender: s,
       models,
-      demo_model_handle: None,
+      avocado_model_data,
     };
     Ok(app)
   }
@@ -277,51 +308,37 @@ impl App {
     let window_size = self.window.size();
     let drawable_size = self.window.drawable_size();
     {
-      use sls_webgpu::game::asset_loading::{MultithreadedAssetLoaderQueue, resources::AssetLoaderQueue};
+      use sls_webgpu::game::asset_loading::{
+        resources::AssetLoaderQueue, MultithreadedAssetLoaderQueue,
+      };
       let mut resources = self.game_state.resources_mut();
       resources.insert(ScreenResolution {
         window_size: (window_size.0 as _, window_size.1 as _),
         drawable_size: (drawable_size.0 as _, drawable_size.1 as _),
       });
-      let asset_loader_queue = sls_webgpu::game::asset_loading::MultithreadedAssetLoaderQueue::new();
-      resources.insert(Box::new(asset_loader_queue ) as Box<dyn AssetLoaderQueue>);
-
-    }
-    {
-      let world = self.game_state.world_mut();
-      let load_model_entity = (LoadGltfMesh::new("./assets/Avocado.glb", 0),);
-      world.push(load_model_entity);
-
     }
     let sender = self.assets_loaded_sender.clone();
 
-    let mesh = {
-      let mesh = StreamingMesh::new("assets/Avocado.glb".to_owned());
-      let models_arc = self.models.upgrade().map(|ptr| ptr.clone())
-        .unwrap();
-      let mut meshes = models_arc.write().expect(
-        "cannot access meshes"
-      );
-      meshes.insert(mesh)
-    };
-    self.demo_model_handle = Some(*mesh);
+    match &self.avocado_model_data {
+      Some(sample_model) => {
+        let mut ctx = self.context.write().unwrap();
+        let mut mesh = StreamingMesh::new("assets/Avocado.glb".to_owned());
+        mesh.load_from_gltf(
+          ctx.deref_mut(),
+          &sample_model.document,
+          &sample_model.buffers,
+          &sample_model.images,
+        )?;
 
-    spawn(move || {
-      let result = gltf::import("assets/Avocado.glb")
-        .map(
-          |(documents, buffers, images)| AssetLoadedMessagePayload::GltfModel {
-            uuid: Default::default(),
-            model_name: "chair".to_owned(),
-            documents,
-            buffers,
-            images,
-          },
-        )
-        .map_err(|e| anyhow::Error::from(e));
-      sender.send(result).unwrap_or_else(|e| {
-        log::error!("failed to send message! {:?}", e);
-      });
-    });
+        let models_arc = self.models.upgrade().map(|ptr| ptr.clone()).unwrap();
+        let mut meshes = models_arc.write().expect("cannot access meshes");
+        let avocado_model = meshes.insert(mesh);
+        let assets = MainSceneAssets { avocado_model };
+        let mut resources = self.game_state.resources_mut();
+        resources.insert(assets);
+      }
+      None => anyhow::bail!("sample model has not been loaded"),
+    };
 
     Ok(())
   }
@@ -341,38 +358,7 @@ impl App {
     }
   }
 
-  fn on_model_loaded(&mut self, message: AssetLoadedMessagePayload) {
-    let model_handle = self.demo_model_handle.expect("model resource should have been created already");
-    let model_resources = self.models.upgrade().expect("resources have already been freed");
-    match message {
-      AssetLoadedMessagePayload::GltfModel {
-        model_name,
-        documents,
-        buffers,
-        images, ..
-      } => {
-        if model_name == "chair" {
-          let mut model_lock = model_resources.write().unwrap();
-
-          let mut model_resource = match model_lock.mut_ref(
-            model_handle.into_typed()
-          ) {
-            Ok(m) => m,
-            Err(e) => {
-              log::error!("{:?}", e);
-              return;
-            }
-          };
-          let mut ctx = self.context.write().unwrap();
-
-          if let Err(e) = model_resource.load_from_gltf(&mut ctx, documents, buffers, images) {
-            log::error!("model load failed: {:?}", e);
-          }
-          ctx.models_to_draw = vec![model_handle.into_typed()];
-        }
-      }
-    };
-  }
+  fn on_model_loaded(&mut self, message: AssetLoadedMessagePayload) {}
 }
 
 fn create_window(

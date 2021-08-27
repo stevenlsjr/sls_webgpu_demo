@@ -2,11 +2,13 @@
 
 use std::fmt::{Debug, Display, Formatter};
 
-use super::handle::{HandleIndex, GENERATION_MAX_SIZE, HANDLE_INDEX_MASK};
-use crate::renderer_common::sparse_array_allocator::AlreadyFreedError;
+use uuid::Uuid;
 
+use crate::renderer_common::{handle::Handle, sparse_array_allocator::AlreadyFreedError};
+
+use super::handle::{HandleIndex, GENERATION_MAX_SIZE, HANDLE_INDEX_MASK};
 pub use super::sparse_array_allocator::SparseArrayAllocator;
-use crate::renderer_common::handle::Handle;
+use crate::renderer_common::has_uuid::HasUuid;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum AllocatorError {
@@ -231,6 +233,7 @@ impl<T: Sized> ResourceManager<T> {
     }
   }
 }
+
 impl<T: Sized> Default for ResourceManager<T> {
   fn default() -> Self {
     Self::with_capacity(0)

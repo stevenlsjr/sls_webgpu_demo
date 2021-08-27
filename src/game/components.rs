@@ -4,6 +4,8 @@ use nalgebra_glm::*;
 
 use crate::{camera::Camera, renderer_common::handle::HandleIndex};
 
+use crate::{renderer_common::handle::Handle, wgpu_renderer::model::StreamingMesh};
+
 #[derive(Clone, Default, Debug)]
 pub struct GameLoopTimer {
   pub fixed_dt: Duration,
@@ -38,15 +40,15 @@ impl Transform3D {
 
 #[derive(Debug, Default, Clone)]
 pub struct RenderModel {
-  pub mesh: Option<HandleIndex>,
+  pub model: Option<Handle<StreamingMesh>>,
   pub is_shown: bool,
 }
 
 impl RenderModel {
-  pub fn new(handle: Option<HandleIndex>, is_shown: bool) -> Self {
+  pub fn new(handle: Option<Handle<StreamingMesh>>, is_shown: bool) -> Self {
     Self {
       is_shown,
-      mesh: handle,
+      model: handle,
     }
   }
 }

@@ -13,6 +13,9 @@ use std::{
   collections::{hash_map::RandomState, HashMap},
   iter::Zip,
 };
+use crate::wgpu_renderer::resource_view::{ReadWriteResources, ResourceView};
+use crate::wgpu_renderer::material::RenderMaterial;
+use crate::wgpu_renderer::textures::TextureResource;
 
 #[derive(Debug)]
 pub struct Model {
@@ -52,11 +55,9 @@ pub struct StreamingMesh {
   pub(crate) path: String,
   pub(crate) mesh_index: usize,
   pub(crate) state: ModelLoadState,
-  pub(crate) primitives: Vec<Handle<Mesh>>,
-  pub(crate) material_handles: HashMap<usize, Handle<Material>>,
+  pub(crate) primitives: Vec<Mesh>,
 }
 
-impl StreamingMesh {}
 
 /// accessor implementations
 impl StreamingMesh {
@@ -73,13 +74,10 @@ impl StreamingMesh {
     &self.state
   }
   #[inline]
-  pub fn primitives(&self) -> &Vec<Handle<Mesh>> {
+  pub fn primitives(&self) -> &Vec<Mesh> {
     &self.primitives
   }
   #[inline]
-  pub fn material_handles(&self) -> &HashMap<usize, Handle<Material>> {
-    &self.material_handles
-  }
   #[inline]
   pub fn set_path(&mut self, path: String) {
     self.path = path;
@@ -93,13 +91,10 @@ impl StreamingMesh {
     self.state = state;
   }
   #[inline]
-  pub fn primitives_mut(&mut self) -> &mut Vec<Handle<Mesh>> {
+  pub fn primitives_mut(&mut self) -> &mut Vec<Mesh> {
     &mut self.primitives
   }
-  #[inline]
-  pub fn material_handles_mut(&mut self) -> &mut HashMap<usize, Handle<Material>> {
-    &mut self.material_handles
-  }
+
 }
 
 impl StreamingMesh {
@@ -112,24 +107,23 @@ impl StreamingMesh {
       state: ModelLoadState::Loading,
       primitives: Vec::new(),
       mesh_index: index,
-      material_handles: Default::default(),
     }
   }
 
   pub fn load_from_gltf_impl(
     &mut self,
     context: &mut Context,
-    document: Document,
-    buffers: Vec<gltf::buffer::Data>,
-    images: Vec<gltf::image::Data>,
+    document: &Document,
+    buffers: &Vec<gltf::buffer::Data>,
+    images: &Vec<gltf::image::Data>,
   ) -> anyhow::Result<()> {
     let mesh = document
       .meshes()
       .nth(self.mesh_index)
       .ok_or(anyhow!("Document does not have a mesh"))?;
 
-    let geometry = MeshGeometry::from_gltf_mesh(&mesh, &buffers)?;
-    let mut materials = Material::from_gltf(&document, &images)?;
+    let geometry = MeshGeometry::from_gltf_mesh(&mesh, buffers)?;
+    let mut materials = Material::from_gltf(document, images)?;
     let mut material_handles: HashMap<usize, Handle<Material>> = HashMap::default();
     let mut meshes: Vec<Handle<Mesh>> = Vec::with_capacity(geometry.len());
     {
@@ -159,9 +153,9 @@ impl StreamingMesh {
   pub fn load_from_gltf(
     &mut self,
     context: &mut Context,
-    document: Document,
-    buffers: Vec<gltf::buffer::Data>,
-    images: Vec<gltf::image::Data>,
+    document: &Document,
+    buffers: &Vec<gltf::buffer::Data>,
+    images: &Vec<gltf::image::Data>,
   ) -> anyhow::Result<()> {
     match self.load_from_gltf_impl(context, document, buffers, images) {
       Err(e) => {

@@ -1,4 +1,5 @@
 mod gltf_loader;
+mod handles;
 
 use sls_webgpu::renderer_common::handle::HandleIndex;
 

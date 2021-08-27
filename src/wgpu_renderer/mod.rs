@@ -2,6 +2,7 @@ pub use model_instance::ModelInstance;
 
 pub mod context;
 
+pub mod frame;
 pub mod gltf_scene;
 pub mod material;
 pub mod mesh;

@@ -6,15 +6,16 @@ license = "MIT"
 edition = "2018"
 
 [features]
+default=["wgpu_renderer"]
 sdl2_backend = ["sdl2"]
 html5_backend = ["web-sys"]
-wgpu_renderer = ["wgpu"]
+wgpu_renderer = []
 wgpu_imgui = ["imgui", "imgui-wgpu", "wgpu_renderer"]
 opengl_renderer = ["glow"]
 
 # optimize certain packages in dev mode
-[profile.dev.package."image"]
-opt-level = 3
+[profile.dev.package."*"]
+opt-level = 2
 [profile.dev.package."gltf"]
 opt-level = 3
 
@@ -30,11 +31,11 @@ naga = { version = "0.5.0", features = [
     "glsl-in", "spv-in", "spv-out", "wgsl-out"] }
 
 [dependencies]
-uuid = { version = "0.8", features = ["serde", "v4"] }
+uuid = { version = "0.8", features = ["serde", "v4", "v5"] }
 wasm-bindgen = "0.2.45"
 raw-window-handle = "0.3.3"
 nalgebra-glm = "0.3"
-wgpu = { version = "^0.8.1", features = ["trace"], optional = true }
+wgpu = { version = "^0.8.1", features = ["trace"], optional = false }
 log = "0.4.14"
 bytemuck = { version = "1.7", features = ["derive"] }
 lazy_static = "1.4.0"

@@ -265,7 +265,7 @@ fn rgba_from_texture(
 }
 
 #[derive(Debug, Clone)]
-pub struct RenderMaterial<TextureT> {
+pub struct RenderMaterial<TextureT: 'static> {
   pub double_sided: bool,
   pub index: usize,
   pub name: Option<String>,
@@ -291,7 +291,7 @@ pub struct RenderMaterial<TextureT> {
   pub emissive_factor: Vec3,
   pub emissive_tex: Option<Handle<TextureT>>,
 
-  pub bind_group: Handle<TextureT>,
+  pub bind_group: Option<wgpu::BindGroup>,
 }
 
 impl RenderMaterial<TextureResource> {

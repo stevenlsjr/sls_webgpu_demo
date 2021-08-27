@@ -50,10 +50,13 @@ impl fmt::Debug for GameState {
   }
 }
 
-pub struct CreateGameParams {}
+#[derive(Default)]
+pub struct CreateGameParams {
+  pub asset_loader_queue: Option<Box<dyn AssetLoaderQueue>>,
+}
 
 impl GameState {
-  pub fn new(_options: CreateGameParams) -> Self {
+  pub fn new(options: CreateGameParams) -> Self {
     let world = World::default();
     let is_running = false;
     let fixed_schedule = Schedule::builder()
@@ -74,6 +77,9 @@ impl GameState {
     resources.insert(InputResource {
       backend: InputState::default(),
     });
+    if let Some(asset_loader_queue) = options.asset_loader_queue {
+      resources.insert(asset_loader_queue)
+    }
     Self {
       world,
       is_running,
@@ -103,7 +109,9 @@ impl GameState {
   }
 
   pub fn add_wgpu_resources(&mut self, context: &Arc<RwLock<Context>>) {
+    let frame = WgpuFrame::new();
     self.resources.insert(context.clone());
+    self.resources.insert(frame);
   }
 
   /// Lifecycle functions
@@ -285,7 +293,12 @@ mod wgpu_imgui {
 }
 
 use crate::{
-  game::{asset_loading::MultithreadedAssetLoaderQueue, input::InputState, resources::MeshLookup},
+  game::{
+    asset_loading::{resources::AssetLoaderQueue, MultithreadedAssetLoaderQueue},
+    input::InputState,
+    resources::MeshLookup,
+  },
+  wgpu_renderer::frame::WgpuFrame,
   Context,
 };
 use atomic_refcell::AtomicRefMut;
@@ -318,7 +331,9 @@ mod test {
   }
 
   fn setup() -> Suite {
-    let game = GameState::new(CreateGameParams {});
+    let game = GameState::new(CreateGameParams {
+      asset_loader_queue: None,
+    });
     Suite { game }
   }
 

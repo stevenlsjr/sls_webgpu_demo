@@ -4,6 +4,7 @@ use crate::{
 };
 
 use super::asset_load_message::AssetLoadRequest;
+use crate::{renderer_common::handle::Handle, wgpu_renderer::model::StreamingMesh};
 
 ///
 ///
@@ -13,4 +14,9 @@ pub trait AssetLoaderQueue {
   fn submit_task(&mut self, request: AssetLoadRequest);
   /// Returns an iterator of completed load requests
   fn poll_completed(&mut self) -> Vec<anyhow::Result<AssetLoadedMessage>>;
+}
+
+#[derive(Debug)]
+pub struct MainSceneAssets {
+  pub avocado_model: Handle<StreamingMesh>,
 }

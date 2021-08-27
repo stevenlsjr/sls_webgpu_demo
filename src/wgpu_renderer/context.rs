@@ -42,6 +42,7 @@ use super::{
   mesh::{Mesh, MeshGeometry},
   uniforms::Uniforms,
 };
+use crate::wgpu_renderer::material::RenderMaterial;
 
 pub struct Context {
   pub instance: wgpu::Instance,
@@ -66,7 +67,7 @@ pub struct Context {
   pub main_tex_handle: Option<Handle<TextureResource>>,
   fallback_texture: Handle<TextureResource>,
   pub streaming_models: Arc<RwLock<ResourceManager<StreamingMesh>>>,
-  pub materials: Arc<RwLock<ResourceManager<Material>>>,
+  pub materials: Arc<RwLock<ResourceManager<RenderMaterial<TextureResource>>>>,
   pub meshes: Arc<RwLock<ResourceManager<Mesh>>>,
   pub textures: Arc<RwLock<ResourceManager<TextureResource>>>,
   pub texture_bind_group_layout: BindGroupLayout,
@@ -148,6 +149,7 @@ impl Context {
       });
     let mesh_allocator = self.meshes.read().unwrap();
     let model_allocator = self.streaming_models.read().unwrap();
+    let material_allocator = self.materials.read().unwrap();
 
     {
       let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -178,8 +180,6 @@ impl Context {
       render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
 
       render_pass.set_pipeline(&self.render_pipeline);
-      render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-      render_pass.set_bind_group(1, &self.diffuse_bind_group, &[]);
 
       render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
 
@@ -189,14 +189,19 @@ impl Context {
             Ok(e) => e,
             Err(_) => continue,
           };
+
           for mesh in model.mesh_refs(&*mesh_allocator) {
             if let Some(mesh) = mesh {
-              render_pass.draw_model_instanced(mesh, 0..(self.n_instances as u32));
+              let material = match mesh.material().and_then(
+                |handle| material_allocator.get_ref(handle).ok()) {
+                Some(x) => x,
+                None => continue
+              };
+              render_pass.draw_model_instanced(mesh,
+                                               0..(self.n_instances as u32));
             }
           }
         }
-      } else {
-        render_pass.draw_model_instanced(&self.mesh, 0..(self.n_instances as u32));
       }
     }
     self.queue.submit(std::iter::once(encoder.finish()));
@@ -269,9 +274,9 @@ pub struct Builder<'a, W: AsWindow + HasRawWindowHandle> {
 impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
   pub async fn build(self) -> Result<Context, Error> {
     #[cfg(not(target_os = "linux"))]
-    let backends = wgpu::BackendBit::all();
+      let backends = wgpu::BackendBit::all();
     #[cfg(target_os = "linux")]
-    let backends = wgpu::BackendBit::VULKAN;
+      let backends = wgpu::BackendBit::VULKAN;
 
     let instance = self
       .instance

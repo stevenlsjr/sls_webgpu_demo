@@ -1,4 +1,4 @@
-use super::{asset_load_message::AssetLoadRequest, components::LoadGltfMesh};
+use super::asset_load_message::AssetLoadRequest;
 use legion::*;
 
 use crate::{

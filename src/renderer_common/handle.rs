@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ops::Deref};
+use std::{any::TypeId, marker::PhantomData, ops::Deref};
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct HandleIndex(u32);
@@ -26,9 +26,9 @@ impl HandleIndex {
 
 /// Typed wrapper for HandleIndex
 #[derive(Default, Debug, PartialEq)]
-pub struct Handle<T: Sized> {
+pub struct Handle<T: 'static + Sized> {
   index: HandleIndex,
-  _phantom: PhantomData<*const T>,
+  _phantom: PhantomData<&'static T>,
 }
 
 impl<T: Sized> Clone for Handle<T> {
@@ -72,4 +72,28 @@ where
   fn insert(&mut self, value: T) -> Handle<T>;
 
   fn remove(&mut self, handle: T) -> Option<T>;
+}
+
+#[derive(Copy, Clone)]
+pub struct AnyHandle {
+  index: HandleIndex,
+  typeid: TypeId,
+}
+
+impl AnyHandle {
+  pub fn from_handle<T>(handle: Handle<T>) -> Self {
+    let typeid = TypeId::of::<T>();
+    Self {
+      typeid,
+      index: handle.index,
+    }
+  }
+
+  pub fn downcast<T>(&self) -> Option<Handle<T>> {
+    if TypeId::of::<T>() == self.typeid {
+      Some(self.index.into_typed())
+    } else {
+      None
+    }
+  }
 }

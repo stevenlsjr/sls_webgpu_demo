@@ -6,9 +6,14 @@ use rand::distributions::Uniform;
 pub use wgpu_renderer::*;
 
 use crate::{
-  game::components::{RenderModel, Transform3D},
+  game::{
+    asset_loading::resources::MainSceneAssets,
+    components::{RenderModel, Transform3D},
+  },
   renderer_common::handle::HandleIndex,
+  wgpu_renderer::frame::WgpuFrame,
 };
+use legion::world::SubWorld;
 
 #[cfg(feature = "wgpu_renderer")]
 mod wgpu_renderer {
@@ -26,6 +31,7 @@ mod wgpu_renderer {
   };
 
   use super::*;
+  use crate::game::asset_loading::resources::MainSceneAssets;
 
   fn load_mesh_lookup<C: BorrowMut<Context>>(
     context: C,
@@ -37,6 +43,7 @@ mod wgpu_renderer {
   #[system]
   pub fn create_models_wgpu(
     #[resource] context: &Arc<RwLock<Context>>,
+    #[resource] assets: &MainSceneAssets,
     #[resource] mesh_lookup: &mut MeshLookup,
     cmd: &mut CommandBuffer,
   ) {
@@ -44,22 +51,9 @@ mod wgpu_renderer {
       .write()
       .map_err(|e| anyhow!("Could not access context RwLock: Poisoned {:?}", e))
       .and_then(|context| {
-        let mut meshes = context
-          .meshes
-          .write()
-          .map_err(|e| anyhow!("Could not access context RwLock: Poisoned {:?}", e))?;
-        let cube = Mesh::from_geometry(MeshGeometry::cube(), &context.device)?;
-        let cube = meshes.insert(cube);
-        let sphere = Mesh::from_geometry(MeshGeometry::unit_sphere(30, 30), &context.device)?;
-        let sphere = meshes.insert(sphere);
-
-        mesh_lookup.0.insert("sphere".to_owned(), *sphere);
-        mesh_lookup.0.insert("cube".to_owned(), *cube);
-
-        let mesh_choices = &[cube.to_index(), sphere.to_index()];
-        let n_models = 10usize;
+        let n_models = 10;
         for i in 0..n_models {
-          let components = create_random_model(mesh_choices);
+          let components = create_random_model(assets);
           cmd.push(components);
         }
         Ok(())
@@ -70,17 +64,17 @@ mod wgpu_renderer {
   }
 }
 
-fn create_random_model(mesh_choices: &[HandleIndex]) -> (RenderModel, Transform3D) {
+fn create_random_model(assets: &MainSceneAssets) -> (RenderModel, Transform3D) {
   use nalgebra_glm::*;
   use rand::{prelude::*, thread_rng};
   let mut rng = thread_rng();
 
-  let mesh = SliceRandom::choose(mesh_choices, &mut rng).cloned();
+  let mesh = assets.avocado_model;
   let mut transform = Transform3D::default();
   let rand_dist = Uniform::new(-10.0, 10.0);
   transform.position = vec3(rng.sample(rand_dist), 0.0, rng.sample(rand_dist));
   let model = RenderModel {
-    mesh,
+    model: Some(mesh),
     is_shown: true,
   };
   (model, transform)
