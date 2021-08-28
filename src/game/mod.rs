@@ -101,7 +101,7 @@ impl GameState {
     resources.insert(MeshLookup::default());
     #[cfg(not(target_arch = "wasm32"))]
     {
-      use asset_loading::{resources::AssetLoaderQueue, MultithreadedAssetLoaderQueue};
+      use asset_loading::MultithreadedAssetLoaderQueue;
       resources.insert(Box::new(MultithreadedAssetLoaderQueue::new()) as Box<dyn AssetLoaderQueue>)
     }
 

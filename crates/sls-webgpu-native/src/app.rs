@@ -333,6 +333,7 @@ impl App {
         let models_arc = self.models.upgrade().map(|ptr| ptr.clone()).unwrap();
         let mut meshes = models_arc.write().expect("cannot access meshes");
         let avocado_model = meshes.insert(mesh);
+        ctx.models_to_draw.push(avocado_model);
         let assets = MainSceneAssets { avocado_model };
         let mut resources = self.game_state.resources_mut();
         resources.insert(assets);

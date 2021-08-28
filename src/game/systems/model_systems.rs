@@ -5,15 +5,10 @@ use rand::distributions::Uniform;
 #[cfg(feature = "wgpu_renderer")]
 pub use wgpu_renderer::*;
 
-use crate::{
-  game::{
-    asset_loading::resources::MainSceneAssets,
-    components::{RenderModel, Transform3D},
-  },
-  renderer_common::handle::HandleIndex,
-  wgpu_renderer::frame::WgpuFrame,
+use crate::game::{
+  asset_loading::resources::MainSceneAssets,
+  components::{RenderModel, Transform3D},
 };
-use legion::world::SubWorld;
 
 #[cfg(feature = "wgpu_renderer")]
 mod wgpu_renderer {
@@ -24,18 +19,14 @@ mod wgpu_renderer {
 
   use legion::systems::CommandBuffer;
 
-  use crate::{
-    game::resources::MeshLookup,
-    wgpu_renderer::mesh::{Mesh, MeshGeometry},
-    Context,
-  };
+  use crate::{game::resources::MeshLookup, Context};
 
   use super::*;
   use crate::game::asset_loading::resources::MainSceneAssets;
 
   fn load_mesh_lookup<C: BorrowMut<Context>>(
-    context: C,
-    lookup: &mut MeshLookup,
+    _context: C,
+    _lookup: &mut MeshLookup,
   ) -> anyhow::Result<()> {
     Ok(())
   }
@@ -52,7 +43,7 @@ mod wgpu_renderer {
       .map_err(|e| anyhow!("Could not access context RwLock: Poisoned {:?}", e))
       .and_then(|context| {
         let n_models = 10;
-        for i in 0..n_models {
+        for _i in 0..n_models {
           let components = create_random_model(assets);
           cmd.push(components);
         }

@@ -101,7 +101,6 @@ mod sdl2_input {
       let key_state = event_pump.keyboard_state();
       self.pressed_keycodes.clear();
       self.pressed_scancodes.clear();
-      let keymods = sdl.keyboard().mod_state();
 
       for code in key_state.pressed_scancodes() {
         self.pressed_scancodes.insert(code.into());
@@ -114,7 +113,6 @@ mod sdl2_input {
     }
 
     pub fn handle_sdl_event(&mut self, event: &sdl2::event::Event, window: &Window) {
-      let mouse_util = window.subsystem().sdl().mouse();
       match event {
         Event::Quit { .. } => {}
         Event::AppWillEnterBackground { .. } => {}
@@ -139,7 +137,7 @@ mod sdl2_input {
         }
         Event::MouseButtonDown { mouse_btn, .. } => {
           let btn: MouseButton = (*mouse_btn).into();
-          self.mouse_state.mask |= (btn as u32);
+          self.mouse_state.mask |= btn as u32;
         }
         Event::MouseButtonUp { mouse_btn, .. } => {
           let btn: MouseButton = (*mouse_btn).into();

@@ -264,7 +264,7 @@ fn rgba_from_texture(
   Ok(dyn_image)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RenderMaterial<TextureT: 'static> {
   pub double_sided: bool,
   pub index: usize,
@@ -293,6 +293,7 @@ pub struct RenderMaterial<TextureT: 'static> {
 
   pub bind_group: Option<wgpu::BindGroup>,
 }
+pub type WgpuMaterial = RenderMaterial<TextureResource>;
 
 impl RenderMaterial<TextureResource> {
   pub fn from_material(

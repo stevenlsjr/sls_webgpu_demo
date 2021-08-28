@@ -5,17 +5,21 @@ use crate::{
     allocator::ResourceManager,
     handle::{Handle, HandleIndex},
   },
-  wgpu_renderer::{mesh::MeshGeometry, Context},
+  wgpu_renderer::{
+    material::{RenderMaterial, WgpuMaterial},
+    mesh::MeshGeometry,
+    resource_view::{ReadWriteResources, ResourceView},
+    textures::TextureResource,
+    Context,
+  },
 };
 use anyhow::anyhow;
 use gltf::Document;
 use std::{
   collections::{hash_map::RandomState, HashMap},
   iter::Zip,
+  sync::{Arc, RwLock, Weak},
 };
-use crate::wgpu_renderer::resource_view::{ReadWriteResources, ResourceView};
-use crate::wgpu_renderer::material::RenderMaterial;
-use crate::wgpu_renderer::textures::TextureResource;
 
 #[derive(Debug)]
 pub struct Model {
@@ -56,8 +60,8 @@ pub struct StreamingMesh {
   pub(crate) mesh_index: usize,
   pub(crate) state: ModelLoadState,
   pub(crate) primitives: Vec<Mesh>,
+  pub(crate) materials: Option<Weak<RwLock<ResourceManager<WgpuMaterial>>>>,
 }
-
 
 /// accessor implementations
 impl StreamingMesh {
@@ -78,7 +82,6 @@ impl StreamingMesh {
     &self.primitives
   }
   #[inline]
-  #[inline]
   pub fn set_path(&mut self, path: String) {
     self.path = path;
   }
@@ -95,9 +98,6 @@ impl StreamingMesh {
     &mut self.primitives
   }
 
-}
-
-impl StreamingMesh {
   pub fn new(path: String) -> Self {
     Self::new_with_index(path, 0)
   }
@@ -107,6 +107,7 @@ impl StreamingMesh {
       state: ModelLoadState::Loading,
       primitives: Vec::new(),
       mesh_index: index,
+      materials: None,
     }
   }
 
@@ -124,28 +125,28 @@ impl StreamingMesh {
 
     let geometry = MeshGeometry::from_gltf_mesh(&mesh, buffers)?;
     let mut materials = Material::from_gltf(document, images)?;
-    let mut material_handles: HashMap<usize, Handle<Material>> = HashMap::default();
-    let mut meshes: Vec<Handle<Mesh>> = Vec::with_capacity(geometry.len());
+    // let mut material_handles: HashMap<usize, _> = HashMap::default();
+    let mut meshes: Vec<Mesh> = Vec::with_capacity(geometry.len());
     {
-      let mut mesh_loader = context.meshes.write().map_err(|e| anyhow!("{:?}", e))?;
+      let mut mesh_loader = context.meshes.write().expect("RwLock is poisoned!");
       let mut material_loader = context.materials.write().map_err(|e| anyhow!("{:?}", e))?;
       for mut mat in materials {
         let index = mat.index;
-        let handle = material_loader.insert(mat);
-        material_handles.insert(index, handle);
       }
       for mesh_geom in geometry.into_iter() {
         let mut mesh = Mesh::from_geometry(mesh_geom, &context.device)?;
-        if let Some(material_idx) = mesh.geometry().gltf_mat_index {
-          mesh.set_material(material_handles.get(&material_idx).cloned());
+        match mesh.geometry().gltf_mat_index {
+          Some(material_idx) => {
+            // mesh.set_material( );
+          }
+          None => mesh.set_material(Some(context.default_material)),
         }
-        let handle = mesh_loader.insert(mesh);
-        meshes.push(handle);
+        meshes.push(mesh);
       }
     }
     self.primitives = meshes;
-    self.material_handles = material_handles;
     self.state = ModelLoadState::Loaded;
+    self.materials = Some(Arc::downgrade(&context.materials));
 
     Ok(())
   }
@@ -164,15 +165,5 @@ impl StreamingMesh {
       }
       ok => ok,
     }
-  }
-
-  pub fn mesh_refs<'a>(
-    &'a self,
-    mesh_resources: &'a ResourceManager<Mesh>,
-  ) -> impl Iterator<Item = Option<&'a Mesh>> {
-    self
-      .primitives
-      .iter()
-      .map(move |handle| mesh_resources.get_ref(*handle).ok())
   }
 }

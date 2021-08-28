@@ -6,6 +6,7 @@ use crate::{
 use nalgebra_glm::Mat4;
 use std::sync::{Arc, RwLock, Weak};
 
+#[derive(Debug)]
 pub enum DrawCommand {
   Model {
     handle: Handle<StreamingMesh>,

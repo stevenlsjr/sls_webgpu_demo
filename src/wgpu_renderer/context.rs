@@ -42,7 +42,7 @@ use super::{
   mesh::{Mesh, MeshGeometry},
   uniforms::Uniforms,
 };
-use crate::wgpu_renderer::material::RenderMaterial;
+use crate::wgpu_renderer::material::{RenderMaterial, WgpuMaterial};
 
 pub struct Context {
   pub instance: wgpu::Instance,
@@ -73,6 +73,8 @@ pub struct Context {
   pub texture_bind_group_layout: BindGroupLayout,
   pub diffuse_bind_group: BindGroup,
   pub uniform_bind_group_layout: BindGroupLayout,
+
+  pub(crate) default_material: Handle<WgpuMaterial>,
   uniform_bind_group: wgpu::BindGroup,
 
   /// Buffer storing instance state for render
@@ -183,24 +185,34 @@ impl Context {
 
       render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
 
-      if self.models_to_draw.len() > 0 {
-        for m in &self.models_to_draw {
-          let model = match model_allocator.get_ref(m.into_typed()) {
-            Ok(e) => e,
-            Err(_) => continue,
-          };
+      for m in &self.models_to_draw {
+        let model = match model_allocator.get_ref(m.into_typed()) {
+          Ok(e) => e,
+          Err(_) => continue,
+        };
 
-          for mesh in model.mesh_refs(&*mesh_allocator) {
-            if let Some(mesh) = mesh {
-              let material = match mesh.material().and_then(
-                |handle| material_allocator.get_ref(handle).ok()) {
-                Some(x) => x,
-                None => continue
+        for mesh in model.primitives() {
+          mesh
+            .material()
+            .and_then(|handle| match material_allocator.get_ref(handle) {
+              Ok(material) => Some(material),
+              Err(e) => {
+                log::warn!("could not access material: {:?}", e);
+                None
+              }
+            })
+            .map(|material| {
+              let material_bg = match &material.bind_group {
+                None => panic!("material does not have bind group attached"),
+                Some(bg) => bg,
               };
-              render_pass.draw_model_instanced(mesh,
-                                               0..(self.n_instances as u32));
-            }
-          }
+              render_pass.draw_model_instanced(
+                mesh,
+                material_bg,
+                &self.uniform_bind_group,
+                0..(self.n_instances as u32),
+              );
+            });
         }
       }
     }
@@ -274,9 +286,9 @@ pub struct Builder<'a, W: AsWindow + HasRawWindowHandle> {
 impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
   pub async fn build(self) -> Result<Context, Error> {
     #[cfg(not(target_os = "linux"))]
-      let backends = wgpu::BackendBit::all();
+    let backends = wgpu::BackendBit::all();
     #[cfg(target_os = "linux")]
-      let backends = wgpu::BackendBit::VULKAN;
+    let backends = wgpu::BackendBit::VULKAN;
 
     let instance = self
       .instance
@@ -403,6 +415,15 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
         usage: BufferUsage::VERTEX | BufferUsage::COPY_DST,
       })
     };
+    let mut materials = ResourceManager::default();
+    let default_material = WgpuMaterial::from_material(
+      &Material::default(),
+      &queue,
+      &device,
+      &model_texture_bind_group_layout,
+      &mut textures,
+    )?;
+    let default_material = materials.insert(default_material);
 
     let mut result = Context {
       surface,
@@ -426,7 +447,7 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       streaming_models: Default::default(),
       meshes: Default::default(),
       textures: Arc::new(RwLock::new(textures)),
-      materials: Default::default(),
+      materials: Arc::new(RwLock::new(materials)),
       main_tex_handle: None,
       fallback_texture,
       main_frag_shader,
@@ -437,6 +458,8 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       n_instances: 0,
 
       depth_stencil_texture,
+
+      default_material,
     };
     result
       .bind_texture(*fallback_texture)

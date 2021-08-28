@@ -3,7 +3,10 @@ use crate::{
   renderer_common::allocator::ResourceManager,
   wgpu::Texture,
   wgpu_renderer::{
-    material::Material, mesh::Mesh, model::StreamingMesh, textures::TextureResource,
+    material::{Material, WgpuMaterial},
+    mesh::Mesh,
+    model::StreamingMesh,
+    textures::TextureResource,
   },
 };
 use std::{
@@ -15,7 +18,7 @@ use std::{
 pub struct ResourceView<'a> {
   pub models: RwLockReadGuard<'a, ResourceManager<StreamingMesh>>,
   pub meshes: RwLockReadGuard<'a, ResourceManager<Mesh>>,
-  pub materials: RwLockReadGuard<'a, ResourceManager<Material>>,
+  pub materials: RwLockReadGuard<'a, ResourceManager<WgpuMaterial>>,
   pub textures: RwLockReadGuard<'a, ResourceManager<TextureResource>>,
 }
 
@@ -23,7 +26,7 @@ pub struct ResourceView<'a> {
 pub struct MutResourceView<'a> {
   pub models: RwLockWriteGuard<'a, ResourceManager<StreamingMesh>>,
   pub meshes: RwLockWriteGuard<'a, ResourceManager<Mesh>>,
-  pub materials: RwLockWriteGuard<'a, ResourceManager<Material>>,
+  pub materials: RwLockWriteGuard<'a, ResourceManager<WgpuMaterial>>,
   pub textures: RwLockWriteGuard<'a, ResourceManager<TextureResource>>,
 }
 

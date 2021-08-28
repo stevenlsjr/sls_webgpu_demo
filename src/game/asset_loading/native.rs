@@ -1,37 +1,19 @@
-use std::{
-  borrow::BorrowMut,
-  path::Path,
-  sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc, RwLock, RwLockWriteGuard,
-  },
-  thread::spawn,
-};
+use std::collections::HashMap;
 
-use anyhow::anyhow;
-use crossbeam::channel::{unbounded, Receiver, Sender, TryIter};
+use crossbeam::channel::{unbounded, Receiver, Sender};
+use uuid::Uuid;
 
 #[cfg(feature = "wgpu_renderer")]
-use crate::wgpu_renderer::Context;
 use crate::{
-  anyhow::Error,
-  game::{
-    asset_loading::{
-      asset_load_message::{AssetLoadRequest, AssetLoadedMessagePayload},
-      resources::AssetLoaderQueue,
-    },
-    GameState,
+  game::asset_loading::{
+    asset_load_message::{AssetLoadRequest, AssetLoadedMessagePayload},
+    resources::AssetLoaderQueue,
   },
-  renderer_common::{
-    allocator::{ResourceManager, SparseArrayAllocator},
-    handle::{Handle, HandleIndex},
-  },
-  wgpu_renderer::model::{ModelLoadState, StreamingMesh},
+  renderer_common::{allocator::ResourceManager, handle::Handle},
 };
 
 use super::asset_load_message::AssetLoadedMessage;
-use std::collections::HashMap;
-use uuid::Uuid;
+use crate::wgpu_renderer::model::StreamingMesh;
 
 type ChannelType = anyhow::Result<AssetLoadedMessage>;
 
@@ -47,7 +29,11 @@ impl AssetLoaderQueue for MultithreadedAssetLoaderQueue {
     let sender = self.sender.clone();
 
     match request {
-      AssetLoadRequest::GltfModel { path, uuid, entity } => {
+      AssetLoadRequest::GltfModel {
+        path,
+        uuid,
+        entity: _,
+      } => {
         self.open_requests.insert(uuid, cloned);
         rayon::spawn(move || {
           if let Err(e) = Self::load_gltf_model(uuid.clone(), path, &sender) {
@@ -102,10 +88,10 @@ impl MultithreadedAssetLoaderQueue {
     &self,
     models: &mut ResourceManager<StreamingMesh>,
     handle: Handle<StreamingMesh>,
-    documents: &gltf::Document,
-    buffers: &[gltf::buffer::Data],
+    _documents: &gltf::Document,
+    _buffers: &[gltf::buffer::Data],
   ) -> anyhow::Result<()> {
-    let mut model = models.mut_ref(handle)?;
+    let _model = models.mut_ref(handle)?;
     // model.load_from_gltf()
     Ok(())
   }

@@ -9,7 +9,7 @@ use crate::{
     render_context::DrawModel,
   },
   wgpu_renderer::{
-    material::{Material, RenderMaterial},
+    material::{Material, RenderMaterial, WgpuMaterial},
     textures::TextureResource,
   },
 };
@@ -23,7 +23,7 @@ use wgpu::util::{BufferInitDescriptor, DeviceExt};
 pub struct Mesh {
   geometry: MeshGeometry,
   buffers: Option<MeshBuffers>,
-  material: Option<Handle<Material>>,
+  material: Option<Handle<WgpuMaterial>>,
 }
 
 impl Mesh {
@@ -58,11 +58,11 @@ impl Mesh {
   }
 
   #[inline]
-  pub fn material(&self) -> Option<Handle<Material>> {
+  pub fn material(&self) -> Option<Handle<WgpuMaterial>> {
     self.material
   }
   #[inline]
-  pub fn set_material(&mut self, handle: Option<Handle<Material>>) {
+  pub fn set_material(&mut self, handle: Option<Handle<WgpuMaterial>>) {
     self.material = handle
   }
 }
