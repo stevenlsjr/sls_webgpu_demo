@@ -1,10 +1,5 @@
-use super::Context;
-use crate::{
-  renderer_common::handle::{AnyHandle, Handle},
-  wgpu_renderer::model::StreamingMesh,
-};
+use crate::{renderer_common::handle::Handle, wgpu_renderer::model::StreamingMesh};
 use nalgebra_glm::Mat4;
-use std::sync::{Arc, RwLock, Weak};
 
 #[derive(Debug)]
 pub enum DrawCommand {

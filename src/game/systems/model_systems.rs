@@ -35,13 +35,13 @@ mod wgpu_renderer {
   pub fn create_models_wgpu(
     #[resource] context: &Arc<RwLock<Context>>,
     #[resource] assets: &MainSceneAssets,
-    #[resource] mesh_lookup: &mut MeshLookup,
+    #[resource] _mesh_lookup: &mut MeshLookup,
     cmd: &mut CommandBuffer,
   ) {
     let res = context
       .write()
       .map_err(|e| anyhow!("Could not access context RwLock: Poisoned {:?}", e))
-      .and_then(|context| {
+      .and_then(|_context| {
         let n_models = 10;
         for _i in 0..n_models {
           let components = create_random_model(assets);

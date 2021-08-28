@@ -101,7 +101,6 @@ impl GameState {
     resources.insert(MeshLookup::default());
     #[cfg(not(target_arch = "wasm32"))]
     {
-      use asset_loading::MultithreadedAssetLoaderQueue;
       resources.insert(Box::new(MultithreadedAssetLoaderQueue::new()) as Box<dyn AssetLoaderQueue>)
     }
 
@@ -237,8 +236,8 @@ impl GameState {
       let ctx = self.resources.get_mut::<crate::wgpu_renderer::Context>();
       let loader = self.resources.get_mut::<MultithreadedAssetLoaderQueue>();
       match (ctx, loader) {
-        (Some(ctx), Some(loader)) => {}
-        (ctx, loader) => {
+        (Some(_ctx), Some(_loader)) => {}
+        (_ctx, _loader) => {
           // log::warn!("missing resources needed to load assets: {:?}, {:?}", ctx.is_some(), loader.is_some())
         }
       }
@@ -301,7 +300,7 @@ use crate::{
   wgpu_renderer::frame::WgpuFrame,
   Context,
 };
-use atomic_refcell::AtomicRefMut;
+
 use std::sync::{Arc, RwLock};
 #[cfg(feature = "wgpu_renderer")]
 pub use wgpu_renderer::*;
@@ -322,7 +321,6 @@ mod wgpu_renderer {
 
 #[cfg(test)]
 mod test {
-  use crate::game::input::InputState;
 
   use super::*;
 

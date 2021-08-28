@@ -36,7 +36,7 @@ pub fn per_frame_logging(#[resource] game_loop: &GameLoopTimer) {
 pub fn setup_scene(
   #[resource] scene: &mut Scene,
   #[resource] resolution: &ScreenResolution,
-  #[resource] assets: &Box<dyn AssetLoaderQueue>,
+  #[resource] _assets: &Box<dyn AssetLoaderQueue>,
   command_buffer: &mut CommandBuffer,
 ) {
   let mut main_camera: CameraEntityRow = (
@@ -74,7 +74,7 @@ pub fn write_camera_ui_data(
 #[read_component(RenderModel)]
 #[read_component(Transform3D)]
 pub fn write_renderable_ui_data(
-  #[resource] scene: &Scene,
+  #[resource] _scene: &Scene,
   #[resource] input: &InputResource,
   #[resource] ui_data: &mut UIDataIn,
   world: &SubWorld,

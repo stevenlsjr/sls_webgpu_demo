@@ -51,7 +51,7 @@ impl LoadPrimitive for MeshGeometry {
         .unwrap_or([0.0, 1.0, 0.0]);
       let tangent = tangents
         .as_mut()
-        .and_then(|mut iter| iter.next())
+        .and_then(|iter| iter.next())
         .unwrap_or([0.0, 1.0, 0.0, 1.0]);
       verts.push(Vertex {
         position: *position,
@@ -94,7 +94,7 @@ impl LoadPrimitive for MeshGeometry {
       }
     }
     // load index data
-    let mut indices: Vec<u16> = match reader.read_indices().map(|i| i.into_u32()) {
+    let indices: Vec<u16> = match reader.read_indices().map(|i| i.into_u32()) {
       Some(iter) => iter.map(|i| i.try_into().unwrap()).collect(),
       None => {
         let limit: u16 = verts.len().try_into().unwrap();

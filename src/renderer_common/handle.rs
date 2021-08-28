@@ -1,7 +1,7 @@
 use std::{any::TypeId, marker::PhantomData, ops::Deref};
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
-pub struct HandleIndex(u32);
+pub struct HandleIndex(pub u32);
 
 const HANDLE_INDEX_N_BITS: u32 = 20;
 pub const HANDLE_INDEX_MASK: u32 = (1 << HANDLE_INDEX_N_BITS) - 1;
@@ -74,7 +74,7 @@ where
   fn remove(&mut self, handle: T) -> Option<T>;
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct AnyHandle {
   index: HandleIndex,
   typeid: TypeId,

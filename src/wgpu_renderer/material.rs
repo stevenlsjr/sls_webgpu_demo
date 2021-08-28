@@ -3,7 +3,7 @@ use crate::{
   wgpu_renderer::textures::TextureResource,
 };
 use gltf::image::Format;
-use image::{Bgr, DynamicImage, ImageBuffer, RgbaImage};
+use image::{Bgr, DynamicImage, ImageBuffer};
 use nalgebra_glm::{vec3, vec4, Vec3, Vec4};
 use wgpu::{BindGroupLayout, Device, Queue};
 
@@ -28,7 +28,7 @@ impl From<gltf::material::AlphaMode> for AlphaMode {
 pub struct Sampler {}
 
 impl Sampler {
-  pub fn from_gltf(gltf_sampler: &gltf::texture::Sampler) -> Self {
+  pub fn from_gltf(_gltf_sampler: &gltf::texture::Sampler) -> Self {
     Self {}
   }
 }
@@ -52,7 +52,7 @@ impl TextureInfoData {
     device: &Device,
   ) -> anyhow::Result<()> {
     match (self.texture_resource_handle, self.rgba.as_ref()) {
-      (Some(handle), _) => Ok(()),
+      (Some(_handle), _) => Ok(()),
       (None, Some(rbga)) => {
         let texture = TextureResource::from_image(&rbga, queue, device)?;
         let texture_handle = textures.insert(texture);
@@ -207,7 +207,7 @@ fn texture_from_info(
       let name: Option<String> = tex.name().map(&str::to_owned);
       let rgba = rgba_from_texture(&tex, images)?;
 
-      let sampler = Sampler {};
+      let _sampler = Sampler {};
       Ok(Some(TextureInfoData {
         rgba: Some(rgba),
         index,
@@ -300,7 +300,7 @@ impl RenderMaterial<TextureResource> {
     material: &Material,
     queue: &Queue,
     device: &Device,
-    bind_group_layout: &BindGroupLayout,
+    _bind_group_layout: &BindGroupLayout,
     textures: &mut ResourceManager<TextureResource>,
   ) -> anyhow::Result<Self> {
     let texture_infos = &[
@@ -315,7 +315,7 @@ impl RenderMaterial<TextureResource> {
     for (i, &info_opt) in texture_infos.iter().enumerate() {
       let get_tex = info_opt.as_ref().map(|info| (info, &info.rgba));
       match get_tex {
-        Some((info, Some(rgba))) => {
+        Some((_info, Some(rgba))) => {
           let resource = TextureResource::from_image(rgba, queue, device)?;
           let handle = textures.insert(resource);
           texture_handles[i] = Some(handle);

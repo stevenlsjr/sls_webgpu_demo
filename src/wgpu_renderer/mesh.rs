@@ -1,9 +1,9 @@
 pub use crate::renderer_common::geometry::MeshGeometry;
-use crate::renderer_common::geometry::{self, Vertex};
+
+use std::ops::Range;
 
 use crate::{
   error::Error,
-  imgui::__core::ops::Range,
   renderer_common::{
     handle::{Handle, HandleIndex},
     render_context::DrawModel,
@@ -13,11 +13,6 @@ use crate::{
     textures::TextureResource,
   },
 };
-use genmesh::{
-  generators::{IcoSphere, SharedVertex},
-  Indexer, LruIndexer, MapToVertices, Triangulate, Vertices,
-};
-use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
 #[derive(Debug)]
 pub struct Mesh {

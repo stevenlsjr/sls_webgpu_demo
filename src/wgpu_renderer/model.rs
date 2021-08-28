@@ -30,9 +30,9 @@ pub struct Model {
 
 impl Model {
   pub fn load_sample_model() -> anyhow::Result<Self> {
-    let (document, buffers, images) = gltf::import("assets/sheen-chair/SheenChair.glb")?;
+    let (document, buffers, _images) = gltf::import("assets/sheen-chair/SheenChair.glb")?;
     for mesh in document.meshes() {
-      let geom = MeshGeometry::from_gltf_mesh(&mesh, &buffers)?;
+      let _geom = MeshGeometry::from_gltf_mesh(&mesh, &buffers)?;
     }
     todo!()
   }
@@ -124,19 +124,19 @@ impl StreamingMesh {
       .ok_or(anyhow!("Document does not have a mesh"))?;
 
     let geometry = MeshGeometry::from_gltf_mesh(&mesh, buffers)?;
-    let mut materials = Material::from_gltf(document, images)?;
+    let materials = Material::from_gltf(document, images)?;
     // let mut material_handles: HashMap<usize, _> = HashMap::default();
     let mut meshes: Vec<Mesh> = Vec::with_capacity(geometry.len());
     {
-      let mut mesh_loader = context.meshes.write().expect("RwLock is poisoned!");
-      let mut material_loader = context.materials.write().map_err(|e| anyhow!("{:?}", e))?;
-      for mut mat in materials {
-        let index = mat.index;
+      let _mesh_loader = context.meshes.write().expect("RwLock is poisoned!");
+      let _material_loader = context.materials.write().map_err(|e| anyhow!("{:?}", e))?;
+      for mat in materials {
+        let _index = mat.index;
       }
       for mesh_geom in geometry.into_iter() {
         let mut mesh = Mesh::from_geometry(mesh_geom, &context.device)?;
         match mesh.geometry().gltf_mat_index {
-          Some(material_idx) => {
+          Some(_material_idx) => {
             // mesh.set_material( );
           }
           None => mesh.set_material(Some(context.default_material)),

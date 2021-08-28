@@ -1,5 +1,5 @@
-use crate::{game::components::Transform3D, wgpu::VertexFormat};
-use nalgebra_glm::*;
+use crate::game::components::Transform3D;
+
 use wgpu::{InputStepMode, VertexBufferLayout};
 
 /// Instance data for model

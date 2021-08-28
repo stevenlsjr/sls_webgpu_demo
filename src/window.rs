@@ -8,7 +8,7 @@ pub trait AsWindow: HasRawWindowHandle {
   /// If value is true, cursor should be hidden and mouse delta should
   /// be tracked even if cursor is outside the window boundary.
   /// If false, use normal mouse behavior
-  fn set_relative_mouse_mode(&mut self, value: bool) {}
+  fn set_relative_mouse_mode(&mut self, _value: bool) {}
 }
 
 #[cfg(feature = "sdl2")]

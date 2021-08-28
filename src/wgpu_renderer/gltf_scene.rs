@@ -28,12 +28,16 @@ impl GltfScene {
     instance
   }
 
-  pub fn init_buffers(&mut self, queue: &wgpu::Queue, device: &wgpu::Device) -> anyhow::Result<()> {
-    if let Some(res) = &self.wgpu_resources {
+  pub fn init_buffers(
+    &mut self,
+    _queue: &wgpu::Queue,
+    _device: &wgpu::Device,
+  ) -> anyhow::Result<()> {
+    if let Some(_res) = &self.wgpu_resources {
       anyhow::bail!("wgpu buffers already loaded");
     }
-    let resources = Some(WgpuResources::default());
-    for (i, buffer_view) in self.document.views().enumerate() {
+    let _resources = Some(WgpuResources::default());
+    for (_i, buffer_view) in self.document.views().enumerate() {
       match buffer_view.target() {
         None => {}
         Some(Target::ArrayBuffer) => {}

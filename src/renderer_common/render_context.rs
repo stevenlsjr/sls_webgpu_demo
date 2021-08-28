@@ -1,14 +1,10 @@
-use crate::{
-  game::GameState,
-  nalgebra_glm::Vec4,
-  wgpu_renderer::{material::RenderMaterial, textures::TextureResource, uniforms::Uniforms},
-};
+use crate::{game::GameState, nalgebra_glm::Vec4};
 use downcast_rs::*;
 use std::{fmt::Debug, ops::Range};
 
 /// Common trait for generic rendering backends
 pub trait RenderContext: Debug + Downcast {
-  fn set_clear_color(&mut self, color: Vec4) {}
+  fn set_clear_color(&mut self, _color: Vec4) {}
   fn on_render(&mut self, game: &mut GameState) -> Result<(), crate::Error>;
 }
 

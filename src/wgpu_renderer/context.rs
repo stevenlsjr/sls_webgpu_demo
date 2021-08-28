@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::anyhow;
-use legion::query::ChunkView;
+
 use raw_window_handle::HasRawWindowHandle;
 use wgpu::{
   util::{BufferInitDescriptor, DeviceExt},
@@ -149,7 +149,7 @@ impl Context {
       .create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("Render Encoder"),
       });
-    let mesh_allocator = self.meshes.read().unwrap();
+    let _mesh_allocator = self.meshes.read().unwrap();
     let model_allocator = self.streaming_models.read().unwrap();
     let material_allocator = self.materials.read().unwrap();
 

@@ -1,10 +1,10 @@
 use std::num::NonZeroU32;
 
-use image::{DynamicImage, GenericImageView, ImageError};
+use image::{DynamicImage, GenericImageView};
 use thiserror::Error;
-use wasm_bindgen;
+
 use wgpu::{
-  BindGroup, BindGroupDescriptor, BindGroupEntry, Device, Extent3d, Queue, Sampler, ShaderStage,
+  BindGroup, BindGroupDescriptor, BindGroupEntry, Device, Queue, Sampler, ShaderStage,
   SwapChainDescriptor, Texture, TextureSampleType, TextureView,
 };
 
@@ -50,7 +50,7 @@ impl TextureResource {
 
   /// Creates a new texture resource with sampler and view
   /// from a wgpu texture object
-  pub fn from_texture(tex: Texture, queue: &Queue, device: &Device) -> Result<Self, TextureError> {
+  pub fn from_texture(tex: Texture, _queue: &Queue, device: &Device) -> Result<Self, TextureError> {
     let texture_view = tex.create_view(&wgpu::TextureViewDescriptor {
       label: Some(concat!(std::file!(), ":", std::line!())),
       ..Default::default()
@@ -240,7 +240,7 @@ impl BindTexture for Context {
       .read()
       .map_err(|e| anyhow::anyhow!("{:?}", e))?;
     let tex = textures.get_ref(tex_handle)?;
-    let bind_group = basic_texture_bind_group(tex, &self.texture_bind_group_layout, &self.device);
+    let _bind_group = basic_texture_bind_group(tex, &self.texture_bind_group_layout, &self.device);
     Ok(())
   }
 }
