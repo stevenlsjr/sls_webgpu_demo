@@ -22,6 +22,6 @@
             "verifyBufferAccess": false
         },
         "queuedFrameCap": 0,
-        "workingDir": "C:\\Users\\steve\\CLionProjects\\sls_webgpu_demo\\crates\\sls-webgpu-native\\"
+        "workingDir": "C:\\Users\\steve\\CLionProjects\\sls_webgpu_demo\\"
     }
 }

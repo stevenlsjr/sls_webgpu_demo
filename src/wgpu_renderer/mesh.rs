@@ -94,12 +94,13 @@ where
   ) {
     match model.buffers.as_ref() {
       Some(mesh) => {
+
         let n_indices = model.geometry().indices.len() as u32;
         self.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
         // instance matrix data
         self.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-        self.set_bind_group(0, material, &[]);
-        self.set_bind_group(1, uniforms, &[]);
+        self.set_bind_group(1, material, &[]);
+        self.set_bind_group(0, uniforms, &[]);
         self.draw_indexed(0..n_indices, 0, instances);
       }
       None => {

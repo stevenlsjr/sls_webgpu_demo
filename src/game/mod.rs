@@ -80,14 +80,7 @@ impl GameState {
     if let Some(asset_loader_queue) = options.asset_loader_queue {
       resources.insert(asset_loader_queue)
     }
-    Self {
-      world,
-      is_running,
-      fixed_schedule,
-      per_frame_schedule,
-      resources,
-      on_resize_schedule,
-    }
+    Self { world, fixed_schedule, per_frame_schedule, on_resize_schedule, resources, is_running }
   }
 
   fn initial_resources() -> Resources {

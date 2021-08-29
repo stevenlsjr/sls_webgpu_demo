@@ -36,7 +36,7 @@ impl AssetLoaderQueue for MultithreadedAssetLoaderQueue {
       } => {
         self.open_requests.insert(uuid, cloned);
         rayon::spawn(move || {
-          if let Err(e) = Self::load_gltf_model(uuid.clone(), path, &sender) {
+          if let Err(e) = Self::load_gltf_model(uuid, path, &sender) {
             sender.send(Err(e)).unwrap();
           }
         });

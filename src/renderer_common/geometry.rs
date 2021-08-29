@@ -42,7 +42,7 @@ mod wgpu_renderer {
     wgpu_renderer::mesh::MeshBuffers,
   };
 
-  static VERTEX_ATTR_ARRAY: &'static [wgpu::VertexAttribute] = &wgpu::vertex_attr_array![
+  static VERTEX_ATTR_ARRAY: &[wgpu::VertexAttribute] = &wgpu::vertex_attr_array![
     0=>Float32x3,
     1=>Float32x4,
     2=>Float32x2,
@@ -64,10 +64,7 @@ mod wgpu_renderer {
 
   impl MeshGeometry {
     pub fn create_buffers(&self, device: &wgpu::Device) -> Result<MeshBuffers, Error> {
-      let label = match &self.label {
-        Some(l) => Some(l.as_str()),
-        None => None,
-      };
+      let label = self.label.as_deref();
       let ibo = device.create_buffer_init(&BufferInitDescriptor {
         label,
         contents: bytemuck::cast_slice(&self.indices),
@@ -79,10 +76,10 @@ mod wgpu_renderer {
         contents: bytemuck::cast_slice(&self.vertices),
         usage: wgpu::BufferUsage::VERTEX,
       });
-      return Ok(MeshBuffers {
+      Ok(MeshBuffers {
         vertex_buffer: vbo,
         index_buffer: ibo,
-      });
+      })
     }
   }
 }

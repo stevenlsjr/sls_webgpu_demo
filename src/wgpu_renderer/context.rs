@@ -65,7 +65,7 @@ pub struct Context {
   main_frag_shader: wgpu::ShaderModule,
 
   pub main_tex_handle: Option<Handle<TextureResource>>,
-  fallback_texture: Handle<TextureResource>,
+  pub(crate) fallback_texture: Handle<TextureResource>,
   pub streaming_models: Arc<RwLock<ResourceManager<StreamingMesh>>>,
   pub materials: Arc<RwLock<ResourceManager<RenderMaterial<TextureResource>>>>,
   pub meshes: Arc<RwLock<ResourceManager<Mesh>>>,
@@ -179,7 +179,6 @@ impl Context {
         }),
       });
 
-      render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
 
       render_pass.set_pipeline(&self.render_pipeline);
 
@@ -206,6 +205,7 @@ impl Context {
                 None => panic!("material does not have bind group attached"),
                 Some(bg) => bg,
               };
+
               render_pass.draw_model_instanced(
                 mesh,
                 material_bg,
@@ -267,14 +267,14 @@ impl Context {
     } else {
       self
         .queue
-        .write_buffer(&self.instance_buffer, 0 as _, buffer_data);
+        .write_buffer(&self.instance_buffer, 0_u64, buffer_data);
     }
 
     self
       .queue
       .write_buffer(&self.instance_buffer, 0, &bytemuck::cast_slice(&instances));
     self.n_instances = instances.len();
-    self.instance_buffer_view = buffer_data.iter().cloned().collect();
+    self.instance_buffer_view = buffer_data.to_vec();
   }
 }
 
@@ -327,7 +327,7 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
 
     let uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
       label: Some("Main UBO"),
-      contents: bytemuck::cast_slice(&[uniforms.clone()]),
+      contents: bytemuck::cast_slice(&[uniforms]),
       usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
     });
 
@@ -422,6 +422,7 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       &device,
       &model_texture_bind_group_layout,
       &mut textures,
+      fallback_texture
     )?;
     let default_material = materials.insert(default_material);
 
@@ -524,7 +525,7 @@ fn create_render_pipeline(
   render_pipeline
 }
 
-pub fn createe_bind_group(device: &Device) {
+pub fn create_bind_group(device: &Device) {
   device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
     label: Some(concat!(std::file!(), ":BindGroupLayout")),
     entries: &[],
@@ -533,7 +534,7 @@ pub fn createe_bind_group(device: &Device) {
 
 impl RenderContext for Context {
   fn on_render(&mut self, game: &mut GameState) -> Result<(), Error> {
-    self.render(game).map_err(|e| crate::Error::Render(e))
+    self.render(game).map_err(crate::Error::Render)
   }
 }
 

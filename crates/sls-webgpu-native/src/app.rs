@@ -317,7 +317,6 @@ impl App {
         drawable_size: (drawable_size.0 as _, drawable_size.1 as _),
       });
     }
-    let sender = self.assets_loaded_sender.clone();
 
     match &self.avocado_model_data {
       Some(sample_model) => {

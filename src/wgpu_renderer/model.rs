@@ -125,19 +125,26 @@ impl StreamingMesh {
 
     let geometry = MeshGeometry::from_gltf_mesh(&mesh, buffers)?;
     let materials = Material::from_gltf(document, images)?;
-    // let mut material_handles: HashMap<usize, _> = HashMap::default();
+    let mut material_handles: HashMap<usize, _> = HashMap::default();
     let mut meshes: Vec<Mesh> = Vec::with_capacity(geometry.len());
     {
       let _mesh_loader = context.meshes.write().expect("RwLock is poisoned!");
-      let _material_loader = context.materials.write().map_err(|e| anyhow!("{:?}", e))?;
+      let mut material_loader = context.materials.write().unwrap();
+      let mut tex_loader = context.textures.write().unwrap();
       for mat in materials {
-        let _index = mat.index;
+        let index = mat.index;
+        let gpu_material = WgpuMaterial::from_material(&mat, &context.queue, &context.device,
+                                                       &context.texture_bind_group_layout, &mut *tex_loader, context.fallback_texture)?;
+        let gpu_material = material_loader.insert(gpu_material);
+        material_handles.insert(index, gpu_material);
       }
       for mesh_geom in geometry.into_iter() {
         let mut mesh = Mesh::from_geometry(mesh_geom, &context.device)?;
         match mesh.geometry().gltf_mat_index {
-          Some(_material_idx) => {
-            // mesh.set_material( );
+          Some(material_idx) => {
+            let handle = material_handles.get(&material_idx)
+              .unwrap_or_else(|| panic!("could not retrieve material with index {}, existing handles: {:?}", material_idx, material_handles));
+            mesh.set_material(Some(*handle));
           }
           None => mesh.set_material(Some(context.default_material)),
         }

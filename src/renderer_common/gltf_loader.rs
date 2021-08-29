@@ -36,7 +36,7 @@ impl LoadPrimitive for MeshGeometry {
     let reader = primitive.reader(|buffer_data| Some(&buffers[buffer_data.index()]));
     let read_positions = reader
       .read_positions()
-      .ok_or(GltfLoaderError::unsupported_format(
+      .ok_or_else(|| GltfLoaderError::unsupported_format(
         "Primitives must have a POSITION attribute".to_owned(),
       ))?;
 
@@ -55,8 +55,8 @@ impl LoadPrimitive for MeshGeometry {
         .unwrap_or([0.0, 1.0, 0.0, 1.0]);
       verts.push(Vertex {
         position: *position,
-        normal: normal,
-        tangent: tangent,
+        normal,
+        tangent,
         ..Default::default()
       })
     }
@@ -70,8 +70,8 @@ impl LoadPrimitive for MeshGeometry {
       }
       for (i, tex_coord) in tex_coords.into_f32().enumerate() {
         match current_set {
-          0 => verts[i].uv = tex_coord.clone(),
-          1 => verts[i].uv_1 = tex_coord.clone(),
+          0 => verts[i].uv = tex_coord,
+          1 => verts[i].uv_1 = tex_coord,
           _ => unreachable!(),
         }
       }
@@ -88,7 +88,7 @@ impl LoadPrimitive for MeshGeometry {
       }
       for (i, color) in colors.into_rgba_f32().enumerate() {
         match current_set {
-          0 => verts[i].color = color.clone(),
+          0 => verts[i].color = color,
           _ => unreachable!(),
         }
       }

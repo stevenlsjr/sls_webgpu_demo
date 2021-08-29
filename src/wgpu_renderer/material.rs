@@ -5,7 +5,9 @@ use crate::{
 use gltf::image::Format;
 use image::{Bgr, DynamicImage, ImageBuffer};
 use nalgebra_glm::{vec3, vec4, Vec3, Vec4};
-use wgpu::{BindGroupLayout, Device, Queue};
+use wgpu::{BindGroupLayout, Device, Queue, BindGroupDescriptor, BindGroupEntry, BindingResource};
+use smallvec::SmallVec;
+use crate::wgpu_renderer::textures::basic_texture_bind_group;
 
 #[derive(Debug, Copy, Clone)]
 pub enum AlphaMode {
@@ -236,31 +238,31 @@ fn rgba_from_texture(
   let img = &images[img_index];
   let dyn_image = match img.format {
     Format::R8 => image::GrayImage::from_raw(img.width, img.height, img.pixels.clone())
-      .map(|buff| DynamicImage::ImageLuma8(buff)),
+      .map(DynamicImage::ImageLuma8),
     Format::R8G8 => image::GrayAlphaImage::from_raw(img.width, img.height, img.pixels.clone())
-      .map(|buff| DynamicImage::ImageLumaA8(buff)),
+      .map(DynamicImage::ImageLumaA8),
     Format::R8G8B8 => image::RgbImage::from_raw(img.width, img.height, img.pixels.clone())
-      .map(|buff| DynamicImage::ImageRgb8(buff)),
+      .map(DynamicImage::ImageRgb8),
     Format::R8G8B8A8 => image::RgbaImage::from_raw(img.width, img.height, img.pixels.clone())
-      .map(|buff| DynamicImage::ImageRgba8(buff)),
+      .map(DynamicImage::ImageRgba8),
     Format::B8G8R8 => {
       ImageBuffer::<Bgr<u8>, Vec<u8>>::from_raw(img.width, img.height, img.pixels.clone())
-        .map(|buff| DynamicImage::ImageBgr8(buff))
+        .map(DynamicImage::ImageBgr8)
     }
     Format::B8G8R8A8 => {
       ImageBuffer::<image::Bgra<u8>, Vec<u8>>::from_raw(img.width, img.height, img.pixels.clone())
-        .map(|buff| DynamicImage::ImageBgra8(buff))
+        .map(DynamicImage::ImageBgra8)
     }
     fmt => anyhow::bail!(
       "format {:?} not supported. Only supports 8 bit images right now",
       fmt
     ), // Format::R16 => {
-       // }
-       // Format::R16G16 => {None}
-       // Format::R16G16B16 => {None}
-       // Format::R16G16B16A16 => {None}
+    // }
+    // Format::R16G16 => {None}
+    // Format::R16G16B16 => {None}
+    // Format::R16G16B16A16 => {None}
   }
-  .ok_or_else(|| anyhow::anyhow!("could not create image buffer for image"))?;
+    .ok_or_else(|| anyhow::anyhow!("could not create image buffer for image"))?;
   Ok(dyn_image)
 }
 
@@ -293,36 +295,72 @@ pub struct RenderMaterial<TextureT: 'static> {
 
   pub bind_group: Option<wgpu::BindGroup>,
 }
+
 pub type WgpuMaterial = RenderMaterial<TextureResource>;
 
 impl RenderMaterial<TextureResource> {
-  pub fn from_material(
+  ///
+  /// @param default_texture. Texture handle to use for bind groups if
+  /// material does not have defined texture.
+  pub fn from_material<'ax>(
     material: &Material,
     queue: &Queue,
     device: &Device,
-    _bind_group_layout: &BindGroupLayout,
+    bind_group_layout: &BindGroupLayout,
     textures: &mut ResourceManager<TextureResource>,
+    default_texture: Handle<TextureResource>,
   ) -> anyhow::Result<Self> {
-    let texture_infos = &[
-      &material.albedo_tex,
+    let mut gpu_resource = Self {
+      double_sided: material.double_sided,
+      index: material.index,
+      name: material.name.clone(),
+      alpha_cutoff: material.alpha_cutoff,
+      alpha_mode: material.alpha_mode.clone(),
+      albedo_factor: material.albedo_factor,
+      albedo_tex: None,
+      normal_tex: None,
+      metallic_factor: material.metallic_factor,
+      roughness_factor: material.roughness_factor,
+      metallic_roughness_tex: None,
+      occlusion_tex: None,
+      ior: material.ior,
+      transmission_factor: material.transmission_factor,
+      transmission_tex: None,
+      emissive_factor: material.emissive_factor,
+      emissive_tex: None,
+      bind_group: None,
+    };
+    let mut texture_infos = [
+      (&material.albedo_tex, &mut gpu_resource.albedo_tex),
+      (&material.metallic_roughness_tex, &mut gpu_resource.metallic_roughness_tex),
       // &material.metallic_roughness_tex,
       // &material.transmission_tex,
       // &material.emissive_tex,
       // &material.occlusion_tex,
       // &material.normal_tex
     ];
-    let mut texture_handles: [Option<Handle<TextureResource>>; 1] = [None; 1];
-    for (i, &info_opt) in texture_infos.iter().enumerate() {
+    for (info_opt, gpu_tex) in texture_infos
+      .iter_mut() {
       let get_tex = info_opt.as_ref().map(|info| (info, &info.rgba));
       match get_tex {
         Some((_info, Some(rgba))) => {
           let resource = TextureResource::from_image(rgba, queue, device)?;
           let handle = textures.insert(resource);
-          texture_handles[i] = Some(handle);
+          **gpu_tex = Some(handle)
         }
         _ => (),
       }
-    }
-    todo!()
+    };
+
+
+    gpu_resource.init_bind_group(queue, device, textures, default_texture, bind_group_layout)?;
+    Ok(gpu_resource)
+  }
+  fn init_bind_group(&mut self, queue: &Queue, device: &Device, textures: &ResourceManager<TextureResource>, default_texture: Handle<TextureResource>, layout: &BindGroupLayout)
+                     -> anyhow::Result<()> {
+    let albedo_tex = textures.get_ref(self.albedo_tex.unwrap_or(default_texture))?;
+    let bind_group = basic_texture_bind_group(albedo_tex, layout, device);
+    self.bind_group = Some(bind_group);
+    Ok(())
   }
 }
