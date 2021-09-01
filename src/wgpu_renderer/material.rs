@@ -1,13 +1,12 @@
 use crate::{
   renderer_common::{allocator::ResourceManager, handle::Handle},
-  wgpu_renderer::textures::TextureResource,
+  wgpu_renderer::textures::{basic_texture_bind_group, TextureResource},
 };
 use gltf::image::Format;
 use image::{Bgr, DynamicImage, ImageBuffer};
 use nalgebra_glm::{vec3, vec4, Vec3, Vec4};
-use wgpu::{BindGroupLayout, Device, Queue, BindGroupDescriptor, BindGroupEntry, BindingResource};
 use smallvec::SmallVec;
-use crate::wgpu_renderer::textures::basic_texture_bind_group;
+use wgpu::{BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindingResource, Device, Queue};
 
 #[derive(Debug, Copy, Clone)]
 pub enum AlphaMode {
@@ -257,12 +256,12 @@ fn rgba_from_texture(
       "format {:?} not supported. Only supports 8 bit images right now",
       fmt
     ), // Format::R16 => {
-    // }
-    // Format::R16G16 => {None}
-    // Format::R16G16B16 => {None}
-    // Format::R16G16B16A16 => {None}
+       // }
+       // Format::R16G16 => {None}
+       // Format::R16G16B16 => {None}
+       // Format::R16G16B16A16 => {None}
   }
-    .ok_or_else(|| anyhow::anyhow!("could not create image buffer for image"))?;
+  .ok_or_else(|| anyhow::anyhow!("could not create image buffer for image"))?;
   Ok(dyn_image)
 }
 
@@ -332,15 +331,17 @@ impl RenderMaterial<TextureResource> {
     };
     let mut texture_infos = [
       (&material.albedo_tex, &mut gpu_resource.albedo_tex),
-      (&material.metallic_roughness_tex, &mut gpu_resource.metallic_roughness_tex),
+      (
+        &material.metallic_roughness_tex,
+        &mut gpu_resource.metallic_roughness_tex,
+      ),
       // &material.metallic_roughness_tex,
       // &material.transmission_tex,
       // &material.emissive_tex,
       // &material.occlusion_tex,
       // &material.normal_tex
     ];
-    for (info_opt, gpu_tex) in texture_infos
-      .iter_mut() {
+    for (info_opt, gpu_tex) in texture_infos.iter_mut() {
       let get_tex = info_opt.as_ref().map(|info| (info, &info.rgba));
       match get_tex {
         Some((_info, Some(rgba))) => {
@@ -350,14 +351,19 @@ impl RenderMaterial<TextureResource> {
         }
         _ => (),
       }
-    };
-
+    }
 
     gpu_resource.init_bind_group(queue, device, textures, default_texture, bind_group_layout)?;
     Ok(gpu_resource)
   }
-  fn init_bind_group(&mut self, queue: &Queue, device: &Device, textures: &ResourceManager<TextureResource>, default_texture: Handle<TextureResource>, layout: &BindGroupLayout)
-                     -> anyhow::Result<()> {
+  fn init_bind_group(
+    &mut self,
+    queue: &Queue,
+    device: &Device,
+    textures: &ResourceManager<TextureResource>,
+    default_texture: Handle<TextureResource>,
+    layout: &BindGroupLayout,
+  ) -> anyhow::Result<()> {
     let albedo_tex = textures.get_ref(self.albedo_tex.unwrap_or(default_texture))?;
     let bind_group = basic_texture_bind_group(albedo_tex, layout, device);
     self.bind_group = Some(bind_group);

@@ -133,8 +133,14 @@ impl StreamingMesh {
       let mut tex_loader = context.textures.write().unwrap();
       for mat in materials {
         let index = mat.index;
-        let gpu_material = WgpuMaterial::from_material(&mat, &context.queue, &context.device,
-                                                       &context.texture_bind_group_layout, &mut *tex_loader, context.fallback_texture)?;
+        let gpu_material = WgpuMaterial::from_material(
+          &mat,
+          &context.queue,
+          &context.device,
+          &context.texture_bind_group_layout,
+          &mut *tex_loader,
+          context.fallback_texture,
+        )?;
         let gpu_material = material_loader.insert(gpu_material);
         material_handles.insert(index, gpu_material);
       }
@@ -142,8 +148,12 @@ impl StreamingMesh {
         let mut mesh = Mesh::from_geometry(mesh_geom, &context.device)?;
         match mesh.geometry().gltf_mat_index {
           Some(material_idx) => {
-            let handle = material_handles.get(&material_idx)
-              .unwrap_or_else(|| panic!("could not retrieve material with index {}, existing handles: {:?}", material_idx, material_handles));
+            let handle = material_handles.get(&material_idx).unwrap_or_else(|| {
+              panic!(
+                "could not retrieve material with index {}, existing handles: {:?}",
+                material_idx, material_handles
+              )
+            });
             mesh.set_material(Some(*handle));
           }
           None => mesh.set_material(Some(context.default_material)),

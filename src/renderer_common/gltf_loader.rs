@@ -34,11 +34,9 @@ impl LoadPrimitive for MeshGeometry {
     // load vertex data
     let mut verts: Vec<Vertex> = Vec::new();
     let reader = primitive.reader(|buffer_data| Some(&buffers[buffer_data.index()]));
-    let read_positions = reader
-      .read_positions()
-      .ok_or_else(|| GltfLoaderError::unsupported_format(
-        "Primitives must have a POSITION attribute".to_owned(),
-      ))?;
+    let read_positions = reader.read_positions().ok_or_else(|| {
+      GltfLoaderError::unsupported_format("Primitives must have a POSITION attribute".to_owned())
+    })?;
 
     let positions: Vec<_> = read_positions.into_iter().collect();
     let mut normals = reader.read_normals();

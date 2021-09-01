@@ -62,8 +62,10 @@ fn create_random_model(assets: &MainSceneAssets) -> (RenderModel, Transform3D) {
 
   let mesh = assets.avocado_model;
   let mut transform = Transform3D::default();
-  let rand_dist = Uniform::new(-10.0, 10.0);
+  let rand_dist = Uniform::new(-2.0, 2.0);
   transform.position = vec3(rng.sample(rand_dist), 0.0, rng.sample(rand_dist));
+  transform.scale = vec3(5.0, 5.0, 5.0);
+  transform.rotation = Vec3()
   let model = RenderModel {
     model: Some(mesh),
     is_shown: true,

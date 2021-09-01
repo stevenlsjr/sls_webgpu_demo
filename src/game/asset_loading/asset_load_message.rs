@@ -58,6 +58,10 @@ pub struct AssetLoadedMessage {
 
 impl AssetLoadedMessage {
   pub fn new(id: Uuid, payload: AssetLoadedMessagePayload, entity: Option<Entity>) -> Self {
-    Self { payload, entity, id }
+    Self {
+      payload,
+      entity,
+      id,
+    }
   }
 }

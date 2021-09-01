@@ -67,7 +67,7 @@ impl App {
     let (tx, avo_model_rx) = bounded::<anyhow::Result<GltfImportOutput>>(1);
     // load model in a separate thread
     rayon::spawn(move || {
-      let avocato_model = gltf::import("./assets/Avocado.glb")
+      let avocato_model = gltf::import("./assets/BoomBox.glb")
         .map_err(|e| anyhow::Error::from(e))
         .map(|model| GltfImportOutput::new(model.0, model.1, model.2));
       if let Err(e) = tx.send(avocato_model) {
@@ -308,9 +308,6 @@ impl App {
     let window_size = self.window.size();
     let drawable_size = self.window.drawable_size();
     {
-      use sls_webgpu::game::asset_loading::{
-        resources::AssetLoaderQueue, MultithreadedAssetLoaderQueue,
-      };
       let mut resources = self.game_state.resources_mut();
       resources.insert(ScreenResolution {
         window_size: (window_size.0 as _, window_size.1 as _),
@@ -321,7 +318,7 @@ impl App {
     match &self.avocado_model_data {
       Some(sample_model) => {
         let mut ctx = self.context.write().unwrap();
-        let mut mesh = StreamingMesh::new("assets/Avocado.glb".to_owned());
+        let mut mesh = StreamingMesh::new("assets/BoomBox.glb".to_owned());
         mesh.load_from_gltf(
           ctx.deref_mut(),
           &sample_model.document,

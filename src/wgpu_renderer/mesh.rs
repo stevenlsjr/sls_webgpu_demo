@@ -94,7 +94,6 @@ where
   ) {
     match model.buffers.as_ref() {
       Some(mesh) => {
-
         let n_indices = model.geometry().indices.len() as u32;
         self.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
         // instance matrix data

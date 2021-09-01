@@ -43,6 +43,8 @@ use super::{
   uniforms::Uniforms,
 };
 use crate::wgpu_renderer::material::{RenderMaterial, WgpuMaterial};
+use crate::wgpu_renderer::uniforms::{make_light_bind_group_layout, PointLightUniform};
+use crate::wgpu::Buffer;
 
 pub struct Context {
   pub instance: wgpu::Instance,
@@ -56,7 +58,6 @@ pub struct Context {
 
   render_pipeline: wgpu::RenderPipeline,
   // scene resources
-  mesh: Mesh,
   pub models_to_draw: Vec<Handle<StreamingMesh>>,
   uniforms: Uniforms,
   uniform_buffer: wgpu::Buffer,
@@ -73,6 +74,9 @@ pub struct Context {
   pub texture_bind_group_layout: BindGroupLayout,
   pub diffuse_bind_group: BindGroup,
   pub uniform_bind_group_layout: BindGroupLayout,
+  pub light_bind_group_layout: BindGroupLayout,
+  pub light_bind_group: BindGroup,
+  pub light_uniform_buffer: Buffer,
 
   pub(crate) default_material: Handle<WgpuMaterial>,
   uniform_bind_group: wgpu::BindGroup,
@@ -179,7 +183,6 @@ impl Context {
         }),
       });
 
-
       render_pass.set_pipeline(&self.render_pipeline);
 
       render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
@@ -223,8 +226,10 @@ impl Context {
   pub fn rebuild_render_pipeline(&mut self) {
     self.pipeline_layout = create_pipeline_layout(
       &self.device,
-      &self.uniform_bind_group_layout,
-      &self.texture_bind_group_layout,
+      &[
+        &self.uniform_bind_group_layout,
+        &self.texture_bind_group_layout,
+      ],
     );
     self.render_pipeline = create_render_pipeline(
       &self.device,
@@ -286,9 +291,9 @@ pub struct Builder<'a, W: AsWindow + HasRawWindowHandle> {
 impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
   pub async fn build(self) -> Result<Context, Error> {
     #[cfg(not(target_os = "linux"))]
-    let backends = wgpu::BackendBit::all();
+      let backends = wgpu::BackendBit::all();
     #[cfg(target_os = "linux")]
-    let backends = wgpu::BackendBit::VULKAN;
+      let backends = wgpu::BackendBit::VULKAN;
 
     let instance = self
       .instance
@@ -372,7 +377,7 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
     // setup pipeline and swapchain
 
     let pipeline_layout =
-      create_pipeline_layout(&device, &ubo_layout, &model_texture_bind_group_layout);
+      create_pipeline_layout(&device, &[&ubo_layout, &model_texture_bind_group_layout]);
     let (w_width, w_height) = self.window.size();
     let sc_desc = wgpu::SwapChainDescriptor {
       usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
@@ -402,10 +407,6 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
 
     // create default mesh to draw
 
-    let mesh = {
-      let geom = MeshGeometry::unit_plane();
-      Mesh::from_geometry(geom, &device)?
-    };
 
     let instance_buffer = {
       let instance_data: &[ModelInstance] = &[];
@@ -422,9 +423,12 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       &device,
       &model_texture_bind_group_layout,
       &mut textures,
-      fallback_texture
+      fallback_texture,
     )?;
     let default_material = materials.insert(default_material);
+
+    let (light_uniform_buffer, light_bind_group, light_bind_group_layout) =
+      Self::create_light_bindings(&device);
 
     let mut result = Context {
       surface,
@@ -436,7 +440,6 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       sc_desc,
       swapchain,
       render_pipeline,
-      mesh,
       models_to_draw: Vec::new(),
 
       uniforms,
@@ -461,6 +464,9 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       depth_stencil_texture,
 
       default_material,
+      light_uniform_buffer,
+      light_bind_group,
+      light_bind_group_layout,
     };
     result
       .bind_texture(*fallback_texture)
@@ -472,16 +478,41 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
     self.instance = Some(instance);
     self
   }
+
+  fn create_light_bindings(device: &wgpu::Device) -> (wgpu::Buffer, wgpu::BindGroup, wgpu::BindGroupLayout) {
+    let light_uniform = PointLightUniform {
+      position: [2.0, 2.0, 2.0],
+      _padding: 0,
+      color: [1.0, 1.0, 1.0],
+    };
+
+    // We'll want to update our lights position, so we use COPY_DST
+    let light_buffer = device.create_buffer_init(
+      &wgpu::util::BufferInitDescriptor {
+        label: Some("Light VB"),
+        contents: bytemuck::cast_slice(&[light_uniform]),
+        usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+      }
+    );
+    let layout = make_light_bind_group_layout(device);
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+      label: None,
+      layout: &layout,
+      entries: &[
+        wgpu::BindGroupEntry { binding: 0, resource: light_buffer.as_entire_binding() }
+      ]
+    });
+    (light_buffer, bind_group, layout)
+  }
 }
 
 pub fn create_pipeline_layout(
   device: &Device,
-  ubo_layout: &BindGroupLayout,
-  texture_layout: &BindGroupLayout,
+  bind_group_layouts: &[&BindGroupLayout],
 ) -> PipelineLayout {
   let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
     label: Some("pipeline_layout"),
-    bind_group_layouts: &[ubo_layout, texture_layout],
+    bind_group_layouts,
     push_constant_ranges: &[],
   });
   pipeline_layout

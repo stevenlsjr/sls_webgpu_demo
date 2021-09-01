@@ -15,11 +15,7 @@ opengl_renderer = ["glow"]
 
 # optimize certain packages in dev mode
 [profile.dev.package."*"]
-opt-level = 2
-[profile.dev.package."gltf"]
 opt-level = 3
-
-
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [build-dependencies]
