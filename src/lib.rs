@@ -32,7 +32,9 @@ mod tests;
 
 #[cfg(feature = "opengl_renderer")]
 pub mod gl_renderer;
+pub mod math;
 pub mod renderer_common;
+
 pub use renderer_common::images::RawImageRbga;
 
 // crate re-imports

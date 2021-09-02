@@ -62,6 +62,7 @@ impl GameState {
     let fixed_schedule = Schedule::builder()
       .add_system(systems::fixed_update_logging_system())
       .add_system(systems::write_camera_ui_data_system())
+      .add_system(systems::model_systems::rotate_models_system(0.0))
       .build();
     let per_frame_schedule = Schedule::builder()
       .add_system(systems::per_frame_logging_system())
@@ -321,7 +322,6 @@ mod wgpu_renderer {
 
 #[cfg(test)]
 mod test {
-
   use super::*;
 
   struct Suite {

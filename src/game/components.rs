@@ -31,7 +31,7 @@ impl Default for Transform3D {
 
 impl Transform3D {
   pub fn matrix(&self) -> Mat4 {
-    let rotation = quat_to_mat4(&self.rotation);
+    let rotation = quat_to_mat4(&self.rotation.normalize());
     let translation = translation(&self.position);
     let scale = scale(&Mat4::identity(), &self.scale);
     translation * rotation * scale

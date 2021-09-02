@@ -39,11 +39,11 @@ pub fn make_light_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLay
       binding: 0,
       visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
       ty: wgpu::BindingType::Buffer {
-        ty:  wgpu::BufferBindingType::Uniform,
+        ty: wgpu::BufferBindingType::Uniform,
         has_dynamic_offset: false,
-        min_binding_size: None
+        min_binding_size: None,
       },
-      count: None
+      count: None,
     }],
   })
 }

@@ -42,9 +42,13 @@ use super::{
   mesh::{Mesh, MeshGeometry},
   uniforms::Uniforms,
 };
-use crate::wgpu_renderer::material::{RenderMaterial, WgpuMaterial};
-use crate::wgpu_renderer::uniforms::{make_light_bind_group_layout, PointLightUniform};
-use crate::wgpu::Buffer;
+use crate::{
+  wgpu::Buffer,
+  wgpu_renderer::{
+    material::{RenderMaterial, WgpuMaterial},
+    uniforms::{make_light_bind_group_layout, PointLightUniform},
+  },
+};
 
 pub struct Context {
   pub instance: wgpu::Instance,
@@ -291,9 +295,9 @@ pub struct Builder<'a, W: AsWindow + HasRawWindowHandle> {
 impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
   pub async fn build(self) -> Result<Context, Error> {
     #[cfg(not(target_os = "linux"))]
-      let backends = wgpu::BackendBit::all();
+    let backends = wgpu::BackendBit::all();
     #[cfg(target_os = "linux")]
-      let backends = wgpu::BackendBit::VULKAN;
+    let backends = wgpu::BackendBit::VULKAN;
 
     let instance = self
       .instance
@@ -407,7 +411,6 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
 
     // create default mesh to draw
 
-
     let instance_buffer = {
       let instance_data: &[ModelInstance] = &[];
       device.create_buffer_init(&BufferInitDescriptor {
@@ -479,7 +482,9 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
     self
   }
 
-  fn create_light_bindings(device: &wgpu::Device) -> (wgpu::Buffer, wgpu::BindGroup, wgpu::BindGroupLayout) {
+  fn create_light_bindings(
+    device: &wgpu::Device,
+  ) -> (wgpu::Buffer, wgpu::BindGroup, wgpu::BindGroupLayout) {
     let light_uniform = PointLightUniform {
       position: [2.0, 2.0, 2.0],
       _padding: 0,
@@ -487,20 +492,19 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
     };
 
     // We'll want to update our lights position, so we use COPY_DST
-    let light_buffer = device.create_buffer_init(
-      &wgpu::util::BufferInitDescriptor {
-        label: Some("Light VB"),
-        contents: bytemuck::cast_slice(&[light_uniform]),
-        usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-      }
-    );
+    let light_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+      label: Some("Light VB"),
+      contents: bytemuck::cast_slice(&[light_uniform]),
+      usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+    });
     let layout = make_light_bind_group_layout(device);
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
       label: None,
       layout: &layout,
-      entries: &[
-        wgpu::BindGroupEntry { binding: 0, resource: light_buffer.as_entire_binding() }
-      ]
+      entries: &[wgpu::BindGroupEntry {
+        binding: 0,
+        resource: light_buffer.as_entire_binding(),
+      }],
     });
     (light_buffer, bind_group, layout)
   }
