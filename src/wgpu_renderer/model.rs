@@ -128,9 +128,13 @@ impl StreamingMesh {
     let mut material_handles: HashMap<usize, _> = HashMap::default();
     let mut meshes: Vec<Mesh> = Vec::with_capacity(geometry.len());
     {
-      let _mesh_loader = context.meshes.write().expect("RwLock is poisoned!");
-      let mut material_loader = context.materials.write().unwrap();
-      let mut tex_loader = context.textures.write().unwrap();
+      let _mesh_loader = context
+        .resources
+        .meshes
+        .write()
+        .expect("RwLock is poisoned!");
+      let mut material_loader = context.resources.materials.write().unwrap();
+      let mut tex_loader = context.resources.textures.write().unwrap();
       for mat in materials {
         let index = mat.index;
         let gpu_material = WgpuMaterial::from_material(
@@ -163,7 +167,7 @@ impl StreamingMesh {
     }
     self.primitives = meshes;
     self.state = ModelLoadState::Loaded;
-    self.materials = Some(Arc::downgrade(&context.materials));
+    self.materials = Some(Arc::downgrade(&context.resources.materials));
 
     Ok(())
   }

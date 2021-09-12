@@ -6,13 +6,19 @@ use crate::{
     material::{Material, WgpuMaterial},
     mesh::Mesh,
     model::StreamingMesh,
+    pipeline_state::PipelineProgram,
     textures::TextureResource,
   },
 };
+use legion::any;
 use std::{
   borrow::{Borrow, BorrowMut},
-  sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard},
+  collections::HashMap,
+  sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
+use uuid::Uuid;
+use wgpu::RenderPipeline;
+use crate::util::anyhow_from_poisoned;
 
 #[derive(Debug)]
 pub struct ResourceView<'a> {
@@ -20,6 +26,8 @@ pub struct ResourceView<'a> {
   pub meshes: RwLockReadGuard<'a, ResourceManager<Mesh>>,
   pub materials: RwLockReadGuard<'a, ResourceManager<WgpuMaterial>>,
   pub textures: RwLockReadGuard<'a, ResourceManager<TextureResource>>,
+  pub render_pipelines: RwLockReadGuard<'a, HashMap<Uuid, PipelineProgram>>,
+  pub shaders: RwLockReadGuard<'a, ResourceManager<wgpu::ShaderModule>>,
 }
 
 #[derive(Debug)]
@@ -39,48 +47,58 @@ pub trait ReadWriteResources {
 impl ReadWriteResources for Context {
   type Error = anyhow::Error;
   fn read_resources(&self) -> Result<ResourceView, Self::Error> {
-    let models = self.streaming_models.read();
-    let meshes = self.meshes.read();
-    let materials = self.materials.read();
-    let textures = self.textures.read();
-    match (models, meshes, materials, textures) {
-      (Ok(models), Ok(meshes), Ok(materials), Ok(textures)) => Ok(ResourceView {
-        models,
-        meshes,
-        materials,
-        textures,
-      }),
-
-      (models, meshes, materials, textures) => Err(anyhow::anyhow!(
-        "a read lock is poisoned! models: {:?} meshes: {:?} materials: {:?} textures: {:?}",
-        models,
-        meshes,
-        materials,
-        textures
-      )),
-    }
+    self.resources.read_resources()
   }
 
   fn write_resources(&self) -> Result<MutResourceView, Self::Error> {
-    let models = self.streaming_models.write();
-    let meshes = self.meshes.write();
-    let materials = self.materials.write();
-    let textures = self.textures.write();
-    match (models, meshes, materials, textures) {
-      (Ok(models), Ok(meshes), Ok(materials), Ok(textures)) => Ok(MutResourceView {
-        models,
-        meshes,
-        materials,
-        textures,
-      }),
+    self.resources.write_resources()
+  }
+}
 
-      (models, meshes, materials, textures) => Err(anyhow::anyhow!(
-        "a write lock is poisoned! models: {:?} meshes: {:?} materials: {:?} textures: {:?}",
-        models,
-        meshes,
-        materials,
-        textures
-      )),
-    }
+#[derive(Debug, Clone, Default)]
+pub struct ResourceContext {
+  pub models: Arc<RwLock<ResourceManager<StreamingMesh>>>,
+  pub meshes: Arc<RwLock<ResourceManager<Mesh>>>,
+  pub materials: Arc<RwLock<ResourceManager<WgpuMaterial>>>,
+  pub textures: Arc<RwLock<ResourceManager<TextureResource>>>,
+  pub render_pipelines: Arc<RwLock<HashMap<Uuid, PipelineProgram>>>,
+  pub shaders: Arc<RwLock<ResourceManager<wgpu::ShaderModule>>>,
+}
+
+impl ReadWriteResources for ResourceContext {
+  type Error = anyhow::Error;
+
+  fn read_resources(&self) -> Result<ResourceView, Self::Error> {
+    let models = self.models.read().map_err(anyhow_from_poisoned)?;
+    let meshes = self.meshes.read().map_err(anyhow_from_poisoned)?;
+
+    let materials = self.materials.read().map_err(anyhow_from_poisoned)?;
+
+    let textures = self.textures.read().map_err(anyhow_from_poisoned)?;
+    let shaders = self.shaders.read().map_err(anyhow_from_poisoned)?;
+    let render_pipelines = self.render_pipelines.read().map_err(anyhow_from_poisoned)?;
+    Ok(ResourceView {
+      models,
+      meshes,
+      materials,
+      textures,
+      render_pipelines,
+      shaders,
+    })
+  }
+
+  fn write_resources(&self) -> Result<MutResourceView, Self::Error> {
+    let models = self.models.write().map_err(anyhow_from_poisoned)?;
+    let meshes = self.meshes.write().map_err(anyhow_from_poisoned)?;
+
+    let materials = self.materials.write().map_err(anyhow_from_poisoned)?;
+
+    let textures = self.textures.write().map_err(anyhow_from_poisoned)?;
+    Ok(MutResourceView {
+      models,
+      meshes,
+      materials,
+      textures,
+    })
   }
 }

@@ -38,14 +38,13 @@ use crate::{
   window::AsWindow,
 };
 
-use super::{
-  mesh::{Mesh, MeshGeometry},
-  uniforms::Uniforms,
-};
+use super::{mesh::Mesh, uniforms::Uniforms};
 use crate::{
+  game::components::LightSource,
   wgpu::Buffer,
   wgpu_renderer::{
     material::{RenderMaterial, WgpuMaterial},
+    resource_view::ResourceContext,
     uniforms::{make_light_bind_group_layout, PointLightUniform},
   },
 };
@@ -68,13 +67,10 @@ pub struct Context {
 
   main_vert_shader: wgpu::ShaderModule,
   main_frag_shader: wgpu::ShaderModule,
+  pub resources: ResourceContext,
 
   pub main_tex_handle: Option<Handle<TextureResource>>,
   pub(crate) fallback_texture: Handle<TextureResource>,
-  pub streaming_models: Arc<RwLock<ResourceManager<StreamingMesh>>>,
-  pub materials: Arc<RwLock<ResourceManager<RenderMaterial<TextureResource>>>>,
-  pub meshes: Arc<RwLock<ResourceManager<Mesh>>>,
-  pub textures: Arc<RwLock<ResourceManager<TextureResource>>>,
   pub texture_bind_group_layout: BindGroupLayout,
   pub diffuse_bind_group: BindGroup,
   pub uniform_bind_group_layout: BindGroupLayout,
@@ -83,6 +79,7 @@ pub struct Context {
   pub light_uniform_buffer: Buffer,
 
   pub(crate) default_material: Handle<WgpuMaterial>,
+
   uniform_bind_group: wgpu::BindGroup,
 
   /// Buffer storing instance state for render
@@ -157,9 +154,9 @@ impl Context {
       .create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("Render Encoder"),
       });
-    let _mesh_allocator = self.meshes.read().unwrap();
-    let model_allocator = self.streaming_models.read().unwrap();
-    let material_allocator = self.materials.read().unwrap();
+    let _mesh_allocator = self.resources.meshes.read().unwrap();
+    let model_allocator = self.resources.models.read().unwrap();
+    let material_allocator = self.resources.materials.read().unwrap();
 
     {
       let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -285,6 +282,12 @@ impl Context {
     self.n_instances = instances.len();
     self.instance_buffer_view = buffer_data.to_vec();
   }
+
+  fn bind_light_sources(&mut self, game_state: &GameState) {
+    use legion::*;
+    let mut query = <(&LightSource, &Transform3D)>::query();
+    query.for_each(game_state.world(), |(_a, _b)| {});
+  }
 }
 
 pub struct Builder<'a, W: AsWindow + HasRawWindowHandle> {
@@ -305,7 +308,7 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
 
     let surface = unsafe { instance.create_surface(self.window) };
 
-    let mut textures: ResourceManager<TextureResource> = Default::default();
+    let mut resources = ResourceContext::default();
 
     let adapter = instance
       .request_adapter(&wgpu::RequestAdapterOptions {
@@ -365,6 +368,7 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
     let model_texture_bind_group_layout =
       super::textures::create_texture_bind_group_layout(&device);
     let (fallback_texture, diffuse_bind_group) = {
+      let mut textures = resources.textures.write().unwrap();
       use super::textures::*;
       let img = image::load_from_memory(super::textures::DEFAULT_TEX_JPEG)
         .map_err(|e| Error::from_other(format!("{:?}", e)))?;
@@ -419,16 +423,21 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
         usage: BufferUsage::VERTEX | BufferUsage::COPY_DST,
       })
     };
-    let mut materials = ResourceManager::default();
-    let default_material = WgpuMaterial::from_material(
-      &Material::default(),
-      &queue,
-      &device,
-      &model_texture_bind_group_layout,
-      &mut textures,
-      fallback_texture,
-    )?;
-    let default_material = materials.insert(default_material);
+    let default_material = {
+      let mut textures = resources.textures.write().unwrap();
+      WgpuMaterial::from_material(
+        &Material::default(),
+        &queue,
+        &device,
+        &model_texture_bind_group_layout,
+        &mut textures,
+        fallback_texture,
+      )
+    }?;
+    let default_material = {
+      let mut materials = resources.materials.write().unwrap();
+      materials.insert(default_material)
+    };
 
     let (light_uniform_buffer, light_bind_group, light_bind_group_layout) =
       Self::create_light_bindings(&device);
@@ -451,10 +460,7 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       uniform_bind_group,
       texture_bind_group_layout: model_texture_bind_group_layout,
       diffuse_bind_group,
-      streaming_models: Default::default(),
-      meshes: Default::default(),
-      textures: Arc::new(RwLock::new(textures)),
-      materials: Arc::new(RwLock::new(materials)),
+      resources,
       main_tex_handle: None,
       fallback_texture,
       main_frag_shader,

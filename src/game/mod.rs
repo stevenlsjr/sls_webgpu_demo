@@ -39,6 +39,7 @@ pub struct GameState {
 
   /// if set to false, end the game loop
   is_running: bool,
+  registry: Registry<String>,
 }
 
 impl fmt::Debug for GameState {
@@ -81,14 +82,50 @@ impl GameState {
     if let Some(asset_loader_queue) = options.asset_loader_queue {
       resources.insert(asset_loader_queue)
     }
-    Self {
+    let state = Self {
       world,
       fixed_schedule,
       per_frame_schedule,
       on_resize_schedule,
       resources,
       is_running,
+      registry: Self::make_world_registry(),
+    };
+    state
+  }
+
+  pub fn new_frame(&mut self) {
+    let context = self
+      .resources
+      .get::<Arc<RwLock<Context>>>()
+      .map(|x| x.clone());
+    match &context {
+      Some(context) => {
+        let frame = WgpuFrame::new(&*context);
+        self.resources.insert(frame);
+      }
+      None => {
+        log::warn!("context resource is not inserted");
+      }
     }
+  }
+
+  fn make_world_registry() -> Registry<String> {
+    let mut registry = Registry::<String>::default();
+    registry.register::<LightSource>("light_source".to_owned());
+    registry.register::<Transform3D>("transform_3D".to_owned());
+    registry.register::<RenderModel>("render_model".to_owned());
+    registry.register::<Camera>("camera".to_owned());
+    registry
+  }
+
+  pub fn as_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+    let entity_serializer = Canon::default();
+    let ser_world = self
+      .world
+      .as_serializable(legion::any(), &self.registry, &entity_serializer);
+
+    serde_json::to_value(ser_world)
   }
 
   fn initial_resources() -> Resources {
@@ -109,9 +146,8 @@ impl GameState {
   }
 
   pub fn add_wgpu_resources(&mut self, context: &Arc<RwLock<Context>>) {
-    let frame = WgpuFrame::new();
     self.resources.insert(context.clone());
-    self.resources.insert(frame);
+    // self.resources.insert(frame);
   }
 
   /// Lifecycle functions
@@ -301,6 +337,12 @@ use crate::{
   wgpu_renderer::frame::WgpuFrame,
   Context,
 };
+
+use crate::{
+  camera::Camera,
+  game::components::{LightSource, RenderModel, Transform3D},
+};
+use legion::serialize::Canon;
 
 use std::sync::{Arc, RwLock};
 #[cfg(feature = "wgpu_renderer")]

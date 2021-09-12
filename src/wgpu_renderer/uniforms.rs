@@ -57,3 +57,8 @@ impl Default for PointLightUniform {
     }
   }
 }
+
+pub enum DynLightUniform {
+  Point(PointLightUniform),
+  Unsupported,
+}

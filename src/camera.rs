@@ -1,9 +1,10 @@
 use crate::game::components::*;
 use lazy_static::lazy_static;
 use nalgebra_glm::*;
+use serde::*;
 use std::time::Duration;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Camera {
   pub position: Vec3,
   pub up: Vec3,

@@ -29,7 +29,7 @@ use sls_webgpu::{
     CreateGameParams, GameState,
   },
   gltf,
-  gltf::{buffer::Data, Document, Error},
+  gltf::{buffer::Data, json::Value, Document, Error},
   image, imgui, imgui_wgpu,
   platform::{gui, gui::DrawUi, sdl2_backend::ImguiSdlPlatform},
   renderer_common::{
@@ -81,7 +81,7 @@ impl App {
     let event_pump = sdl.event_pump().map_err(|s| anyhow!(s))?;
     let context = pollster::block_on(Context::new(&mut window).build())?;
 
-    let models = Arc::downgrade(&context.streaming_models);
+    let models = Arc::downgrade(&context.resources.models);
 
     let mut imgui_context = gui::create_imgui(gui::Options {
       hidpi_factor: 2.0,
@@ -166,9 +166,11 @@ impl App {
       };
     }
     self.game_state.on_start();
+
     while self.game_state.is_running() {
       let current_time = Instant::now();
       let elapsed_time = current_time - previous_time;
+      self.game_state.new_frame();
       previous_time = current_time;
       update_lag += elapsed_time;
       {
@@ -224,10 +226,10 @@ impl App {
     let mut ui = im_ctx.frame();
     self.game_state.draw_ui(&mut ui);
 
-    let mut gui_renderer_arc = self
-      .imgui_renderer
-      .write()
-      .map_err(|e| Error::from_other(format!("lock is poisoned! {:?}", e)))?;
+    // let mut gui_renderer_arc = self
+    //   .imgui_renderer
+    //   .write()
+    //   .map_err(|e| Error::from_other(format!("lock is poisoned! {:?}", e)))?;
 
     self
       .context
@@ -319,6 +321,7 @@ impl App {
       Some(sample_model) => {
         let mut ctx = self.context.write().unwrap();
         let mut mesh = StreamingMesh::new("assets/BoomBox.glb".to_owned());
+        let mesh_path = mesh.path().to_owned();
         mesh.load_from_gltf(
           ctx.deref_mut(),
           &sample_model.document,
@@ -330,7 +333,10 @@ impl App {
         let mut meshes = models_arc.write().expect("cannot access meshes");
         let avocado_model = meshes.insert(mesh);
         ctx.models_to_draw.push(avocado_model);
-        let assets = MainSceneAssets { avocado_model };
+        let assets = MainSceneAssets {
+          avocado_model,
+          avocado_model_path: mesh_path,
+        };
         let mut resources = self.game_state.resources_mut();
         resources.insert(assets);
       }

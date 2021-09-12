@@ -235,7 +235,7 @@ impl BindTexture for Context {
   fn bind_texture(&mut self, tex_handle: HandleIndex) -> Result<(), anyhow::Error> {
     let tex_handle: Handle<TextureResource> = tex_handle.into_typed();
     self.main_tex_handle = Some(tex_handle);
-    let textures_arc = self.textures.clone();
+    let textures_arc = self.resources.textures.clone();
     let textures = textures_arc
       .read()
       .map_err(|e| anyhow::anyhow!("{:?}", e))?;

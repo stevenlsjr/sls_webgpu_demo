@@ -12,10 +12,17 @@ use crate::{
 
 pub mod camera_systems;
 pub mod model_systems;
+pub mod renderer;
 
 use super::components::RenderModel;
-use crate::game::{
-  asset_loading::resources::AssetLoaderQueue, input::InputResource, resources::ScreenResolution,
+use crate::{
+  game::{
+    asset_loading::resources::AssetLoaderQueue,
+    components::{LightSource, LightType},
+    input::InputResource,
+    resources::ScreenResolution,
+  },
+  nalgebra_glm::vec3,
 };
 pub use camera_systems::*;
 use legion::world::SubWorld;
@@ -29,6 +36,7 @@ pub fn fixed_update_logging(#[resource] game_loop: &GameLoopTimer) {
 pub fn per_frame_logging(#[resource] game_loop: &GameLoopTimer) {
   debug!("update! {:?}", game_loop.per_frame_dt)
 }
+
 /**
  * This is executed when the scene is initialized
  */
@@ -47,6 +55,19 @@ pub fn setup_scene(
 
   let main_camera_entity = command_buffer.push(main_camera);
   scene.main_camera = Some(main_camera_entity);
+
+  let light_entity = (
+    Transform3D {
+      position: vec3(2.0, 4.0, 1.0),
+      ..Default::default()
+    },
+    LightSource {
+      light_type: LightType::Point,
+      color: vec3(1.0, 1.0, 0.0),
+      ..Default::default()
+    },
+  );
+  command_buffer.push(light_entity);
 
   // trigger load asset tasks
 

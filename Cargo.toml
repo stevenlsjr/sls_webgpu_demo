@@ -6,7 +6,7 @@ license = "MIT"
 edition = "2018"
 
 [features]
-default=["wgpu_renderer"]
+default = ["wgpu_renderer"]
 sdl2_backend = ["sdl2"]
 html5_backend = ["web-sys"]
 wgpu_renderer = []
@@ -30,7 +30,7 @@ naga = { version = "0.5.0", features = [
 uuid = { version = "0.8", features = ["serde", "v4", "v5"] }
 wasm-bindgen = "0.2.45"
 raw-window-handle = "0.3.3"
-nalgebra-glm = "0.3"
+nalgebra-glm = { version = "0.3", features = ['serde-serialize'] }
 wgpu = { version = "^0.8.1", features = ["trace"], optional = false }
 log = "0.4.14"
 bytemuck = { version = "1.7", features = ["derive"] }

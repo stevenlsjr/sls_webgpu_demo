@@ -19,4 +19,5 @@ pub trait AssetLoaderQueue {
 #[derive(Debug)]
 pub struct MainSceneAssets {
   pub avocado_model: Handle<StreamingMesh>,
+  pub avocado_model_path: String,
 }

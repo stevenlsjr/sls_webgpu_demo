@@ -5,7 +5,7 @@ use crate::{
 use gltf::image::Format;
 use image::{Bgr, DynamicImage, ImageBuffer};
 use nalgebra_glm::{vec3, vec4, Vec3, Vec4};
-use smallvec::SmallVec;
+
 use wgpu::{BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindingResource, Device, Queue};
 
 #[derive(Debug, Copy, Clone)]
@@ -314,7 +314,7 @@ impl RenderMaterial<TextureResource> {
       index: material.index,
       name: material.name.clone(),
       alpha_cutoff: material.alpha_cutoff,
-      alpha_mode: material.alpha_mode.clone(),
+      alpha_mode: material.alpha_mode,
       albedo_factor: material.albedo_factor,
       albedo_tex: None,
       normal_tex: None,
@@ -358,7 +358,7 @@ impl RenderMaterial<TextureResource> {
   }
   fn init_bind_group(
     &mut self,
-    queue: &Queue,
+    _queue: &Queue,
     device: &Device,
     textures: &ResourceManager<TextureResource>,
     default_texture: Handle<TextureResource>,

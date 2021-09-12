@@ -12,8 +12,6 @@ use crate::{
   },
   nalgebra_glm::*,
 };
-use legion::world::SubWorld;
-use std::time::Duration;
 
 #[cfg(feature = "wgpu_renderer")]
 mod wgpu_renderer {
@@ -36,6 +34,7 @@ mod wgpu_renderer {
     Ok(())
   }
 
+  /// initializes scene gpu resources
   #[system]
   pub fn create_models_wgpu(
     #[resource] context: &Arc<RwLock<Context>>,
@@ -73,6 +72,7 @@ fn create_random_model(assets: &MainSceneAssets) -> (RenderModel, Transform3D) {
   transform.rotation = Quat::from_parts(f32::to_radians(180.0), vec3(1.0, 0.0, 0.0));
   let model = RenderModel {
     model: Some(mesh),
+    model_id: assets.avocado_model_path.clone(),
     is_shown: true,
   };
   (model, transform)
@@ -94,7 +94,7 @@ lazy_static! {
 #[read_component(RenderModel)]
 pub fn rotate_models(
   #[resource] timer: &GameLoopTimer,
-  #[state] seconds_acc: &mut f32,
+  #[state] _seconds_acc: &mut f32,
   xform: &mut Transform3D,
   model: &RenderModel,
 ) {

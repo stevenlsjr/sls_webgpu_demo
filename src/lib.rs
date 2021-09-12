@@ -34,6 +34,7 @@ mod tests;
 pub mod gl_renderer;
 pub mod math;
 pub mod renderer_common;
+pub mod util;
 
 pub use renderer_common::images::RawImageRbga;
 
