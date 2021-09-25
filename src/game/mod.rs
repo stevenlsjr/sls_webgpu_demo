@@ -268,7 +268,7 @@ impl GameState {
     Ok(callback(backend))
   }
   fn poll_task_completions(&self) {
-    #[cfg(feature = "wgpu_renderer")]
+    #[cfg(not(target_arch = "wasm32"))]
     {
       let ctx = self.resources.get_mut::<crate::wgpu_renderer::Context>();
       let loader = self.resources.get_mut::<MultithreadedAssetLoaderQueue>();
@@ -330,13 +330,16 @@ mod wgpu_imgui {
 
 use crate::{
   game::{
-    asset_loading::{resources::AssetLoaderQueue, MultithreadedAssetLoaderQueue},
+    asset_loading::{resources::AssetLoaderQueue},
     input::InputState,
     resources::MeshLookup,
   },
   wgpu_renderer::frame::WgpuFrame,
   Context,
 };
+
+#[cfg(not(target_arch = "wasm32"))]
+use crate::game::asset_loading::MultithreadedAssetLoaderQueue;
 
 use crate::{
   camera::Camera,
@@ -366,19 +369,4 @@ mod wgpu_renderer {
 mod test {
   use super::*;
 
-  struct Suite {
-    game: GameState,
-  }
-
-  fn setup() -> Suite {
-    let game = GameState::new(CreateGameParams {
-      asset_loader_queue: None,
-    });
-    Suite { game }
-  }
-
-  #[test]
-  fn test_is_main_camera() {
-    let _foo = setup();
-  }
 }

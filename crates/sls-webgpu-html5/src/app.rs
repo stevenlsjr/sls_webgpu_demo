@@ -11,7 +11,7 @@ use crate::{
 };
 use sls_webgpu::{
   game::{
-    asset_loading::MultithreadedAssetLoaderQueue, input::InputState, resources::ScreenResolution,
+     input::InputState, resources::ScreenResolution,
     CreateGameParams, GameState,
   },
   gl_renderer::GlContext,
@@ -86,7 +86,6 @@ impl SlsWgpuDemo {
       window_size: (width as usize, height as usize),
       drawable_size: (width as usize, height as usize),
     });
-    resources.insert(MultithreadedAssetLoaderQueue::new());
   }
 
   #[wasm_bindgen]
@@ -96,7 +95,7 @@ impl SlsWgpuDemo {
     future_to_promise(sself.run_impl())
   }
 
-  fn run_impl(mut self) -> impl Future<Output = Result<JsValue, JsValue>> {
+  fn run_impl(mut self) -> impl Future<Output=Result<JsValue, JsValue>> {
     let cloned = self.clone();
 
     async move {
@@ -182,7 +181,7 @@ impl SlsWgpuDemo {
     app_root: Option<HtmlElement>,
     render_backend: RendererBackend,
   ) -> Result<Self, String> {
-    let game_state = GameState::new(CreateGameParams {});
+    let game_state = GameState::new(CreateGameParams { asset_loader_queue: None });
     let mut app = AppInternal {
       game_state,
       renderer: None,
@@ -198,15 +197,18 @@ impl SlsWgpuDemo {
     };
 
     if let Some(app_root) = app_root {
+      dbg!(&app_root);
       let canvas = create_canvas().map_err(|e| {
         log::error!("error creating canvas: {:?}", e);
         format!("{:?}", e)
       })?;
+      dbg!(&canvas);
       app_root
         .append_child(&canvas)
         .map_err(|e| format!("could not append canvas to root {:?}", e))?;
       app.canvas = Some(canvas);
     }
+    log::warn!("canvas: {:?}", app.canvas);
     Ok(Self {
       app: Rc::new(RefCell::new(app)),
     })
@@ -236,7 +238,7 @@ impl SlsWgpuDemo {
         return Err(JsValue::from_str(&format!(
           "Canvas is not defined! {:?}",
           self
-        )))
+        )));
       }
     };
 

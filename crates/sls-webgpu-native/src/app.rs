@@ -90,9 +90,8 @@ impl App {
     let imgui_platform = ImguiSdlPlatform::new(&mut imgui_context)?;
 
     let texture_format = context
-      .adapter
-      .get_swap_chain_preferred_format(&context.surface)
-      .ok_or(anyhow!("no swapchain texture format available"))?;
+      .surface.get_preferred_format(&context.adapter)
+      .ok_or(anyhow!("no surface texture format available"))?;
     let renderer_options = imgui_wgpu::RendererConfig {
       texture_format,
       ..imgui_wgpu::RendererConfig::new_srgb()

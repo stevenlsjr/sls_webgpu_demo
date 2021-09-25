@@ -56,7 +56,7 @@ mod wgpu_renderer {
     pub fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
       wgpu::VertexBufferLayout {
         array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-        step_mode: wgpu::InputStepMode::Vertex,
+        step_mode: wgpu::VertexStepMode::Vertex,
         attributes: &VERTEX_ATTR_ARRAY,
       }
     }
@@ -68,13 +68,13 @@ mod wgpu_renderer {
       let ibo = device.create_buffer_init(&BufferInitDescriptor {
         label,
         contents: bytemuck::cast_slice(&self.indices),
-        usage: wgpu::BufferUsage::INDEX,
+        usage: wgpu::BufferUsages::INDEX,
       });
 
       let vbo = device.create_buffer_init(&BufferInitDescriptor {
         label,
         contents: bytemuck::cast_slice(&self.vertices),
-        usage: wgpu::BufferUsage::VERTEX,
+        usage: wgpu::BufferUsages::VERTEX,
       });
       Ok(MeshBuffers {
         vertex_buffer: vbo,

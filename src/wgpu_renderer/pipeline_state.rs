@@ -2,7 +2,6 @@
 use wgpu::*;
 use atomic_refcell::AtomicRefCell;
 use std::ops::Deref;
-use crossbeam::atomic::AtomicCell;
 use crate::renderer_common::handle::Handle;
 use crate::renderer_common::allocator::ResourceManager;
 
@@ -52,9 +51,6 @@ impl RendererPipelines {
     }
   }
 
-  pub(crate) fn create_pipelines(&mut self,
-                                 device: &Device,
-                                 sc_desc: &SwapChainDescriptor,
-  ) {}
+
 }
 

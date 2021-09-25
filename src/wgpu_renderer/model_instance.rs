@@ -1,6 +1,6 @@
 use crate::game::components::Transform3D;
 
-use wgpu::{InputStepMode, VertexBufferLayout};
+use wgpu::{VertexStepMode, VertexBufferLayout};
 
 /// Instance data for model
 #[repr(C)]
@@ -20,7 +20,7 @@ impl ModelInstance {
   pub fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
     VertexBufferLayout {
       array_stride: std::mem::size_of::<ModelInstance>() as _,
-      step_mode: InputStepMode::Instance,
+      step_mode: VertexStepMode::Instance,
       attributes: &VERTEX_ATTR_ARRAY,
     }
   }

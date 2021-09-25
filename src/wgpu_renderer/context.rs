@@ -8,11 +8,7 @@ use std::{
 use anyhow::anyhow;
 
 use raw_window_handle::HasRawWindowHandle;
-use wgpu::{
-  util::{BufferInitDescriptor, DeviceExt},
-  BindGroup, BindGroupLayoutEntry, BufferDescriptor, BufferSize, BufferUsage, PrimitiveState,
-  RenderPass, RenderPipeline, Texture,
-};
+use wgpu::{util::{BufferInitDescriptor, DeviceExt}, BindGroup, BindGroupLayoutEntry, BufferDescriptor, BufferSize, PrimitiveState, RenderPass, RenderPipeline, Texture, BufferUsages, ColorTargetState};
 
 use crate::{
   error::Error,
@@ -55,8 +51,8 @@ pub struct Context {
   pub adapter: wgpu::Adapter,
   pub device: wgpu::Device,
   pub queue: wgpu::Queue,
-  pub swapchain: wgpu::SwapChain,
-  pub sc_desc: wgpu::SwapChainDescriptor,
+  // pub swapchain: wgpu::SwapChain,
+  // pub sc_desc: wgpu::SwapChainDescriptor,
   pub pipeline_layout: wgpu::PipelineLayout,
 
   render_pipeline: wgpu::RenderPipeline,
@@ -89,6 +85,7 @@ pub struct Context {
 
   // Depth/stencil buffers
   depth_stencil_texture: TextureResource,
+  pub surface_config: wgpu::SurfaceConfiguration,
 }
 
 impl fmt::Debug for Context {
@@ -109,14 +106,16 @@ impl Context {
 
   pub fn on_resize(&mut self, size: (u32, u32)) {
     let (width, height) = size;
-    self.sc_desc.width = width;
-    self.sc_desc.height = height;
+    self.surface_config.width = width;
+    self.surface_config.height = height;
+    self.surface.configure(&self.device, &self.surface_config);
+
     self.depth_stencil_texture = TextureResource::new_depth_stencil_texture(
       &self.device,
-      &self.sc_desc,
+      size,
       "depth_stencil_texture",
     );
-    self.swapchain = self.device.create_swap_chain(&self.surface, &self.sc_desc);
+    // self.swapchain = self.device.create_swap_chain(&self.surface, &self.sc_desc);
   }
 
   pub fn update(&mut self) {}
@@ -144,7 +143,7 @@ impl Context {
     );
 
     let frame = self
-      .swapchain
+      .surface
       .get_current_frame()
       .map_err(|e| anyhow!("swapchain error {:?}", e))?
       .output;
@@ -159,10 +158,11 @@ impl Context {
     let material_allocator = self.resources.materials.read().unwrap();
 
     {
+      let frame_view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
       let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: Some("render pass"),
         color_attachments: &[wgpu::RenderPassColorAttachment {
-          view: &frame.view,
+          view: &frame_view,
           resolve_target: None,
           ops: wgpu::Operations {
             load: wgpu::LoadOp::Clear(wgpu::Color {
@@ -225,20 +225,22 @@ impl Context {
   }
 
   pub fn rebuild_render_pipeline(&mut self) {
-    self.pipeline_layout = create_pipeline_layout(
-      &self.device,
-      &[
-        &self.uniform_bind_group_layout,
-        &self.texture_bind_group_layout,
-      ],
-    );
-    self.render_pipeline = create_render_pipeline(
-      &self.device,
-      &self.sc_desc,
-      &self.pipeline_layout,
-      &self.main_vert_shader,
-      &self.main_frag_shader,
-    );
+    if let Some(format) = self.surface.get_preferred_format(&self.adapter) {
+      self.pipeline_layout = create_pipeline_layout(
+        &self.device,
+        &[
+          &self.uniform_bind_group_layout,
+          &self.texture_bind_group_layout,
+        ],
+      );
+      self.render_pipeline = create_render_pipeline(
+        &self.device,
+        &self.pipeline_layout,
+        &self.main_vert_shader,
+        &self.main_frag_shader,
+        format.into(),
+      );
+    }
   }
 
   /// get instance data from game state
@@ -267,7 +269,7 @@ impl Context {
       let new_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
         label: Some("Instance Buffer"),
         contents: buffer_data,
-        usage: BufferUsage::VERTEX | BufferUsage::COPY_DST,
+        usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
       });
       self.instance_buffer = new_buffer;
     } else {
@@ -298,13 +300,15 @@ pub struct Builder<'a, W: AsWindow + HasRawWindowHandle> {
 impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
   pub async fn build(self) -> Result<Context, Error> {
     #[cfg(not(target_os = "linux"))]
-    let backends = wgpu::BackendBit::all();
+      let backends = wgpu::Backends::all();
     #[cfg(target_os = "linux")]
-    let backends = wgpu::BackendBit::VULKAN;
+      let backends = wgpu::Backends::VULKAN;
 
     let instance = self
       .instance
       .unwrap_or_else(|| wgpu::Instance::new(backends));
+
+    let (width, height) = self.window.size();
 
     let surface = unsafe { instance.create_surface(self.window) };
 
@@ -331,7 +335,14 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       )
       .await
       .map_err(|e| crate::Error::from_error(Box::new(e)))?;
-
+    let surface_config = wgpu::SurfaceConfiguration {
+      usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+      format: surface.get_preferred_format(&adapter).unwrap(),
+      width: width,
+      height: height,
+      present_mode: wgpu::PresentMode::Immediate,
+    };
+    surface.configure(&device, &surface_config);
     /// uniform buffer setup
     let uniforms = Uniforms::default();
     // let camera = self.camera;
@@ -340,14 +351,14 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
     let uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
       label: Some("Main UBO"),
       contents: bytemuck::cast_slice(&[uniforms]),
-      usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+      usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
     });
 
     let ubo_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
       label: Some("ubo_layout"),
       entries: &[wgpu::BindGroupLayoutEntry {
         binding: 0,
-        visibility: wgpu::ShaderStage::VERTEX,
+        visibility: wgpu::ShaderStages::VERTEX,
         ty: wgpu::BindingType::Buffer {
           ty: wgpu::BufferBindingType::Uniform,
           has_dynamic_offset: false,
@@ -387,29 +398,29 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
     let pipeline_layout =
       create_pipeline_layout(&device, &[&ubo_layout, &model_texture_bind_group_layout]);
     let (w_width, w_height) = self.window.size();
-    let sc_desc = wgpu::SwapChainDescriptor {
-      usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
-      format: adapter.get_swap_chain_preferred_format(&surface).unwrap(),
-      width: w_width,
-      height: w_height,
-      present_mode: wgpu::PresentMode::Fifo,
-    };
-    let swapchain = device.create_swap_chain(&surface, &sc_desc);
+    // let sc_desc = wgpu::SwapChainDescriptor {
+    //   usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+    //   format: adapter.get_swap_chain_preferred_format(&surface).unwrap(),
+    //   width: w_width,
+    //   height: w_height,
+    //   present_mode: wgpu::PresentMode::Fifo,
+    // };
+    // let swapchain = device.create_swap_chain(&surface, &sc_desc);
     let main_vert_shader =
       device.create_shader_module(&wgpu::include_spirv!("../shaders/main.vert.spv"));
     let main_frag_shader =
       device.create_shader_module(&wgpu::include_spirv!("../shaders/main.frag.spv"));
 
     let depth_stencil_texture =
-      TextureResource::new_depth_stencil_texture(&device, &sc_desc, "depth_stencil_tex");
+      TextureResource::new_depth_stencil_texture(&device, (w_width, w_height), "depth_stencil_tex");
 
     // create render pipeline
     let render_pipeline = create_render_pipeline(
       &device,
-      &sc_desc,
       &pipeline_layout,
       &main_vert_shader,
       &main_frag_shader,
+      surface.get_preferred_format(&adapter).unwrap().into()
     );
     log::info!("I'm alive {}", std::line!());
 
@@ -420,7 +431,7 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       device.create_buffer_init(&BufferInitDescriptor {
         label: Some("Instance Buffer"),
         contents: bytemuck::cast_slice(&instance_data),
-        usage: BufferUsage::VERTEX | BufferUsage::COPY_DST,
+        usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
       })
     };
     let default_material = {
@@ -444,13 +455,12 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
 
     let mut result = Context {
       surface,
+      surface_config,
       instance,
       adapter,
       device,
       queue,
       pipeline_layout,
-      sc_desc,
-      swapchain,
       render_pipeline,
       models_to_draw: Vec::new(),
 
@@ -501,7 +511,7 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
     let light_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
       label: Some("Light VB"),
       contents: bytemuck::cast_slice(&[light_uniform]),
-      usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+      usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
     });
     let layout = make_light_bind_group_layout(device);
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -530,10 +540,10 @@ pub fn create_pipeline_layout(
 
 fn create_render_pipeline(
   device: &wgpu::Device,
-  sc_desc: &wgpu::SwapChainDescriptor,
   layout: &wgpu::PipelineLayout,
   vert_shader: &wgpu::ShaderModule,
   frag_shader: &wgpu::ShaderModule,
+  color_target: ColorTargetState,
 ) -> RenderPipeline {
   let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
     label: Some("Render Pipeline"),
@@ -546,7 +556,7 @@ fn create_render_pipeline(
     fragment: Some(wgpu::FragmentState {
       module: &frag_shader,
       entry_point: "main",
-      targets: &[sc_desc.format.into()],
+      targets: &[color_target],
     }),
     primitive: wgpu::PrimitiveState {
       cull_mode: None,

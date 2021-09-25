@@ -4,8 +4,8 @@ use image::{DynamicImage, GenericImageView};
 use thiserror::Error;
 
 use wgpu::{
-  BindGroup, BindGroupDescriptor, BindGroupEntry, Device, Queue, Sampler, ShaderStage,
-  SwapChainDescriptor, Texture, TextureSampleType, TextureView,
+  BindGroup, BindGroupDescriptor, BindGroupEntry, Device, Queue, Sampler, ShaderStages,
+  Texture, TextureSampleType, TextureView,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -97,12 +97,12 @@ impl TextureResource {
 
   pub fn new_depth_stencil_texture(
     device: &Device,
-    sc_descriptor: &SwapChainDescriptor,
+    (width, height): (u32, u32),
     label: &str,
   ) -> Self {
     let size = wgpu::Extent3d {
-      width: sc_descriptor.width,
-      height: sc_descriptor.height,
+      width,
+      height,
       depth_or_array_layers: 1,
     };
     let desc = wgpu::TextureDescriptor {
@@ -113,8 +113,8 @@ impl TextureResource {
 
       dimension: wgpu::TextureDimension::D2,
       format: Self::DEPTH_TEXTURE_FORMAT,
-      usage: wgpu::TextureUsage::RENDER_ATTACHMENT // 3.
-        | wgpu::TextureUsage::SAMPLED,
+      usage: wgpu::TextureUsages::RENDER_ATTACHMENT // 3.
+                | wgpu::TextureUsages::TEXTURE_BINDING,
     };
     let texture = device.create_texture(&desc);
     let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
@@ -157,7 +157,7 @@ pub fn load_texture_from_image(
     sample_count: 1,
     dimension: wgpu::TextureDimension::D2,
     format: wgpu::TextureFormat::Rgba8UnormSrgb,
-    usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST,
+    usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
     label: Some("by__load_image_from_file"),
   });
   queue.write_texture(
@@ -165,6 +165,7 @@ pub fn load_texture_from_image(
       texture: &texture,
       mip_level: 0,
       origin: wgpu::Origin3d::ZERO,
+      aspect: Default::default()
     },
     &rgba,
     wgpu::ImageDataLayout {
@@ -184,7 +185,7 @@ pub fn create_texture_bind_group_layout(device: &Device) -> BindGroupLayout {
     entries: &[
       wgpu::BindGroupLayoutEntry {
         binding: 0,
-        visibility: ShaderStage::FRAGMENT,
+        visibility: ShaderStages::FRAGMENT,
         ty: wgpu::BindingType::Texture {
           multisampled: false,
           view_dimension: TextureViewDimension::D2,
@@ -194,7 +195,7 @@ pub fn create_texture_bind_group_layout(device: &Device) -> BindGroupLayout {
       },
       wgpu::BindGroupLayoutEntry {
         binding: 1,
-        visibility: ShaderStage::FRAGMENT,
+        visibility: ShaderStages::FRAGMENT,
         ty: wgpu::BindingType::Sampler {
           comparison: false,
           filtering: true,
