@@ -8,6 +8,8 @@ use crate::{
   nalgebra_glm::{vec3, TVec2, Vec3},
   renderer_common::handle::HandleIndex,
 };
+use crate::wgpu_renderer::model::StreamingMesh;
+use crate::renderer_common::handle::Handle;
 
 #[derive(Clone, Debug, Default)]
 pub struct Scene {
@@ -99,4 +101,8 @@ impl ScreenResolution {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct MeshLookup(pub HashMap<String, HandleIndex>);
+pub struct MeshLookup{
+  pub map:  HashMap<String, HandleIndex>,
+  pub cube: Option<Handle<StreamingMesh>>
+}
+

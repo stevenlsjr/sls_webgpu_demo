@@ -1,6 +1,7 @@
 use super::context::Context;
 use crate::{
   renderer_common::allocator::ResourceManager,
+  util::anyhow_from_poisoned,
   wgpu::Texture,
   wgpu_renderer::{
     material::{Material, WgpuMaterial},
@@ -18,7 +19,6 @@ use std::{
 };
 use uuid::Uuid;
 use wgpu::RenderPipeline;
-use crate::util::anyhow_from_poisoned;
 
 #[derive(Debug)]
 pub struct ResourceView<'a> {

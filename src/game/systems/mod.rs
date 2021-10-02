@@ -2,13 +2,10 @@ use legion::{systems::CommandBuffer, *};
 use log::*;
 use nalgebra_glm as glm;
 
-use crate::{
-  camera::Camera,
-  game::{
-    components::{CameraEntityRow, GameLoopTimer, Transform3D},
-    resources::{Scene, UIDataIn},
-  },
-};
+use crate::{camera::Camera, game::{
+  components::{CameraEntityRow, GameLoopTimer, Transform3D},
+  resources::{Scene, UIDataIn},
+}, Context};
 
 pub mod camera_systems;
 pub mod model_systems;
@@ -26,6 +23,14 @@ use crate::{
 };
 pub use camera_systems::*;
 use legion::world::SubWorld;
+use crate::error::Error::Render;
+use std::sync::{RwLock, Arc};
+use crate::wgpu_renderer::model::{StreamingMesh, ModelLoadState};
+use crate::renderer_common::handle::Handle;
+use crate::wgpu_renderer::resource_view::ReadWriteResources;
+use std::collections::HashMap;
+use crate::renderer_common::allocator::ResourceManager;
+use crate::game::resources::MeshLookup;
 
 #[system]
 pub fn fixed_update_logging(#[resource] game_loop: &GameLoopTimer) {
@@ -45,8 +50,11 @@ pub fn setup_scene(
   #[resource] scene: &mut Scene,
   #[resource] resolution: &ScreenResolution,
   #[resource] _assets: &Box<dyn AssetLoaderQueue>,
+  #[resource] context: &Arc<RwLock<Context>>,
   command_buffer: &mut CommandBuffer,
 ) {
+  let mut models = context.read().unwrap().resources.models.write().unwrap();
+
   let mut main_camera: CameraEntityRow = (
     Transform3D::default(),
     Camera::new(resolution.aspect_ratio()),
@@ -55,6 +63,7 @@ pub fn setup_scene(
 
   let main_camera_entity = command_buffer.push(main_camera);
   scene.main_camera = Some(main_camera_entity);
+
 
   let light_entity = (
     Transform3D {
@@ -66,6 +75,17 @@ pub fn setup_scene(
       color: vec3(1.0, 1.0, 0.0),
       ..Default::default()
     },
+    RenderModel {
+      model: Some(models.insert(StreamingMesh {
+        path: ":CUBE:".to_string(),
+        mesh_index: 0,
+        state: ModelLoadState::NotLoaded,
+        primitives: vec![],
+        materials: None,
+      })),
+      model_id: ":CUBE:".to_string(),
+      is_shown: true,
+    }
   );
   command_buffer.push(light_entity);
 
@@ -73,6 +93,27 @@ pub fn setup_scene(
 
   // assets.spawn_load_gltf_model("assets/sheen-chair/SheenChair.glb", "chair");
 }
+
+#[system(for_each)]
+#[write_component(RenderModel)]
+pub fn load_procedural_meshes(
+  #[resource] context: &Arc<RwLock<Context>>,
+  #[resource] models: &Arc<RwLock<ResourceManager<StreamingMesh>>>,
+  #[resource] mesh_lookup: &mut MeshLookup,
+  model: &mut RenderModel,
+) {
+  // iterate through RenderModels
+  // if model is not loaded, and has the given key, load the procedural mesh
+  let get_models = model.model.and_then(|handle| {
+    let mut models = models.write().unwrap();
+    models.mut_ref(handle).map(|model| (models, model)).ok()
+  });
+  match get_models {
+    Some(models_mgr, model)=>{},
+    None=>()
+  }
+}
+
 
 #[system(for_each)]
 #[read_component(Entity)]

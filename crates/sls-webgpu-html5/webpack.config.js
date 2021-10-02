@@ -32,7 +32,7 @@ module.exports = {
             watchDirectories: [
                 path.resolve(__dirname, '../../src')
             ],
-            extraArgs: '-- --features wgpu_renderer'
+            extraArgs: '-- --features opengl_renderer --no-default-features'
         }),
     ],
     devtool: 'eval'

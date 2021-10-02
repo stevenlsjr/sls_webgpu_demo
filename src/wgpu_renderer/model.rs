@@ -59,7 +59,7 @@ pub struct StreamingMesh {
   pub(crate) path: String,
   pub(crate) mesh_index: usize,
   pub(crate) state: ModelLoadState,
-  pub(crate) primitives: Vec<Mesh>,
+  pub(crate) primitives: Vec<Handle<Mesh>>,
   pub(crate) materials: Option<Weak<RwLock<ResourceManager<WgpuMaterial>>>>,
 }
 
@@ -78,9 +78,10 @@ impl StreamingMesh {
     &self.state
   }
   #[inline]
-  pub fn primitives(&self) -> &Vec<Mesh> {
+  pub fn primitives(&self) -> &Vec<Handle<Mesh>> {
     &self.primitives
   }
+
   #[inline]
   pub fn set_path(&mut self, path: String) {
     self.path = path;
@@ -94,7 +95,7 @@ impl StreamingMesh {
     self.state = state;
   }
   #[inline]
-  pub fn primitives_mut(&mut self) -> &mut Vec<Mesh> {
+  pub fn primitives_mut(&mut self) -> &mut Vec<Handle<Mesh>> {
     &mut self.primitives
   }
 

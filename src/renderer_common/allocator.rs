@@ -6,6 +6,7 @@ use crate::renderer_common::{handle::Handle, sparse_array_allocator::AlreadyFree
 
 use super::handle::{HandleIndex, GENERATION_MAX_SIZE, HANDLE_INDEX_MASK};
 pub use super::sparse_array_allocator::SparseArrayAllocator;
+use crate::renderer_common::handle::ResourceStore;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum AllocatorError {
@@ -41,6 +42,24 @@ pub struct ResourceManager<T: Sized> {
 
   generation_count: u32,
 }
+//
+// impl<T: Sized> ResourceStore<T> for ResourceManager<T> {
+//   fn get_ref(&self, handle: Handle<T>) -> Option<&T> {
+//     ResourceManager::get_ref(self, handle).ok()
+//   }
+//
+//   fn get_mut(&mut self, handle: Handle<T>) -> Option<&mut T> {
+//     ResourceManager::get_mut(self, handle).ok()
+//   }
+//
+//   fn insert(&mut self, value: T) -> Handle<T> {
+//     ResourceManager::insert(self, value)
+//   }
+//
+//   fn remove(&mut self, handle: T) -> Option<T> {
+//     ResourceManager::remove(self, handle).ok()
+//   }
+// }
 
 impl<T: Sized> ResourceManager<T> {
   pub fn with_capacity(capacity: usize) -> Self {

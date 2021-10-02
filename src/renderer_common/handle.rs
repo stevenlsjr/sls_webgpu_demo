@@ -25,10 +25,16 @@ impl HandleIndex {
 }
 
 /// Typed wrapper for HandleIndex
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Debug)]
 pub struct Handle<T: 'static + Sized> {
   index: HandleIndex,
   _phantom: PhantomData<&'static T>,
+}
+
+impl<T: 'static + Sized> PartialEq for Handle<T> {
+  fn eq(&self, other: &Self) -> bool {
+    self.index == other.index
+  }
 }
 
 impl<T: Sized> Clone for Handle<T> {
@@ -59,6 +65,14 @@ impl<T> Handle<T> {
   }
   pub fn to_index(self) -> HandleIndex {
     self.index
+  }
+
+  pub fn read<Store: ResourceStore<T>>(&self, store: &Store) -> Option<&T> {
+    store.get_ref(*self)
+  }
+
+  pub fn write<Store: ResourceStore<T>>(&self, store: &mut Store) -> Option<&mut T> {
+    store.get_mut(*self)
   }
 }
 

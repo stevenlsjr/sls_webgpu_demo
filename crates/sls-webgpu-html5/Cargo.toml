@@ -25,6 +25,7 @@ debug = true
 # If you uncomment this line, it will enable `wee_alloc`:
 default = ["wee_alloc", "wgpu_renderer"]
 wgpu_renderer = ["sls-webgpu/wgpu_renderer"]
+opengl_renderer = ["sls-webgpu/opengl_renderer"]
 
 [dependencies]
 # The `wasm-bindgen` crate provides the bare minimum functionality needed

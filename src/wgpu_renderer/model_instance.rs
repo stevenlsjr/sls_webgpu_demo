@@ -1,6 +1,6 @@
 use crate::game::components::Transform3D;
 
-use wgpu::{VertexStepMode, VertexBufferLayout};
+use wgpu::{VertexBufferLayout, VertexStepMode};
 
 /// Instance data for model
 #[repr(C)]

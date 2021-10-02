@@ -57,6 +57,7 @@ mod wgpu_renderer {
       log::error!("error setting up graphics resources! {:?}", e)
     }
   }
+
 }
 
 fn create_random_model(assets: &MainSceneAssets) -> (RenderModel, Transform3D) {

@@ -11,7 +11,7 @@ use crate::{
 };
 use sls_webgpu::{
   game::{
-     input::InputState, resources::ScreenResolution,
+    input::InputState, resources::ScreenResolution,
     CreateGameParams, GameState,
   },
   gl_renderer::GlContext,
@@ -20,6 +20,7 @@ use sls_webgpu::{
   renderer_common::RenderContext,
   wgpu_renderer,
   window::{AsHtmlWindowWrapper, AsWindow, HtmlWindowImpl},
+  wgpu,
 };
 
 #[wasm_bindgen]
@@ -65,7 +66,6 @@ impl SlsWgpuDemo {
     app_root: Option<HtmlElement>,
     options: Option<CreateAppOptionsJs>,
   ) -> Result<SlsWgpuDemo, JsValue> {
-    use super::options::RendererBackend;
     let app_options = options
       .map(|options| CreateAppOptions::from_js(options))
       .unwrap_or(Ok(CreateAppOptions::default()))?;
@@ -219,22 +219,22 @@ impl SlsWgpuDemo {
     if app.renderer.is_some() {
       return Ok(());
     }
+    let ctx_backends = match app.render_backend {
+      RendererBackend::WebGL => { wgpu::Backends::GL }
+      RendererBackend::WebGPU => { wgpu::Backends::BROWSER_WEBGPU }
+    };
 
-    match (&app.canvas, app.render_backend) {
-      (Some(canvas), RendererBackend::WebGL) => {
-        let gl_context = <GlContext as FromCanvas>::from_canvas(canvas.clone())
-          .map_err(|e| js_sys::Error::new(&format!("error creating webGL context: {:?}", e)))?;
-        app.renderer = Some(Rc::new(RefCell::new(gl_context)));
-      }
-      (Some(canvas), RendererBackend::WebGPU) => {
+    match &app.canvas {
+      Some(canvas) => {
         let game_window = canvas.as_gamewindow();
         let wgpu_context = wgpu_renderer::Context::new(&game_window)
+          .with_backends(Some(ctx_backends))
           .build()
           .await
           .map_err(|e| JsValue::from(js_sys::Error::new(&format!("{:?}", e))))?;
         app.renderer = Some(Rc::new(RefCell::new(wgpu_context)));
       }
-      (None, _) => {
+      (None) => {
         return Err(JsValue::from_str(&format!(
           "Canvas is not defined! {:?}",
           self

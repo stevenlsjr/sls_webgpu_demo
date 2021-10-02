@@ -90,7 +90,8 @@ impl App {
     let imgui_platform = ImguiSdlPlatform::new(&mut imgui_context)?;
 
     let texture_format = context
-      .surface.get_preferred_format(&context.adapter)
+      .surface
+      .get_preferred_format(&context.adapter)
       .ok_or(anyhow!("no surface texture format available"))?;
     let renderer_options = imgui_wgpu::RendererConfig {
       texture_format,

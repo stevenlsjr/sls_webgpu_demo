@@ -9,12 +9,18 @@ GLSLC=glslangValidator
 GLSLCFLAGS:=-g -V
 MKDIR:=mkdir
 ifneq ($(OS),Windows_NT)
-FRAG_GLSL=src/shaders/main.frag
-VERT_GLSL=src/shaders/main.vert
+FRAG_GLSL=src/shaders/main.frag \
+	src/shaders/debug_light.frag
+VERT_GLSL=src/shaders/main.vert \
+	src/shaders/debug_light.vert
+
 OUT_DIR:=./
 else
-FRAG_GLSL=src\shaders\main.frag
-VERT_GLSL=src\shaders\main.vert
+FRAG_GLSL=src\\shaders\\main.frag \
+	src\\shaders\\debug_light.frag
+
+VERT_GLSL=src\\shaders\\main.vert \
+	src\\shaders\\debug_light.vert
 OUT_DIR:=
 endif
 

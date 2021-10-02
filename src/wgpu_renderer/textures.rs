@@ -4,8 +4,8 @@ use image::{DynamicImage, GenericImageView};
 use thiserror::Error;
 
 use wgpu::{
-  BindGroup, BindGroupDescriptor, BindGroupEntry, Device, Queue, Sampler, ShaderStages,
-  Texture, TextureSampleType, TextureView,
+  BindGroup, BindGroupDescriptor, BindGroupEntry, Device, Queue, Sampler, ShaderStages, Texture,
+  TextureSampleType, TextureView,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -165,7 +165,7 @@ pub fn load_texture_from_image(
       texture: &texture,
       mip_level: 0,
       origin: wgpu::Origin3d::ZERO,
-      aspect: Default::default()
+      aspect: Default::default(),
     },
     &rgba,
     wgpu::ImageDataLayout {
