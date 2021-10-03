@@ -127,9 +127,9 @@ impl StreamingMesh {
     let geometry = MeshGeometry::from_gltf_mesh(&mesh, buffers)?;
     let materials = Material::from_gltf(document, images)?;
     let mut material_handles: HashMap<usize, _> = HashMap::default();
-    let mut meshes: Vec<Mesh> = Vec::with_capacity(geometry.len());
+    let mut meshes: Vec<Handle<Mesh>> = Vec::with_capacity(geometry.len());
     {
-      let _mesh_loader = context
+      let mut mesh_loader = context
         .resources
         .meshes
         .write()
@@ -163,7 +163,8 @@ impl StreamingMesh {
           }
           None => mesh.set_material(Some(context.default_material)),
         }
-        meshes.push(mesh);
+
+        meshes.push(mesh_loader.insert(mesh));
       }
     }
     self.primitives = meshes;

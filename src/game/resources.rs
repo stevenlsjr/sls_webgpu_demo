@@ -6,10 +6,9 @@ use crate::{
   camera::Camera,
   game::components::{RenderModel, Transform3D},
   nalgebra_glm::{vec3, TVec2, Vec3},
-  renderer_common::handle::HandleIndex,
+  renderer_common::handle::{Handle, HandleIndex},
+  wgpu_renderer::model::StreamingMesh,
 };
-use crate::wgpu_renderer::model::StreamingMesh;
-use crate::renderer_common::handle::Handle;
 
 #[derive(Clone, Debug, Default)]
 pub struct Scene {
@@ -101,8 +100,7 @@ impl ScreenResolution {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct MeshLookup{
-  pub map:  HashMap<String, HandleIndex>,
-  pub cube: Option<Handle<StreamingMesh>>
+pub struct MeshLookup {
+  pub map: HashMap<String, HandleIndex>,
+  pub cube: Option<Handle<StreamingMesh>>,
 }
-

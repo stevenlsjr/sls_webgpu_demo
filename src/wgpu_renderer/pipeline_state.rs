@@ -108,8 +108,8 @@ impl RendererPipelines {
     shaders: &ResourceManager<ShaderModule>,
   ) -> anyhow::Result<()> {
     self.pbr_model_pipeline = {
-      let vert_shader = shaders.get_ref(self.pbr_model_shaders.vert_shader)?;
-      let frag_shader = shaders.get_ref(self.pbr_model_shaders.frag_shader)?;
+      let vert_shader = shaders.try_get_ref(self.pbr_model_shaders.vert_shader)?;
+      let frag_shader = shaders.try_get_ref(self.pbr_model_shaders.frag_shader)?;
       Some(create_render_pipeline(
         device,
         &self.pbr_model_layout,
@@ -119,8 +119,8 @@ impl RendererPipelines {
       ))
     };
     self.debug_light_pipeline = {
-      let vert_shader = shaders.get_ref(self.debug_light_shaders.vert_shader)?;
-      let frag_shader = shaders.get_ref(self.debug_light_shaders.frag_shader)?;
+      let vert_shader = shaders.try_get_ref(self.debug_light_shaders.vert_shader)?;
+      let frag_shader = shaders.try_get_ref(self.debug_light_shaders.frag_shader)?;
       Some(create_render_pipeline(
         device,
         &self.debug_light_layout,

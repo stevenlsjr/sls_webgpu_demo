@@ -2,10 +2,14 @@ use legion::{systems::CommandBuffer, *};
 use log::*;
 use nalgebra_glm as glm;
 
-use crate::{camera::Camera, game::{
-  components::{CameraEntityRow, GameLoopTimer, Transform3D},
-  resources::{Scene, UIDataIn},
-}, Context};
+use crate::{
+  camera::Camera,
+  game::{
+    components::{CameraEntityRow, GameLoopTimer, Transform3D},
+    resources::{Scene, UIDataIn},
+  },
+  Context,
+};
 
 pub mod camera_systems;
 pub mod model_systems;
@@ -13,24 +17,26 @@ pub mod renderer;
 
 use super::components::RenderModel;
 use crate::{
+  error::Error::Render,
   game::{
     asset_loading::resources::AssetLoaderQueue,
     components::{LightSource, LightType},
     input::InputResource,
-    resources::ScreenResolution,
+    resources::{MeshLookup, ScreenResolution},
   },
   nalgebra_glm::vec3,
+  renderer_common::{allocator::ResourceManager, handle::Handle},
+  wgpu_renderer::{
+    model::{ModelLoadState, StreamingMesh},
+    resource_view::ReadWriteResources,
+  },
 };
 pub use camera_systems::*;
 use legion::world::SubWorld;
-use crate::error::Error::Render;
-use std::sync::{RwLock, Arc};
-use crate::wgpu_renderer::model::{StreamingMesh, ModelLoadState};
-use crate::renderer_common::handle::Handle;
-use crate::wgpu_renderer::resource_view::ReadWriteResources;
-use std::collections::HashMap;
-use crate::renderer_common::allocator::ResourceManager;
-use crate::game::resources::MeshLookup;
+use std::{
+  collections::HashMap,
+  sync::{Arc, RwLock},
+};
 
 #[system]
 pub fn fixed_update_logging(#[resource] game_loop: &GameLoopTimer) {
@@ -53,7 +59,8 @@ pub fn setup_scene(
   #[resource] context: &Arc<RwLock<Context>>,
   command_buffer: &mut CommandBuffer,
 ) {
-  let mut models = context.read().unwrap().resources.models.write().unwrap();
+  let context_lock = context.read().unwrap();
+  let mut models = context_lock.resources.models.write().unwrap();
 
   let mut main_camera: CameraEntityRow = (
     Transform3D::default(),
@@ -63,7 +70,6 @@ pub fn setup_scene(
 
   let main_camera_entity = command_buffer.push(main_camera);
   scene.main_camera = Some(main_camera_entity);
-
 
   let light_entity = (
     Transform3D {
@@ -85,7 +91,7 @@ pub fn setup_scene(
       })),
       model_id: ":CUBE:".to_string(),
       is_shown: true,
-    }
+    },
   );
   command_buffer.push(light_entity);
 
@@ -102,18 +108,7 @@ pub fn load_procedural_meshes(
   #[resource] mesh_lookup: &mut MeshLookup,
   model: &mut RenderModel,
 ) {
-  // iterate through RenderModels
-  // if model is not loaded, and has the given key, load the procedural mesh
-  let get_models = model.model.and_then(|handle| {
-    let mut models = models.write().unwrap();
-    models.mut_ref(handle).map(|model| (models, model)).ok()
-  });
-  match get_models {
-    Some(models_mgr, model)=>{},
-    None=>()
-  }
 }
-
 
 #[system(for_each)]
 #[read_component(Entity)]

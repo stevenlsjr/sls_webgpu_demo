@@ -240,7 +240,7 @@ impl BindTexture for Context {
     let textures = textures_arc
       .read()
       .map_err(|e| anyhow::anyhow!("{:?}", e))?;
-    let tex = textures.get_ref(tex_handle)?;
+    let tex = textures.try_get_ref(tex_handle)?;
     let _bind_group = basic_texture_bind_group(tex, &self.texture_bind_group_layout, &self.device);
     Ok(())
   }

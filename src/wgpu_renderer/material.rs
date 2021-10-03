@@ -364,7 +364,7 @@ impl RenderMaterial<TextureResource> {
     default_texture: Handle<TextureResource>,
     layout: &BindGroupLayout,
   ) -> anyhow::Result<()> {
-    let albedo_tex = textures.get_ref(self.albedo_tex.unwrap_or(default_texture))?;
+    let albedo_tex = textures.try_get_ref(self.albedo_tex.unwrap_or(default_texture))?;
     let bind_group = basic_texture_bind_group(albedo_tex, layout, device);
     self.bind_group = Some(bind_group);
     Ok(())

@@ -67,11 +67,11 @@ impl<T> Handle<T> {
     self.index
   }
 
-  pub fn read<Store: ResourceStore<T>>(&self, store: &Store) -> Option<&T> {
+  pub fn read<'a, Store: ResourceStore<T>>(&self, store: &'a Store) -> Option<&'a T> {
     store.get_ref(*self)
   }
 
-  pub fn write<Store: ResourceStore<T>>(&self, store: &mut Store) -> Option<&mut T> {
+  pub fn write<'a, Store: ResourceStore<T>>(&self, store: &'a mut Store) -> Option<&'a mut T> {
     store.get_mut(*self)
   }
 }
@@ -85,7 +85,7 @@ where
 
   fn insert(&mut self, value: T) -> Handle<T>;
 
-  fn remove(&mut self, handle: T) -> Option<T>;
+  fn remove(&mut self, handle: Handle<T>) -> Option<T>;
 }
 
 #[derive(Copy, Clone, PartialEq)]

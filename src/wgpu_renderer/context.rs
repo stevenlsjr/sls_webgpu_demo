@@ -45,7 +45,10 @@ use crate::{
 
 use super::{mesh::Mesh, uniforms::Uniforms};
 use crate::wgpu_renderer::pipeline_state::ShaderInfo;
-use std::borrow::{Borrow, BorrowMut};
+use std::{
+  borrow::{Borrow, BorrowMut},
+  ops::Deref,
+};
 
 pub struct Context {
   pub instance: wgpu::Instance,
@@ -153,7 +156,7 @@ impl Context {
       .create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("Render Encoder"),
       });
-    let _mesh_allocator = self.resources.meshes.read().unwrap();
+    let mesh_allocator = self.resources.meshes.read().unwrap();
     let model_allocator = self.resources.models.read().unwrap();
     let material_allocator = self.resources.materials.read().unwrap();
 
@@ -191,15 +194,22 @@ impl Context {
       render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
 
       for m in &self.models_to_draw {
-        let model = match model_allocator.get_ref(m.into_typed()) {
+        let model = match model_allocator.try_get_ref(m.into_typed()) {
           Ok(e) => e,
           Err(_) => continue,
         };
 
-        for mesh in model.primitives() {
+        for mesh_handle in model.primitives() {
+          let mesh = match mesh_handle.read(mesh_allocator.deref()) {
+            Some(m) => m,
+            None => {
+              log::info!("mesh {:?} not found", mesh_handle);
+              continue;
+            }
+          };
           mesh
             .material()
-            .and_then(|handle| match material_allocator.get_ref(handle) {
+            .and_then(|handle| match material_allocator.try_get_ref(handle) {
               Ok(material) => Some(material),
               Err(e) => {
                 log::warn!("could not access material: {:?}", e);

@@ -42,24 +42,24 @@ pub struct ResourceManager<T: Sized> {
 
   generation_count: u32,
 }
-//
-// impl<T: Sized> ResourceStore<T> for ResourceManager<T> {
-//   fn get_ref(&self, handle: Handle<T>) -> Option<&T> {
-//     ResourceManager::get_ref(self, handle).ok()
-//   }
-//
-//   fn get_mut(&mut self, handle: Handle<T>) -> Option<&mut T> {
-//     ResourceManager::get_mut(self, handle).ok()
-//   }
-//
-//   fn insert(&mut self, value: T) -> Handle<T> {
-//     ResourceManager::insert(self, value)
-//   }
-//
-//   fn remove(&mut self, handle: T) -> Option<T> {
-//     ResourceManager::remove(self, handle).ok()
-//   }
-// }
+
+impl<T: Sized> ResourceStore<T> for ResourceManager<T> {
+  fn get_ref(&self, handle: Handle<T>) -> Option<&T> {
+    ResourceManager::try_get_ref(self, handle).ok()
+  }
+
+  fn get_mut(&mut self, handle: Handle<T>) -> Option<&mut T> {
+    ResourceManager::try_mut_ref(self, handle).ok()
+  }
+
+  fn insert(&mut self, value: T) -> Handle<T> {
+    ResourceManager::insert(self, value)
+  }
+
+  fn remove(&mut self, handle: Handle<T>) -> Option<T> {
+    ResourceManager::try_remove(self, handle).ok()
+  }
+}
 
 impl<T: Sized> ResourceManager<T> {
   pub fn with_capacity(capacity: usize) -> Self {
@@ -96,7 +96,7 @@ impl<T: Sized> ResourceManager<T> {
     HandleIndex::new(resource_index_index as _, self.generation_count as _).into_typed()
   }
 
-  pub fn get_ref(&self, handle: Handle<T>) -> Result<&T, AllocatorError> {
+  pub fn try_get_ref(&self, handle: Handle<T>) -> Result<&T, AllocatorError> {
     match self.resource_index.get_ref(handle.index() as _) {
       None => Err(AllocatorError::NotFound),
       Some(handle_to_resource) => {
@@ -126,12 +126,12 @@ impl<T: Sized> ResourceManager<T> {
   /// let mut mgr: ResourceManager<i64> = ResourceManager::with_capacity(1);
   /// let handle = mgr.insert(0);
   /// {
-  ///   let reference = mgr.mut_ref(handle).unwrap();
+  ///   let reference = mgr.try_mut_ref(handle).unwrap();
   ///   *reference = 1;
   /// }
-  /// assert_eq!(mgr.get_ref(handle), Ok(&1));
+  /// assert_eq!(mgr.try_get_ref(handle), Ok(&1));
   /// ```
-  pub fn mut_ref(&mut self, handle: Handle<T>) -> Result<&mut T, AllocatorError> {
+  pub fn try_mut_ref(&mut self, handle: Handle<T>) -> Result<&mut T, AllocatorError> {
     match self.resource_index.get_ref(handle.index() as _) {
       None => Err(AllocatorError::NotFound),
       Some(handle_to_resource) => {
@@ -190,7 +190,7 @@ impl<T: Sized> ResourceManager<T> {
   /// assert_eq!(al.len(), 10);
   /// for i in 0..3 {
   ///   let handle = handles[i];
-  ///   al.remove(handle).unwrap();
+  ///   al.try_remove(handle).unwrap();
   /// }
   /// assert_eq!(al.len(), 7);
   /// ```
@@ -214,12 +214,12 @@ impl<T: Sized> ResourceManager<T> {
   /// let mut al = ResourceManager::with_capacity(10);
   /// let handle_a = al.insert(0);
   /// let handle_b = al.insert(1);
-  /// assert_eq!(al.remove(handle_a), Ok(0));
+  /// assert_eq!(al.try_remove(handle_a), Ok(0));
   /// assert_eq!(al.len(), 1);
-  /// assert_eq!(al.remove(handle_a), Err(AlreadyFreedError));
+  /// assert_eq!(al.try_remove(handle_a), Err(AlreadyFreedError));
   ///
   /// ```
-  pub fn remove(&mut self, handle: Handle<T>) -> Result<T, AlreadyFreedError> {
+  pub fn try_remove(&mut self, handle: Handle<T>) -> Result<T, AlreadyFreedError> {
     let resource_handle = self.get_resource_handle(handle)?;
     let val = self.resources.free(resource_handle.index() as _)?;
     self.resource_index.free(handle.index() as _)?;

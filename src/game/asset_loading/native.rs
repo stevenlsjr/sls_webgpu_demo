@@ -91,7 +91,7 @@ impl MultithreadedAssetLoaderQueue {
     _documents: &gltf::Document,
     _buffers: &[gltf::buffer::Data],
   ) -> anyhow::Result<()> {
-    let _model = models.mut_ref(handle)?;
+    let _model = models.try_mut_ref(handle)?;
     // model.load_from_gltf()
     Ok(())
   }
