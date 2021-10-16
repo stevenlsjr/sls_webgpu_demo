@@ -60,14 +60,11 @@ pub struct Context {
 
   pipelines: RendererPipelines,
 
-  render_pipeline: wgpu::RenderPipeline,
   // scene resources
   pub models_to_draw: Vec<Handle<StreamingMesh>>,
   uniforms: Uniforms,
   uniform_buffer: wgpu::Buffer,
 
-  main_vert_shader: wgpu::ShaderModule,
-  main_frag_shader: wgpu::ShaderModule,
   pub resources: ResourceContext,
 
   pub main_tex_handle: Option<Handle<TextureResource>>,
@@ -119,12 +116,21 @@ impl Context {
     self.depth_stencil_texture =
       TextureResource::new_depth_stencil_texture(&self.device, size, "depth_stencil_texture");
     // self.swapchain = self.device.create_swap_chain(&self.surface, &self.sc_desc);
+    //
+    // self
+    //   .pipelines
+    //   .build_pipelines(&self.device, &*self.resources.shaders.read().unwrap())
+    //   .unwrap();
   }
 
   pub fn update(&mut self) {}
 
   pub fn render(&mut self, game: &mut GameState) -> Result<(), anyhow::Error> {
     self.update_instance_state(game);
+    let pbr_pipeline = match self.pipelines.pbr_model_pipeline.as_ref() {
+      None => return Ok(()),
+      Some(x) => x,
+    };
     let camera = game
       .resources()
       .get::<Scene>()
@@ -189,7 +195,7 @@ impl Context {
         }),
       });
 
-      render_pass.set_pipeline(&self.render_pipeline);
+      render_pass.set_pipeline(pbr_pipeline);
 
       render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
 
@@ -222,7 +228,7 @@ impl Context {
                 Some(bg) => bg,
               };
 
-              render_pass.draw_model_instanced(
+              render_pass.draw_mesh_instanced(
                 mesh,
                 material_bg,
                 &self.uniform_bind_group,
@@ -237,21 +243,13 @@ impl Context {
   }
 
   pub fn rebuild_render_pipeline(&mut self) {
+    let shaders = self.resources.shaders.read().unwrap();
     if let Some(format) = self.surface.get_preferred_format(&self.adapter) {
-      self.pipeline_layout = create_pipeline_layout(
-        &self.device,
-        &[
-          &self.uniform_bind_group_layout,
-          &self.texture_bind_group_layout,
-        ],
-      );
-      self.render_pipeline = create_render_pipeline(
-        &self.device,
-        &self.pipeline_layout,
-        &self.main_vert_shader,
-        &self.main_frag_shader,
-        format.into(),
-      );
+      self.pipelines.color_target = format.clone().into();
+      self
+        .pipelines
+        .build_pipelines(&self.device, &*shaders)
+        .unwrap_or_else(|e| log::error!("could not rebuild pipelines {:?}", e));
     }
   }
 
@@ -413,11 +411,6 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
     let pipeline_layout =
       create_pipeline_layout(&device, &[&ubo_layout, &model_texture_bind_group_layout]);
     let (w_width, w_height) = self.window.size();
-    let main_vert_shader =
-      device.create_shader_module(&wgpu::include_spirv!("../shaders/main.vert.spv"));
-    let main_frag_shader =
-      device.create_shader_module(&wgpu::include_spirv!("../shaders/main.frag.spv"));
-
     let debug_light_vert_shader =
       device.create_shader_module(&wgpu::include_spirv!("../shaders/debug_light.vert.spv"));
     let debug_light_frag_shader =
@@ -429,13 +422,6 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       .ok_or_else(|| anyhow::anyhow!("could not get preferred texture format for surface"))?;
     // create render pipeline
 
-    let render_pipeline = create_render_pipeline(
-      &device,
-      &pipeline_layout,
-      &main_vert_shader,
-      &main_frag_shader,
-      preferred_format.clone().into(),
-    );
     let pipelines = {
       let mut shaders = resources.shaders.write().unwrap();
       let debug_light_shaders = ShaderInfo::from_shader_descriptors(
@@ -505,7 +491,6 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       device,
       queue,
       pipeline_layout,
-      render_pipeline,
       pipelines,
       models_to_draw: Vec::new(),
 
@@ -518,8 +503,6 @@ impl<'a, W: AsWindow + HasRawWindowHandle> Builder<'a, W> {
       resources,
       main_tex_handle: None,
       fallback_texture,
-      main_frag_shader,
-      main_vert_shader,
 
       instance_buffer,
       instance_buffer_view: Vec::new(),

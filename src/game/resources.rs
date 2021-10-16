@@ -57,6 +57,7 @@ pub struct CameraDisplayData {
   pub position: Vec3,
   pub forward: Vec3,
 }
+
 impl Default for CameraDisplayData {
   fn default() -> Self {
     Self {
@@ -73,6 +74,7 @@ pub struct UIDataIn {
   pub mouse_pos: TVec2<i32>,
   pub mouse_delta: TVec2<i32>,
 }
+
 impl Default for UIDataIn {
   fn default() -> Self {
     Self {
@@ -99,8 +101,17 @@ impl ScreenResolution {
   }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct MeshLookup {
   pub map: HashMap<String, HandleIndex>,
   pub cube: Option<Handle<StreamingMesh>>,
+}
+
+impl Default for MeshLookup {
+  fn default() -> Self {
+    Self {
+      map: HashMap::default(),
+      cube: None,
+    }
+  }
 }

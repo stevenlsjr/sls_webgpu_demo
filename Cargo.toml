@@ -12,7 +12,7 @@ sdl2_backend = ["sdl2"]
 html5_backend = ["web-sys"]
 wgpu_renderer = []
 wgpu_imgui = ["imgui", "imgui-wgpu", "wgpu_renderer"]
-opengl_renderer = ["glow", "wgpu/webgl"]
+opengl_renderer = ["glow"]
 
 # optimize certain packages in dev mode
 [profile.dev.package."*"]
@@ -32,6 +32,7 @@ uuid = { version = "0.8", features = ["serde", "v4", "v5"] }
 wasm-bindgen = "0.2.45"
 raw-window-handle = "0.3.3"
 nalgebra-glm = { version = "0.3", features = ['serde-serialize'] }
+nalgebra = { version = "0.29.0", features = ['serde-serialize'] }
 log = "0.4.14"
 bytemuck = { version = "1.7", features = ["derive"] }
 lazy_static = "1.4.0"
@@ -49,12 +50,13 @@ memoffset = { version = "0.6", features = ["unstable_const"] }
 anyhow = "^1.0"
 thiserror = "^1.0"
 bitflags = "^1.2"
+shrinkwraprs = "0.3.0"
 
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.gltf]
 version = "0.16"
 default-features = false
-features = ["extras", "names", "utils"]
+features = ["extras", "names", "utils", "image"]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.gltf]
 version = "0.16"
@@ -198,7 +200,19 @@ js-sys = "=0.3.51"
 getrandom = { version = "0.2.3", features = ["js"] }
 legion = { version = "0.4.0", default-features = false, features = ["wasm-bindgen", "codegen", "serialize"] }
 image = { version = "^0.23", default-features = false, features = ["gif", "jpeg", "png", "webp", "bmp", "hdr"] }
-wgpu = { version = "0.10.2", features = ["spirv"], default-features=false, resolver = "2" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.wgpu]
+version = "0.10.2"
+features = ["spirv"]
+default-features = false
+#resolver = "2"
+
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.wgpu]
+version = "0.10.2"
+features = ["spirv"]
+default-features = true
+#resolver = "2"
 
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
@@ -206,7 +220,7 @@ legion = { version = "0.4.0", default-features = true, features = ["wasm-bindgen
 shaderc = "0.7"
 rayon = "1.5.1"
 crossbeam = "0.8.1"
-wgpu = { version = "0.10.2", features = [ "spirv"], resolver = "2" }
+
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.image]
 version = "^0.23"

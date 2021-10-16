@@ -67,13 +67,17 @@ fn create_random_model(assets: &MainSceneAssets) -> (RenderModel, Transform3D) {
   let mesh = assets.avocado_model;
   let mut transform = Transform3D::default();
   let rand_dist = Uniform::new(-2.0, 2.0);
-  transform.position = vec3(rng.sample(rand_dist), 0.0, rng.sample(rand_dist));
-  transform.scale = vec3(10.0, 10.0, 10.0);
-  transform.rotation = Quat::from_parts(f32::to_radians(180.0), vec3(1.0, 0.0, 0.0));
+  transform.set_position(vec3(rng.sample(rand_dist), 0.0, rng.sample(rand_dist)));
+  transform.set_scale(vec3(10.0, 10.0, 10.0));
+  transform.set_rotation(Quat::from_parts(
+    f32::to_radians(180.0),
+    vec3(1.0, 0.0, 0.0),
+  ));
   let model = RenderModel {
     model: Some(mesh),
     model_id: assets.avocado_model_path.clone(),
     is_shown: true,
+    shading_model: Default::default(),
   };
   (model, transform)
 }
@@ -101,9 +105,9 @@ pub fn rotate_models(
   if !model.is_shown {
     return;
   }
-  xform.rotation = quat_rotate(
-    &xform.rotation,
+  xform.set_rotation(quat_rotate(
+    xform.rotation(),
     f32::to_radians(90.0) * timer.fixed_dt.as_secs_f32(),
     &vec3(0.0, 1.0, 0.0),
-  )
+  ))
 }

@@ -22,9 +22,16 @@ layout(location = 1) out vec2 varying_uv_0;
 layout(location = 2) out vec2 varying_uv_1;
 layout(location = 3) out vec4 varying_pos;
 
-layout(binding=0) uniform UniformBufferObject {
+layout(set=0, binding=0) uniform UniformBufferObject {
     mat4 view_projection;
 } ubo;
+
+layout(set=1, binding=0)
+uniform Light {
+    vec3 position;
+    vec3 color;
+} light_ubo;
+
 
 void main() {
     mat4 model_mat = mat4(

@@ -5,14 +5,18 @@ use std::ops::Range;
 use crate::{
   error::Error,
   renderer_common::{
-    handle::{Handle, HandleIndex},
+    allocator::ResourceManager,
+    handle::{Handle, HandleIndex, ResourceStore},
     render_context::DrawModel,
   },
   wgpu_renderer::{
     material::{Material, RenderMaterial, WgpuMaterial},
+    model::StreamingMesh,
+    resource_view::{ResourceContext, ResourceView},
     textures::TextureResource,
   },
 };
+use std::sync::{Arc, RwLock};
 
 #[derive(Debug)]
 pub struct Mesh {
@@ -72,22 +76,50 @@ impl<'a, 'b> DrawModel<'a, 'b> for wgpu::RenderPass<'a>
 where
   'b: 'a,
 {
-  type Model = Mesh;
+  type Mesh = Mesh;
+  type Model = StreamingMesh;
   type Material = wgpu::BindGroup;
   type Uniforms = wgpu::BindGroup;
 
-  fn draw_model(
+  fn draw_model<MeshStore: ResourceStore<Self::Mesh>>(
     &mut self,
+    mesh_mgr: &'b MeshStore,
     model: &'b Self::Model,
+    uniforms: &'a Self::Uniforms,
+  ) {
+    self.draw_model_instanced(mesh_mgr, model, uniforms, 0..1)
+  }
+
+  fn draw_model_instanced<MeshStore: ResourceStore<Self::Mesh>>(
+    &mut self,
+    mesh_mgr: &'b MeshStore,
+    model: &'b Self::Model,
+    uniforms: &'a Self::Uniforms,
+    instances: Range<u32>,
+  ) {
+    for (i, mesh) in model.iter_primitives(mesh_mgr).enumerate() {
+      let mesh = match mesh {
+        Some(x) => x,
+        None => {
+          log::warn!("mesh {} cannot be retrieved", i);
+          continue;
+        }
+      };
+    }
+  }
+
+  fn draw_mesh(
+    &mut self,
+    model: &'b Self::Mesh,
     material: &'a Self::Material,
     uniforms: &'a Self::Uniforms,
   ) {
-    self.draw_model_instanced(model, material, uniforms, 0..1);
+    self.draw_mesh_instanced(model, material, uniforms, 0..1);
   }
 
-  fn draw_model_instanced(
+  fn draw_mesh_instanced(
     &mut self,
-    model: &'b Self::Model,
+    model: &'b Self::Mesh,
     material: &'a Self::Material,
     uniforms: &'a Self::Uniforms,
     instances: Range<u32>,

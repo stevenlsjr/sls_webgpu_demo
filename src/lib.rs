@@ -34,7 +34,14 @@ mod tests;
 pub mod gl_renderer;
 pub mod math;
 pub mod renderer_common;
+pub mod scene_graph;
 pub mod util;
+
+#[macro_use]
+extern crate shrinkwraprs;
+
+extern crate nalgebra as na;
+extern crate nalgebra_glm as glm;
 
 pub use renderer_common::images::RawImageRbga;
 
@@ -42,4 +49,5 @@ pub use renderer_common::images::RawImageRbga;
 pub use anyhow;
 pub use gltf;
 pub use image;
+pub use legion as ecs;
 pub use nalgebra_glm;

@@ -12,8 +12,13 @@ layout(location = 0) out vec4 output_color;
 layout(set=1, binding=0) uniform texture2D diffuse_tex;
 layout(set=1, binding=1) uniform sampler diffuse;
 
+layout(set=1, binding=0)
+uniform Light {
+    vec3 position;
+    vec3 color;
+};
+
 
 void main() {
-
     output_color= texture(sampler2D(diffuse_tex, diffuse), varying_uv_0);
 }

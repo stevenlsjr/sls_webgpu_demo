@@ -24,7 +24,7 @@ pub fn camera_move(
   if !scene.is_main_camera(Some(*entity)) {
     return;
   }
-  camera.position = transform.position.clone_owned();
+  camera.position = transform.position().clone_owned();
   let front = *camera.update_front();
   let right = front.cross(&camera.world_up).normalize();
   let mut movement_step: Vec3 = vec3(0f32, 0f32, 0f32);
@@ -46,17 +46,17 @@ pub fn camera_move(
   if movement_step.magnitude().abs() >= f32::EPSILON {
     movement_step.normalize_mut();
     movement_step *= frame_speed;
-    transform.position += movement_step;
+    transform.set_position(transform.position() + movement_step);
   }
   if input.is_mouselook_enabled() {
     camera.mouselook(input.backend.mouse_delta(), &game_loop.fixed_dt);
   }
-  camera.position.clone_from(&transform.position);
+  camera.position.clone_from(transform.position());
   if input.backend.pressed_keycodes().contains(&Keycode::P) {
     log::info!(
       "debugger! camera {:?}, transform {:?}",
       camera.position,
-      transform.position
+      transform.position()
     );
   }
 }

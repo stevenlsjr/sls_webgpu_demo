@@ -8,6 +8,7 @@ categories = ["wasm"]
 readme = "README.md"
 edition = "2018"
 license = "MIT"
+resolver = "2"
 
 
 [lib]
@@ -183,7 +184,7 @@ features = [
 [dependencies.sls-webgpu]
 path = "../../"
 default-features = false
-features = ["html5_backend", "opengl_renderer"]
+features = ["html5_backend" ]
 
 
 # The `console_error_panic_hook` crate provides better debugging of panics by

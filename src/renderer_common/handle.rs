@@ -1,6 +1,7 @@
+use serde::{Deserialize, Serialize};
 use std::{any::TypeId, marker::PhantomData, ops::Deref};
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct HandleIndex(pub u32);
 
 const HANDLE_INDEX_N_BITS: u32 = 20;
@@ -25,9 +26,10 @@ impl HandleIndex {
 }
 
 /// Typed wrapper for HandleIndex
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Handle<T: 'static + Sized> {
   index: HandleIndex,
+  #[serde(skip_serializing)]
   _phantom: PhantomData<&'static T>,
 }
 

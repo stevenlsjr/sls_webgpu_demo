@@ -3,7 +3,8 @@ const CopyPlugin = require("copy-webpack-plugin");
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 
 const dist = path.resolve(__dirname, "dist");
-process.env.RUSTFLAGS = '--cfg=web_sys_unstable_apis'
+process.env.RUSTFLAGS = '--cfg=web_sys_unstable_apis -Z macro-backtrace'
+
 
 module.exports = {
     mode: "production",
@@ -32,7 +33,7 @@ module.exports = {
             watchDirectories: [
                 path.resolve(__dirname, '../../src')
             ],
-            extraArgs: '-- --features opengl_renderer --no-default-features'
+            extraArgs: '-- --no-default-features'
         }),
     ],
     devtool: 'eval'

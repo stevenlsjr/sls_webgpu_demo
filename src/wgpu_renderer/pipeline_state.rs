@@ -4,6 +4,7 @@ use crate::{
   wgpu_renderer::{textures::TextureResource, ModelInstance},
 };
 use atomic_refcell::AtomicRefCell;
+use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use wgpu::*;
 
@@ -170,6 +171,17 @@ pub fn create_render_pipeline(
     }),
     multisample: wgpu::MultisampleState::default(),
   });
-
   render_pipeline
+}
+
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
+pub enum ShadingModel {
+  Pbr,
+  DebugLight,
+}
+
+impl Default for ShadingModel {
+  fn default() -> Self {
+    Self::Pbr
+  }
 }

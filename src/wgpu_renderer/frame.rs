@@ -31,7 +31,7 @@ impl WgpuFrame {
     match light.light_type {
       LightType::Point => {
         let uniform = PointLightUniform {
-          position: transform.position.into(),
+          position: (*transform.position()).into(),
           _padding: 0,
           color: light.color.into(),
         };
@@ -43,6 +43,12 @@ impl WgpuFrame {
 
   pub fn clear(&mut self) {
     // self.draw_list.clear();
-    // self.lights.clear();
+    if let Err(e) = self
+      .point_lights
+      .write()
+      .map(|mut point_lights| point_lights.clear())
+    {
+      panic!("render resources are poisoned! {:?}", e);
+    }
   }
 }

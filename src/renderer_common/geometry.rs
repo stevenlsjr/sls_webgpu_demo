@@ -1,5 +1,4 @@
 use genmesh::{MapToVertices, Triangulate, Vertices};
-use nalgebra_glm::*;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable, PartialEq)]

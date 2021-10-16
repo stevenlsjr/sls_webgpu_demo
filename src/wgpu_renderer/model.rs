@@ -3,7 +3,7 @@ use crate::{
   anyhow::Error,
   renderer_common::{
     allocator::ResourceManager,
-    handle::{Handle, HandleIndex},
+    handle::{Handle, HandleIndex, ResourceStore},
   },
   wgpu_renderer::{
     material::{RenderMaterial, WgpuMaterial},
@@ -17,7 +17,7 @@ use anyhow::anyhow;
 use gltf::Document;
 use std::{
   collections::{hash_map::RandomState, HashMap},
-  iter::Zip,
+  iter::{Iterator, Zip},
   sync::{Arc, RwLock, Weak},
 };
 
@@ -188,5 +188,18 @@ impl StreamingMesh {
       }
       ok => ok,
     }
+  }
+
+  pub fn iter_primitives<'a, 'b, T: ResourceStore<Mesh>>(
+    &'a self,
+    primitive_mgr: &'a T,
+  ) -> impl Iterator<Item = Option<&'b Mesh>>
+  where
+    'a: 'b,
+  {
+    self
+      .primitives
+      .iter()
+      .map(move |handle| primitive_mgr.get_ref(*handle))
   }
 }

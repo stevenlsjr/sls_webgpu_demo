@@ -66,15 +66,16 @@ pub fn setup_scene(
     Transform3D::default(),
     Camera::new(resolution.aspect_ratio()),
   );
-  main_camera.0.position = glm::vec3(0f32, 0f32, 3f32);
+  main_camera.0.set_position(glm::vec3(0f32, 0f32, 3f32));
 
   let main_camera_entity = command_buffer.push(main_camera);
   scene.main_camera = Some(main_camera_entity);
 
   let light_entity = (
-    Transform3D {
-      position: vec3(2.0, 4.0, 1.0),
-      ..Default::default()
+    {
+      let mut tx = Transform3D::default();
+      tx.set_position(vec3(2.0, 4.0, 1.0));
+      tx
     },
     LightSource {
       light_type: LightType::Point,
@@ -91,6 +92,7 @@ pub fn setup_scene(
       })),
       model_id: ":CUBE:".to_string(),
       is_shown: true,
+      shading_model: Default::default(),
     },
   );
   command_buffer.push(light_entity);
@@ -122,7 +124,7 @@ pub fn write_camera_ui_data(
   transform: &Transform3D,
 ) {
   if Some(entity) == scene.main_camera.as_ref() {
-    ui_data.camera.position = transform.position.clone_owned();
+    ui_data.camera.position = transform.position().clone_owned();
     ui_data.camera.forward = camera.front.clone_owned();
   }
 }

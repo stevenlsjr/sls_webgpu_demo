@@ -328,7 +328,7 @@ mod wgpu_imgui {
 
             ui.group(|| {
               for (model, xform) in &ui_data.drawable_meshes {
-                ui.text(format!("model: {:?}, {:?}", model, xform.position));
+                ui.text(format!("model: {:?}, {:?}", model, xform.position()));
               }
             });
           }

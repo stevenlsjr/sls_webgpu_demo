@@ -76,7 +76,7 @@ impl Camera {
   }
 
   pub fn update_transformation(&mut self, transform: &Transform3D) {
-    self.position.clone_from(&transform.position);
+    self.position.clone_from(transform.position());
   }
 
   pub fn mouselook(&mut self, mouse_delta_i: TVec2<i32>, dt: &Duration) {

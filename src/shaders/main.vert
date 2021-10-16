@@ -26,6 +26,13 @@ layout(binding=0) uniform UniformBufferObject {
     mat4 view_projection;
 } ubo;
 
+layout(set=1, binding=0)
+uniform Light {
+    vec3 position;
+    vec3 color;
+} light_ubo;
+
+
 void main() {
     mat4 model_mat = mat4(
         instance_model_x,
