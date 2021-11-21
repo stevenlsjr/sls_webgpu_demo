@@ -4,7 +4,7 @@ use app::*;
 use sdl2::video::Window;
 use sls_webgpu::{
   anyhow,
-  game::{CreateGameParams, GameState},
+  game::{GameState, GameStateBuilder},
   imgui_wgpu,
   platform::{gui, sdl2_backend::ImguiSdlPlatform},
   Context,

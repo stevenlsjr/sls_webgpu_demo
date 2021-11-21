@@ -12,7 +12,7 @@ use crate::{
 use sls_webgpu::{
   game::{
     input::InputState, resources::ScreenResolution,
-    CreateGameParams, GameState,
+    GameStateBuilder, GameState,
   },
   gl_renderer::GlContext,
   nalgebra_glm::*,
@@ -181,7 +181,7 @@ impl SlsWgpuDemo {
     app_root: Option<HtmlElement>,
     render_backend: RendererBackend,
   ) -> Result<Self, String> {
-    let game_state = GameState::new(CreateGameParams { asset_loader_queue: None });
+    let game_state = GameState::new(GameStateBuilder { asset_loader_queue: None });
     let mut app = AppInternal {
       game_state,
       renderer: None,

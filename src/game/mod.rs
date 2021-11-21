@@ -51,29 +51,62 @@ impl fmt::Debug for GameState {
   }
 }
 
-#[derive(Default)]
-pub struct CreateGameParams {
+pub struct GameStateBuilder {
   pub asset_loader_queue: Option<Box<dyn AssetLoaderQueue>>,
+  pub fixed_schedule: Builder,
+  pub per_frame_schedule: Builder,
+  pub on_resize_schedule: Builder,
+}
+
+impl Debug for GameStateBuilder {
+  fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+    f.debug_struct("GameStateBuilder").finish_non_exhaustive()
+  }
+}
+
+impl GameStateBuilder {
+  pub fn with_default_systems(mut self) -> Self {
+    self
+      .fixed_schedule
+      .add_system(systems::fixed_update_logging_system())
+      .add_system(systems::write_camera_ui_data_system())
+      .add_system(systems::model_systems::rotate_models_system(0.0));
+    for system in crate::scene_graph::transform_system_bundle::build() {
+      self
+        .fixed_schedule
+        .add_system(DynParallelRunnable::new(system));
+    }
+
+    self
+      .per_frame_schedule
+      .add_system(systems::per_frame_logging_system())
+      .add_thread_local(systems::camera_move_system())
+      .add_system(systems::write_renderable_ui_data_system());
+    self
+      .on_resize_schedule
+      .add_system(camera_systems::camera_on_resize_system());
+    self
+  }
+  pub fn build(self) -> GameState {
+    GameState::new(self)
+  }
+}
+
+impl Default for GameStateBuilder {
+  fn default() -> Self {
+    Self {
+      asset_loader_queue: None,
+      fixed_schedule: Schedule::builder(),
+      per_frame_schedule: Schedule::builder(),
+      on_resize_schedule: Schedule::builder(),
+    }
+  }
 }
 
 impl GameState {
-  pub fn new(options: CreateGameParams) -> Self {
+  pub fn new(mut options: GameStateBuilder) -> Self {
     let world = World::default();
     let is_running = false;
-    let fixed_schedule = Schedule::builder()
-      .add_system(systems::fixed_update_logging_system())
-      .add_system(systems::write_camera_ui_data_system())
-      .add_system(systems::model_systems::rotate_models_system(0.0))
-      .build();
-    let per_frame_schedule = Schedule::builder()
-      .add_system(systems::per_frame_logging_system())
-      .add_thread_local(systems::camera_move_system())
-      .add_system(systems::write_renderable_ui_data_system())
-      .build();
-
-    let on_resize_schedule = Schedule::builder()
-      .add_system(camera_systems::camera_on_resize_system())
-      .build();
 
     let mut resources = Self::initial_resources();
     resources.insert(InputResource {
@@ -84,9 +117,9 @@ impl GameState {
     }
     let state = Self {
       world,
-      fixed_schedule,
-      per_frame_schedule,
-      on_resize_schedule,
+      fixed_schedule: options.fixed_schedule.build(),
+      per_frame_schedule: options.per_frame_schedule.build(),
+      on_resize_schedule: options.on_resize_schedule.build(),
       resources,
       is_running,
       registry: Self::make_world_registry(),
@@ -352,7 +385,16 @@ use crate::{
 };
 use legion::serialize::Canon;
 
-use std::sync::{Arc, RwLock};
+use crate::{
+  ecs::systems::{ParallelRunnable, Runnable},
+  imgui::__core::fmt::Formatter,
+};
+use legion::systems::Builder;
+use std::{
+  fmt::Debug,
+  ops::Deref,
+  sync::{Arc, RwLock},
+};
 #[cfg(feature = "wgpu_renderer")]
 pub use wgpu_renderer::*;
 

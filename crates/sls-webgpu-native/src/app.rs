@@ -26,7 +26,7 @@ use sls_webgpu::{
     },
     input::InputResource,
     resources::ScreenResolution,
-    CreateGameParams, GameState,
+    GameState, GameStateBuilder,
   },
   gltf,
   gltf::{buffer::Data, json::Value, Document, Error},
@@ -108,11 +108,14 @@ impl App {
     let imgui_platform = Arc::new(RwLock::new(imgui_platform));
     let context = Arc::new(RwLock::new(context));
 
-    let mut game_state = GameState::new(CreateGameParams {
+    let mut game_state = GameStateBuilder {
       asset_loader_queue: Some(Box::new(
         sls_webgpu::game::asset_loading::MultithreadedAssetLoaderQueue::new(),
       )),
-    });
+      ..Default::default()
+    }
+    .with_default_systems()
+    .build();
     {
       game_state.wgpu_setup(context.clone());
     }
