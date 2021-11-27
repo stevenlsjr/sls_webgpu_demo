@@ -21,6 +21,7 @@ layout(location = 0) out vec4 varying_color;
 layout(location = 1) out vec2 varying_uv_0;
 layout(location = 2) out vec2 varying_uv_1;
 layout(location = 3) out vec4 varying_pos;
+layout(location = 4) out vec3 varying_normal;
 
 layout(binding=0) uniform UniformBufferObject {
     mat4 view_projection;
@@ -43,6 +44,7 @@ void main() {
     varying_uv_0 = uv;
     varying_uv_1 = uv_1;
     varying_color = normal;
+    varying_normal = normal.xyz;
     varying_pos = model_mat * vec4(vertex_position, 1.0);
     gl_Position = ubo.view_projection * varying_pos;
 }
