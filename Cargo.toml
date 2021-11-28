@@ -229,6 +229,6 @@ default-features = true
 
 
 [dependencies.sdl2]
-version = "0.34.4"
+version = "0.35.1"
 optional = true
 features = ["default", "raw-window-handle"]

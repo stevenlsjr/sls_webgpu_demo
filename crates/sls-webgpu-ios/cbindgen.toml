@@ -1,0 +1,15 @@
+language = 'C'
+cpp_compat = true
+braces = 'SameLine'
+line_length = 100
+tab_width = 2
+documentation = true
+documentation_style = 'auto'
+line_endings = 'LF'
+# namespace = "sls"
+
+[export]
+prefix = "sls"
+
+[enum]
+prefix_with_name = true
