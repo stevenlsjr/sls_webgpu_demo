@@ -1,0 +1,9 @@
+{
+  "packages": [
+    "packages/*",
+    "crates/sls-webgpu-game/"
+  ],
+  "version": "0.0.0",
+  "npmClient": "yarn",
+  "useWorkspaces": true
+}

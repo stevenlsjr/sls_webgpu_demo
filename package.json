@@ -1,0 +1,11 @@
+{
+  "name": "root",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "crates/sls-webgpu-game"
+  ],
+  "devDependencies": {
+    "lerna": "^3.22.1"
+  }
+}
