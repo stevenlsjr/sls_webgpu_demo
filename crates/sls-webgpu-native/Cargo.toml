@@ -21,6 +21,6 @@ version = "0.34.4"
 features = ["default", "raw-window-handle"]
 
 [dependencies.sls-webgpu]
-path = "../../"
+path = "../sls-webgpu"
 features = ["sdl2_backend", "wgpu_renderer", "wgpu_imgui"]
 
