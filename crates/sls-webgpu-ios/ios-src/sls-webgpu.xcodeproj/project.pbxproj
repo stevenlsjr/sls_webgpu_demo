@@ -1,0 +1,516 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		E2A4EBB42752D0E600384AE0 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A4EBB32752D0E600384AE0 /* AppDelegate.swift */; };
+		E2A4EBB62752D0E600384AE0 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A4EBB52752D0E600384AE0 /* SceneDelegate.swift */; };
+		E2A4EBB82752D0E600384AE0 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A4EBB72752D0E600384AE0 /* ViewController.swift */; };
+		E2A4EBBB2752D0E600384AE0 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E2A4EBB92752D0E600384AE0 /* Main.storyboard */; };
+		E2A4EBBD2752D0E700384AE0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E2A4EBBC2752D0E700384AE0 /* Assets.xcassets */; };
+		E2A4EBC02752D0E700384AE0 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E2A4EBBE2752D0E700384AE0 /* LaunchScreen.storyboard */; };
+		E2A4EBCB2752D0E800384AE0 /* sls_webgpuTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A4EBCA2752D0E800384AE0 /* sls_webgpuTests.swift */; };
+		E2A4EBD82752D47000384AE0 /* libsls_webgpu_ios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E2A4EBD72752D47000384AE0 /* libsls_webgpu_ios.a */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		E2A4EBC72752D0E800384AE0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E2A4EBA82752D0E600384AE0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E2A4EBAF2752D0E600384AE0;
+			remoteInfo = "sls-webgpu";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		E2A4EBB02752D0E600384AE0 /* sls-webgpu.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "sls-webgpu.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E2A4EBB32752D0E600384AE0 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		E2A4EBB52752D0E600384AE0 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		E2A4EBB72752D0E600384AE0 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		E2A4EBBA2752D0E600384AE0 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		E2A4EBBC2752D0E700384AE0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		E2A4EBBF2752D0E700384AE0 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		E2A4EBC12752D0E700384AE0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		E2A4EBC62752D0E800384AE0 /* sls-webgpuTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "sls-webgpuTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E2A4EBCA2752D0E800384AE0 /* sls_webgpuTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = sls_webgpuTests.swift; sourceTree = "<group>"; };
+		E2A4EBCC2752D0E800384AE0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		E2A4EBD72752D47000384AE0 /* libsls_webgpu_ios.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libsls_webgpu_ios.a; path = ../target/universal/debug/libsls_webgpu_ios.a; sourceTree = "<group>"; };
+		E2A4EBD92752D48100384AE0 /* rust-bindings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "rust-bindings.h"; sourceTree = "<group>"; };
+		E2A4EBDA2752DFE600384AE0 /* install-sdl2.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "install-sdl2.sh"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E2A4EBAD2752D0E600384AE0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E2A4EBD82752D47000384AE0 /* libsls_webgpu_ios.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E2A4EBC32752D0E800384AE0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		E2A4EBA72752D0E600384AE0 = {
+			isa = PBXGroup;
+			children = (
+				E2A4EBB22752D0E600384AE0 /* sls-webgpu */,
+				E2A4EBC92752D0E800384AE0 /* sls-webgpuTests */,
+				E2A4EBB12752D0E600384AE0 /* Products */,
+				E2A4EBD62752D47000384AE0 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		E2A4EBB12752D0E600384AE0 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E2A4EBB02752D0E600384AE0 /* sls-webgpu.app */,
+				E2A4EBC62752D0E800384AE0 /* sls-webgpuTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E2A4EBB22752D0E600384AE0 /* sls-webgpu */ = {
+			isa = PBXGroup;
+			children = (
+				E2A4EBD92752D48100384AE0 /* rust-bindings.h */,
+				E2A4EBB32752D0E600384AE0 /* AppDelegate.swift */,
+				E2A4EBB52752D0E600384AE0 /* SceneDelegate.swift */,
+				E2A4EBB72752D0E600384AE0 /* ViewController.swift */,
+				E2A4EBB92752D0E600384AE0 /* Main.storyboard */,
+				E2A4EBBC2752D0E700384AE0 /* Assets.xcassets */,
+				E2A4EBBE2752D0E700384AE0 /* LaunchScreen.storyboard */,
+				E2A4EBC12752D0E700384AE0 /* Info.plist */,
+				E2A4EBDA2752DFE600384AE0 /* install-sdl2.sh */,
+			);
+			path = "sls-webgpu";
+			sourceTree = "<group>";
+		};
+		E2A4EBC92752D0E800384AE0 /* sls-webgpuTests */ = {
+			isa = PBXGroup;
+			children = (
+				E2A4EBCA2752D0E800384AE0 /* sls_webgpuTests.swift */,
+				E2A4EBCC2752D0E800384AE0 /* Info.plist */,
+			);
+			path = "sls-webgpuTests";
+			sourceTree = "<group>";
+		};
+		E2A4EBD62752D47000384AE0 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				E2A4EBD72752D47000384AE0 /* libsls_webgpu_ios.a */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E2A4EBAF2752D0E600384AE0 /* sls-webgpu */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E2A4EBCF2752D0E800384AE0 /* Build configuration list for PBXNativeTarget "sls-webgpu" */;
+			buildPhases = (
+				E2A4EBD52752D12B00384AE0 /* Run Script */,
+				E2A4EBAC2752D0E600384AE0 /* Sources */,
+				E2A4EBAD2752D0E600384AE0 /* Frameworks */,
+				E2A4EBAE2752D0E600384AE0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "sls-webgpu";
+			productName = "sls-webgpu";
+			productReference = E2A4EBB02752D0E600384AE0 /* sls-webgpu.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E2A4EBC52752D0E800384AE0 /* sls-webgpuTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E2A4EBD22752D0E800384AE0 /* Build configuration list for PBXNativeTarget "sls-webgpuTests" */;
+			buildPhases = (
+				E2A4EBC22752D0E800384AE0 /* Sources */,
+				E2A4EBC32752D0E800384AE0 /* Frameworks */,
+				E2A4EBC42752D0E800384AE0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E2A4EBC82752D0E800384AE0 /* PBXTargetDependency */,
+			);
+			name = "sls-webgpuTests";
+			productName = "sls-webgpuTests";
+			productReference = E2A4EBC62752D0E800384AE0 /* sls-webgpuTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E2A4EBA82752D0E600384AE0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1120;
+				LastUpgradeCheck = 1120;
+				ORGANIZATIONNAME = "Steven Shea";
+				TargetAttributes = {
+					E2A4EBAF2752D0E600384AE0 = {
+						CreatedOnToolsVersion = 11.2.1;
+					};
+					E2A4EBC52752D0E800384AE0 = {
+						CreatedOnToolsVersion = 11.2.1;
+						TestTargetID = E2A4EBAF2752D0E600384AE0;
+					};
+				};
+			};
+			buildConfigurationList = E2A4EBAB2752D0E600384AE0 /* Build configuration list for PBXProject "sls-webgpu" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = E2A4EBA72752D0E600384AE0;
+			productRefGroup = E2A4EBB12752D0E600384AE0 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E2A4EBAF2752D0E600384AE0 /* sls-webgpu */,
+				E2A4EBC52752D0E800384AE0 /* sls-webgpuTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E2A4EBAE2752D0E600384AE0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E2A4EBC02752D0E700384AE0 /* LaunchScreen.storyboard in Resources */,
+				E2A4EBBD2752D0E700384AE0 /* Assets.xcassets in Resources */,
+				E2A4EBBB2752D0E600384AE0 /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E2A4EBC42752D0E800384AE0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		E2A4EBD52752D12B00384AE0 /* Run Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Run Script";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\nexport PATH=$PATH:$HOME/.cargo/bin\ncargo lipo\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E2A4EBAC2752D0E600384AE0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E2A4EBB82752D0E600384AE0 /* ViewController.swift in Sources */,
+				E2A4EBB42752D0E600384AE0 /* AppDelegate.swift in Sources */,
+				E2A4EBB62752D0E600384AE0 /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E2A4EBC22752D0E800384AE0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E2A4EBCB2752D0E800384AE0 /* sls_webgpuTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E2A4EBC82752D0E800384AE0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E2A4EBAF2752D0E600384AE0 /* sls-webgpu */;
+			targetProxy = E2A4EBC72752D0E800384AE0 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		E2A4EBB92752D0E600384AE0 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				E2A4EBBA2752D0E600384AE0 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		E2A4EBBE2752D0E700384AE0 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				E2A4EBBF2752D0E700384AE0 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		E2A4EBCD2752D0E800384AE0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.2;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		E2A4EBCE2752D0E800384AE0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		E2A4EBD02752D0E800384AE0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = P98J5M8L6T;
+				INFOPLIST_FILE = "sls-webgpu/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"LIBRARY_SEARCH_PATHS[arch=*]" = ../target/universal/debug/;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.stevenlsjr.sls-webgpu";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "sls-webgpu/rust-bindings.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		E2A4EBD12752D0E800384AE0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = P98J5M8L6T;
+				INFOPLIST_FILE = "sls-webgpu/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = ../target/universal/debug;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.stevenlsjr.sls-webgpu";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "sls-webgpu/rust-bindings.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		E2A4EBD32752D0E800384AE0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = P98J5M8L6T;
+				INFOPLIST_FILE = "sls-webgpuTests/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "org.stevenlsjr.sls-webgpuTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/sls-webgpu.app/sls-webgpu";
+			};
+			name = Debug;
+		};
+		E2A4EBD42752D0E800384AE0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = P98J5M8L6T;
+				INFOPLIST_FILE = "sls-webgpuTests/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "org.stevenlsjr.sls-webgpuTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/sls-webgpu.app/sls-webgpu";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		E2A4EBAB2752D0E600384AE0 /* Build configuration list for PBXProject "sls-webgpu" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E2A4EBCD2752D0E800384AE0 /* Debug */,
+				E2A4EBCE2752D0E800384AE0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E2A4EBCF2752D0E800384AE0 /* Build configuration list for PBXNativeTarget "sls-webgpu" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E2A4EBD02752D0E800384AE0 /* Debug */,
+				E2A4EBD12752D0E800384AE0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E2A4EBD22752D0E800384AE0 /* Build configuration list for PBXNativeTarget "sls-webgpuTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E2A4EBD32752D0E800384AE0 /* Debug */,
+				E2A4EBD42752D0E800384AE0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = E2A4EBA82752D0E600384AE0 /* Project object */;
+}

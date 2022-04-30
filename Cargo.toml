@@ -5,4 +5,5 @@ members = [
     "crates/game",
     "crates/sls-webgpu-html5",
     "crates/sls-webgpu-native",
+    "crates/sls-webgpu-ios",
 ]

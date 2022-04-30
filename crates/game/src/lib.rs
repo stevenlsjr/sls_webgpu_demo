@@ -1,5 +1,5 @@
 pub mod game;
-#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "wasm_bindgen")]
 pub mod wasm_ffi;
 
 use wasm_bindgen::prelude::*;

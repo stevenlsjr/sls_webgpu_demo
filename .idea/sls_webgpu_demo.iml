@@ -15,6 +15,7 @@
       <sourceFolder url="file://$MODULE_DIR$/crates/sls-webgpu/examples" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/sls-webgpu/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/sls-webgpu/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/sls-webgpu-ios/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/crates/sls-webgpu-native/target" />
       <excludeFolder url="file://$MODULE_DIR$/crates/sls-webgpu-html5/target" />

@@ -1,7 +1,6 @@
 use legion::*;
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(inspectable)]
 #[derive(Debug)]
 pub struct GameState {
   world: World,
