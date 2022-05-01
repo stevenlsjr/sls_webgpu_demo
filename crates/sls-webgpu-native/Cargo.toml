@@ -22,5 +22,5 @@ features = ["default", "raw-window-handle"]
 
 [dependencies.sls-webgpu]
 path = "../sls-webgpu"
-features = ["sdl2_backend", "wgpu_renderer", "wgpu_imgui"]
+features = ["sdl2_backend", "wgpu_renderer"]
 

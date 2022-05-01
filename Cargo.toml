@@ -7,3 +7,11 @@ members = [
     "crates/sls-webgpu-native",
     "crates/sls-webgpu-ios",
 ]
+
+
+[profile.dev]
+opt-level = 0
+debug=true
+[profile.dev.package."*"]
+opt-level = 0
+debug=true

@@ -1,4 +1,4 @@
-cause std::{env, process::Command};
+use std::{env, process::Command};
 
 fn main() -> Result<(), String> {
   let is_windows = env::var("CARGO_CFG_TARGET_FAMILY") == Ok("windows".to_owned());
