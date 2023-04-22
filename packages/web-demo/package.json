@@ -4,15 +4,18 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "wasm-pack:dev": "wasm-pack build ../../crates/sls-webgpu-html5 -t web -s sls-webgpu",
     "preview": "vite preview"
   },
   "dependencies": {
-    "sls-webgpu-game": "*"
+    "gl-matrix": "^3.4.3",
+    "@sls-webgpu/html5": "*"
   },
   "devDependencies": {
+    "@webgpu/types": "^0.1.30",
     "gulp": "^4.0.2",
     "typescript": "^4.4.4",
-    "vite": "^2.7.10",
-    "vite-plugin-wasm-pack": "^0.1.9"
+    "vite": "^4.2.1",
+    "vite-plugin-wasm-pack": "^0.1.12"
   }
 }

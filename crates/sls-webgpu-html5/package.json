@@ -1,18 +1,26 @@
 {
-  "author": "You <you@example.com>",
-  "name": "rust-webpack-template",
+  "name": "@sls-webgpu/html5",
+  "collaborators": [
+    "You <you@example.com>"
+  ],
+  "description": "My super awesome Rust, WebAssembly, and Webpack project!",
   "version": "0.1.0",
+  "license": "MIT",
   "scripts": {
-    "build": "rimraf dist pkg && webpack",
-    "start": "rimraf dist pkg && webpack-dev-server -d",
-    "test": "cargo test && wasm-pack test --headless"
+    "build": "node scripts/wasm-build.mjs"
   },
+  "files": [
+    "./pkg/sls_webgpu_html5_bg.wasm",
+    "./pkg/sls_webgpu_html5_bg.wasm.d.ts",
+    "./pkg/sls_webgpu_html5.js",
+    "./pkg/sls_webgpu_html5.d.ts"
+  ],
+  "module": "./pkg/sls_webgpu_html5.js",
+  "types": "./pkg/sls_webgpu_html5.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ],
   "devDependencies": {
-    "@wasm-tool/wasm-pack-plugin": "^1.1.0",
-    "copy-webpack-plugin": "^5.0.3",
-    "webpack": "^4.42.0",
-    "webpack-cli": "^3.3.3",
-    "webpack-dev-server": "^3.7.1",
-    "rimraf": "^3.0.0"
+    "nodemon": "^2.0.22"
   }
 }

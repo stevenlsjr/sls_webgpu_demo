@@ -1,10 +1,6 @@
 use lazy_static::lazy_static;
 use wasm_bindgen::prelude::*;
 pub mod app;
-pub mod ffi;
-pub mod options;
-pub mod platform;
-pub mod wgpu_app;
 
 // When the `wee_alloc` feature is enabled, this uses `wee_alloc` as the global
 // allocator.
@@ -23,7 +19,7 @@ pub fn main_js() -> Result<(), JsValue> {
   console_error_panic_hook::set_once();
 
   // Your code goes here!
-  console_log::init().unwrap();
+  console_log::init().map_err(|e| JsValue::from_str(&e.to_string()))?;
 
   Ok(())
 }

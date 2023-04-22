@@ -1,0 +1,3 @@
+#! /bin/bash
+
+nodemon --exec "wasm-pack build './crates/sls-webgpu-html5' -t web $@" -e 'rs toml' crates/

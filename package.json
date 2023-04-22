@@ -3,9 +3,18 @@
   "private": true,
   "workspaces": [
     "packages/*",
-    "crates/game/pkg"
+    "js-apps/*",
+    "crates/game/pkg",
+    "crates/sls-webgpu-html5"
   ],
+
+  "scripts": {
+    
+    "wasm-pack-watch": "scripts/wasm-pack-watch --dev"
+  },
   "devDependencies": {
-    "lerna": "^3.22.1"
+    "lerna": "^3.22.1",
+    "nodemon": "^2.0.22",
+    "turbo": "^1.8.6"
   }
 }

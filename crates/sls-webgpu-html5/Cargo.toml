@@ -1,6 +1,6 @@
 # You must change these to your own details.
 [package]
-name = "sls-wasm-html5"
+name = "sls-webgpu-html5"
 description = "My super awesome Rust, WebAssembly, and Webpack project!"
 version = "0.1.0"
 authors = ["You <you@example.com>"]
@@ -25,13 +25,14 @@ debug = true
 [features]
 # If you uncomment this line, it will enable `wee_alloc`:
 default = ["wee_alloc", "wgpu_renderer"]
-wgpu_renderer = ["sls-webgpu/wgpu_renderer"]
-opengl_renderer = ["sls-webgpu/opengl_renderer"]
+# wgpu_renderer = ["sls-webgpu/wgpu_renderer"]
+wgpu_renderer = []
+# opengl_renderer = ["sls-webgpu/opengl_renderer"]
 
 [dependencies]
 # The `wasm-bindgen` crate provides the bare minimum functionality needed
 # to interact with JavaScript.
-wasm-bindgen = { version = "0.2.45", features = ["serde-serialize"] }
+wasm-bindgen = { version = "0.2.84", features = ["serde-serialize"] }
 wasm-bindgen-futures = {version="~0.4"}
 
 # `wee_alloc` is a tiny allocator for wasm that is only ~1K in code size
@@ -45,7 +46,6 @@ nalgebra-glm = "*"
 lazy_static = "*"
 serde = { version = "~1.0", features = ["derive"] }
 
-glow = { version = "*", optional = true }
 
 # The `web-sys` crate allows you to interact with the various browser APIs,
 # like the DOM.
@@ -181,10 +181,10 @@ features = [
     "GpuVertexState",
 ]
 
-[dependencies.sls-webgpu]
-path = "../sls-webgpu"
-default-features = false
-features = ["html5_backend" ]
+# [dependencies.sls-webgpu]
+# path = "../sls-webgpu"
+# default-features = false
+# features = ["html5_backend" ]
 
 
 # The `console_error_panic_hook` crate provides better debugging of panics by

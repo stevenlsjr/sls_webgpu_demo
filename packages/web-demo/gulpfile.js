@@ -1,56 +1,42 @@
-const gulp = require('gulp')
-const path = require('path')
-const {spawn} = require('child_process')
-const workspaceDir = path.resolve(__dirname, '../..')
+const { series, parallel, watch } = require("gulp");
+const path = require("path");
+const { spawn } = require("child_process");
+const workspaceDir = path.resolve(__dirname, "../..");
 
-const rustSrc = [
-    path.resolve(workspaceDir, 'crates/game/src/**/*.rs')
-]
-const wasmPackDirs = [
-    path.resolve(workspaceDir, 'crates/game')
-]
+const wasmPackDirs = [path.resolve(workspaceDir, "crates/game")];
 
-const wasmPackArgs = ['--dev']
-
-function wasmPack(dir) {
-    return (cb) => {
-        const ps = spawn('wasm-pack', ['build', '-t', 'web'].concat(wasmPackArgs), {
-            stdio: 'inherit',
-            cwd: dir
-        })
-        ps.on('error', (err) => {
-            cb(err)
-        })
-
-        ps.on('exit', (rc) => {
-            if (!!rc) {
-                cb(new Error(`wasm-pack returned nonzero exit code ${rc}`))
-            } else {
-                cb()
-            }
-        })
-    }
+function createWasmPack({ isDev, cratePath }) {
+  return function () {
+    console.log(`running wasm-pack in ${isDev ? "dev" : "production"} mode`);
+    return spawn(
+      "wasm-pack",
+      ["build", cratePath, "-t", "web"].concat(isDev ? ["--dev"] : []),
+      { stdio: "inherit" }
+    );
+  };
 }
 
-function vite(cb) {
-    ps = spawn('yarn', ['dev'], {
-        stdio: 'inherit'
-    })
-    ps.on('exit', (rc) => {
-        if (!!rc) {
-            cb(new Error(`vite returned nonzero exit code ${rc}`))
-        } else {
-            cb()
-        }
-    })
+const buildSlsWgpuHtml5 = createWasmPack({
+  isDev: false,
+  cratePath: "../../crates/sls-webgpu-html5",
+});
+const buildSlsWgpuHtml5Dev = createWasmPack({
+  isDev: true,
+  cratePath: "../../crates/sls-webgpu-html5",
+});
+
+const watchRust = series(buildSlsWgpuHtml5Dev, function () {
+  return watch("../../crates/sls-webgpu-html5/**/*.rs", buildSlsWgpuHtml5Dev);
+});
+function viteDev() {
+  return spawn("yarn", ["dev"], {
+    stdio: "inherit",
+  });
 }
 
-const wasmPackGame = wasmPack(wasmPackDirs[0])
-const wasmPackGameWatch = gulp.series(wasmPackGame, () => {
-    return gulp.watch([rustSrc[0]], wasmPackGame)
-})
-
-exports.vite = vite
-exports.wasmPackGame = wasmPackGame
-exports.wasmPackGameWatch = wasmPackGameWatch
-exports.default = gulp.parallel(wasmPackGameWatch)
+const dev = parallel(viteDev, watchRust);
+module.exports = {
+  watchRust,
+  dev,
+  // default: build
+};
